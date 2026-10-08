@@ -19,7 +19,7 @@ Reusable `no_std` ESP Wi-Fi transport built on `esp-radio` and `embassy-net`: st
 
 ## Architecture
 
-Platform Wi-Fi adapter. `net/wifi/core` defines the portable transport/provisioning capabilities and `net/wifi/manager` owns durable credentials and retry/reprovision policy.
+Platform Wi-Fi adapter. `common/net/wifi/core` defines the portable transport/provisioning capabilities and `common/net/wifi/manager` owns durable credentials and retry/reprovision policy.
 
 ## Public API
 
@@ -41,9 +41,9 @@ The network handle of the access point is valid only while it is active; the pro
 
 The handle identifies the reused stack, not permanent link availability. Product composition may publish it to consumers through the portable manager's `LinkObserver::ready`; `link_down` reports configuration loss. The portable manager retains reconnection policy ownership.
 
-## Invariants
+## AP + DHCP acceptance scope
 
-- `INV-001`
+For this migration, the access point is considered minimally useful when a WPA2 client can associate and obtain a lease from the built-in `edge-dhcp` server. Verify the assigned address belongs to `172.23.241.0/24`, the AP address is `172.23.241.1`, and clients receive no gateway or DNS. Verify lease service stops when AP stops, restarts cleanly, and station reconnection works across AP/STA mode changes. **An HTTP server or Web provisioning page is not required or part of this migration.**
 
 ## Validation
 
@@ -58,13 +58,13 @@ rustc --edition=2024 --test drivers/net/wifi/esp32/src/connection.rs -o /tmp/iob
 
 They cover retained DHCP after disconnection, link/config loss, changed credentials and invalidation of prior connection evidence. ESP compilation checks the adapter call sites (`cargo +esp check -Z build-std=core,alloc --target xtensa-esp32s3-none-elf -p iobewi-esp-wifi --features esp32s3`, and the C3 equivalent). Hardware acceptance must verify Improv requests during streaming preserve the association and that access-point loss still reconnects; host tests do not prove radio behavior.
 
-Access point acceptance, **not yet run on hardware**: a client associates with the WPA2 passphrase and receives a lease; the product's service on `access_point_handle()` is reachable from it; `connect` with the access point active leaves the client associated; `stop_access_point` makes the access point disappear and DHCP stop answering; the station reconnects after both start and stop through `maintain`; with no access point configured the behavior and memory are unchanged; free heap is measured before, during and after repeated start/stop cycles. The portable pieces are host-tested in `iobewi-wifi-core` and `iobewi-wifi-manager`; the DHCP server is the external `edge-dhcp` crate, so its lease logic is not re-tested here.
+Access point acceptance, **not yet run on hardware**: a client associates with the WPA2 passphrase and receives a lease in the configured subnet; `connect` with the access point active leaves the client associated; `stop_access_point` makes the access point disappear and DHCP stop answering; the station reconnects after both start and stop through `maintain`; with no access point configured the behavior and memory are unchanged; free heap is measured before, during and after repeated start/stop cycles. The portable pieces are host-tested in `iobewi-wifi-core` and `iobewi-wifi-manager`; the DHCP server is the external `edge-dhcp` crate, so its lease logic is not re-tested here.
 
 ## Known limitations
 
 No chip is selected by default; hardware validation is required when radio/HAL versions or connection mechanics change.
 
-Starting or stopping the access point restarts the whole radio, so it interrupts an established station connection (streaming included); this driver does not provide an access point that can be toggled without touching the station, and the portable contract does not promise one (ADR-0017). When a station is associated the access point follows the station's channel, so the requested channel is a hint. When the station associates, the radio moves to the router's channel and the access point follows it (first run: requested 6, router 11), so an access point client can lose its link for a moment; products should expect it around `connect`, including a join that fails (a wrong passphrase still associates at the radio level before the handshake is refused). First failed-credentials run: the client's link dropped during the attempt and came back afterwards. The access point address and DHCP range are fixed constants; the DHCP server hands out no gateway and no DNS, so clients report no internet access. Any HTTP the product serves on the access point is plain (no TLS); that exception to the TLS-only management policy is the product's decision and must be limited to the access point network. Association and the subsequent DHCP wait each have a 20-second timeout; the earlier disconnect and configuration-down waits are not covered by those timeouts.
+Starting or stopping the access point restarts the whole radio, so it interrupts an established station connection (streaming included); this driver does not provide an access point that can be toggled without touching the station, and the portable contract does not promise one (ADR-0017). When a station is associated the access point follows the station's channel, so the requested channel is a hint. When the station associates, the radio moves to the router's channel and the access point follows it (first run: requested 6, router 11), so an access point client can lose its link for a moment; products should expect it around `connect`, including a join that fails (a wrong passphrase still associates at the radio level before the handshake is refused). First failed-credentials run: the client's link dropped during the attempt and came back afterwards. The access point address and DHCP range are fixed constants; the DHCP server hands out no gateway and no DNS, so clients report no internet access. HTTP and Web provisioning are deliberately deferred; any future HTTP exposure requires a separate security review and explicit binding to the AP network. Association and the subsequent DHCP wait each have a 20-second timeout; the earlier disconnect and configuration-down waits are not covered by those timeouts.
 
 ## Related components
 
