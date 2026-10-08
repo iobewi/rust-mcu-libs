@@ -149,6 +149,10 @@ Organize subdirectories by **capability** (e.g. `config/space`, `fs/nvs`, `flash
 - **Dependencies:** use latest stable mutually compatible ecosystem releases; record explicit temporary compatibility pins and their reason. `Cargo.lock` remains ignored for this library repository.
 - **Documentation:** describe actual public calls, responsibilities, prerequisites, limits and the verified status. Do not claim unimplemented targets or production readiness.
 
+## Universal CI contract for workspace crates
+
+Every crate in the Cargo workspace—portable capability, MCU-specific adapter or executable reference example—must ship with a `ci.json` alongside its `Cargo.toml`. The shared GitHub Actions workflow discovers all workspace members and uses the per-crate profile to schedule the correct host or MCU checks. Missing/invalid metadata fails CI; crates must never be omitted silently. See [.github/README.md](.github/README.md) for the supported profiles, extension rules and discovery command. This is a verification contract, **not** a new runtime abstraction or a substitute for physical hardware qualification.
+
 ## Verification and change discipline
 
 For a meaningful change:
