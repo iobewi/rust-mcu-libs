@@ -199,7 +199,7 @@ mod tests {
             alloc::vec![Network {
                 ssid: "test-ap".to_string(),
                 signal_strength: -42,
-                secured: true
+                secured: true,
             }]
         }
         async fn provision(&mut self, _ssid: &str, _password: String) -> bool {
