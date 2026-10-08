@@ -1,12 +1,3 @@
----
-layer: portable-contract
-status: implemented
-invariants:
-  - INV-001
-gates:
-  - BG-STORAGE
----
-
 # iobewi-nvs-core
 
 ## Summary
@@ -21,7 +12,7 @@ Encode/decode CSM1 records and translate payload budgets into reserved NVS entry
 
 Physical flash access, locking, generation advancement, ConfigBackend implementation and configuration policy.
 
-## Architecture
+## Integration
 
 Portable helper below the ESP ConfigSpace backend; it has no fs/config dependency and accepts plain byte budgets.
 
@@ -33,18 +24,10 @@ Portable helper below the ESP ConfigSpace backend; it has no fs/config dependenc
 
 validate_partition_geometry checks erase alignment, at least two erase pages, checked end arithmetic and physical flash capacity. It does not discover labels, validate partition contents or choose a fallback address. Host tests cover valid geometry, alignment, size, overflow and bounds errors.
 
-## Invariants
+## Testing
 
-- `INV-001`
-
-## Validation
-
-`cargo test -p iobewi-nvs-core` checks golden bytes, corruption, key rules and accounting overflow.
+- `cargo test -p iobewi-nvs-core` checks golden bytes, corruption, key rules and accounting overflow.
 
 ## Known limitations
 
 Uses alloc for encoding. Keys must be nonempty ASCII without NUL and at most 15 bytes. Decoder rejects short headers, wrong magic and unknown flag bits. Reservations include two versions of the largest record: 2 × (ceil((13 + budget)/32) + ceil((13 + budget)/4000) + 1); capacity keeps one page in reserve. This is entry accounting, not a guarantee against all storage failures.
-
-## Related components
-
-`fs/nvs/config-esp32` consumes framing/accounting; `fs/nvs/esp32` owns the borrowed NVS view.
