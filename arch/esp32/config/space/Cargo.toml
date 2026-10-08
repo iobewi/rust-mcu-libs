@@ -26,9 +26,9 @@ esp32s3 = [
 iobewi-config-space = { path = "../../../../common/config/space" }
 iobewi-nvs-core = { path = "../../../../common/fs/nvs" }
 iobewi-esp-flash = { path = "../../flash" }
-iobewi-esp-nvs = { path = ".." }
+iobewi-esp-nvs = { path = "../../fs/nvs" }
 esp-nvs = "0.5.0"
 log = { version = "0.4.29", default-features = false }
 
-iobewi-esp-partitions = { path = "../../partitions" }
+iobewi-esp-partitions = { path = "../../flash/partitions" }
 embedded-storage = "0.3.1"
