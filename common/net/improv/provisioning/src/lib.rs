@@ -6,6 +6,8 @@
 //! The application owns serial I/O, authorization, UX and service startup.
 
 extern crate alloc;
+#[cfg(test)]
+extern crate std;
 
 use alloc::{format, string::String, vec::Vec};
 use improv_serial::{self as improv, Command, ImprovError, ParsedCommand, Parser, State};
@@ -146,6 +148,86 @@ fn next_url<W: WifiProvisioning>(wifi: &W) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
+    use iobewi_wifi_core::Network;
+    use core::{future::Future, task::{Context, Poll, Waker}};
+    use std::{sync::Arc, task::Wake};
+
+    struct Noop;
+    impl Wake for Noop { fn wake(self: Arc<Self>) {} }
+    fn run<F: Future>(future: F) -> F::Output {
+        let waker = Waker::from(Arc::new(Noop));
+        let mut future = core::pin::pin!(future);
+        match future.as_mut().poll(&mut Context::from_waker(&waker)) {
+            Poll::Ready(value) => value,
+            Poll::Pending => panic!("unexpected pending in synchronous Wi-Fi mock"),
+        }
+    }
+
+    struct MockWifi { online: bool, success: bool }
+    impl WifiProvisioning for MockWifi {
+        type Address = &'static str;
+        type NetworkHandle = u8;
+        async fn scan(&mut self) -> Vec<Network> {
+            alloc::vec![Network { ssid: "test-ap".to_string(), signal_strength: -42, secured: true }]
+        }
+        async fn provision(&mut self, _ssid: &str, _password: String) -> bool {
+            self.online = self.success;
+            self.success
+        }
+        fn address(&self) -> Option<Self::Address> {
+            self.online.then_some("192.0.2.10")
+        }
+        fn network_handle(&self) -> Option<Self::NetworkHandle> {
+            self.online.then_some(1)
+        }
+        fn is_online(&self) -> bool { self.online }
+    }
+
+    const INFO: DeviceInfo<'static> = DeviceInfo {
+        firmware_name: "test", firmware_version: "1", chip_name: "host", device_name: "device",
+    };
+
+    #[test]
+    fn already_connected_sends_state_and_rpc_result() {
+        let mut coordinator = Provisioning::new(true);
+        let mut wifi = MockWifi { online: true, success: true };
+        let reply = run(coordinator.handle(ParsedCommand::GetCurrentState, &mut wifi, &INFO));
+        assert_eq!(reply.frames.len(), 2);
+        assert_eq!(reply.frames[0], improv::state_frame(State::Provisioned));
+        assert_eq!(reply.frames[1], improv::rpc_response_frame(Command::GetCurrentState,
+            &[b"https://192.0.2.10/"]));
+    }
+
+    #[test]
+    fn credentials_success_and_failure_have_distinct_responses() {
+        let command = || ParsedCommand::WifiSettings(improv::WifiSettings {
+            ssid: "demo".to_string(), password: "secret".to_string(),
+        });
+        let mut coordinator = Provisioning::new(false);
+        let mut wifi = MockWifi { online: false, success: true };
+        let ok = run(coordinator.handle(command(), &mut wifi, &INFO));
+        assert_eq!(ok.event, Some(Event::Connected));
+        assert_eq!(coordinator.state(), State::Provisioned);
+        assert_eq!(ok.frames[0], improv::state_frame(State::Provisioning));
+        assert_eq!(ok.frames[1], improv::state_frame(State::Provisioned));
+        wifi.success = false;
+        let err = run(coordinator.handle(command(), &mut wifi, &INFO));
+        assert_eq!(err.event, Some(Event::ConnectionFailed));
+        assert_eq!(coordinator.state(), State::Authorized);
+        assert_eq!(err.frames[1], improv::error_frame(ImprovError::UnableToConnect));
+    }
+
+    #[test]
+    fn scan_ends_with_an_empty_rpc_response() {
+        let mut coordinator = Provisioning::new(false);
+        let mut wifi = MockWifi { online: false, success: true };
+        let reply = run(coordinator.handle(ParsedCommand::GetWifiNetworks, &mut wifi, &INFO));
+        assert_eq!(reply.event, Some(Event::Scanning));
+        assert_eq!(reply.frames.len(), 2);
+        assert_eq!(reply.frames[1], improv::rpc_response_frame(Command::GetWifiNetworks, &[]));
+    }
+
     #[test]
     fn initialization_and_link_transitions() {
         let mut session = Provisioning::new(false);
