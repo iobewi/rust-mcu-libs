@@ -1,6 +1,6 @@
-# Wi-Fi modes — ESP32 reference examples
+# Wi-Fi modes — multi-MCU reference examples
 
-Three **separate firmware binaries**, one portable application scenario in `src/app.rs`, a conditional ESP32 implementation in `src/platform/esp32.rs`, and the existing Wi-Fi components (no custom radio, DHCP, or HTTP implementation):
+Three **separate firmware modes** (STA, AP and AP+STA) share a portable application scenario in `src/app.rs`. Each MCU family supplies a conditional implementation under `src/platform/`. Currently only ESP32-C3/S3 is implemented; RP and Teensy support can be added without changing the scenario. No custom radio, DHCP or HTTP implementation is introduced.
 
 | Binary | Exercises | Acceptance |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ Three **separate firmware binaries**, one portable application scenario in `src/
 | `wifi-ap` | WPA2 soft AP + `edge-dhcp` | A phone/laptop associates and receives `172.23.241.2` or another address in `172.23.241.0/24` |
 | `wifi-apsta` | Concurrent AP + station | STA gets router IPv4; AP remains active and serves client DHCP |
 
-All three binaries select the concrete platform with `#[cfg]` and reuse the same `src/app.rs` scenario (generic over the existing `WifiTransport` and `WifiAccessPoint` traits). `src/platform/esp32.rs` alone owns `esp-hal`, Embassy startup, the physical Wi-Fi peripheral and socket resource sizing. No new HAL abstraction is added. The platform driver already contains the AP DHCP server; no HTTP server or web form is started. Credentials are application/build inputs, not responsibilities of the Wi-Fi driver. For persisted credentials, compose `iobewi-wifi-manager` with `ConfigSpace` in your product.
+The binaries select their concrete platform with `#[cfg]` and reuse `src/app.rs` (generic over the existing `WifiTransport` and `WifiAccessPoint` traits). Platform modules own MCU bootstrap, Embassy and physical networking resources; on ESP32 this wiring lives in `src/platform/esp32.rs`. No new HAL abstraction is added. The ESP32 driver already provides AP DHCP through `edge-dhcp`; no HTTP server or web form is started. Credentials are application/build inputs, not responsibilities of the Wi-Fi driver. For persisted credentials, compose `iobewi-wifi-manager` with `ConfigSpace` in your product.
 
 ## Source layout
 
@@ -25,7 +25,7 @@ src/
 
 Additional MCUs will add their own platform module and feature selection, without changing `app.rs`. No RP or Teensy platform is currently implemented.
 
-## Builds (examples, not yet verified)
+## ESP32-C3/S3 builds — currently supported platforms (not yet verified)
 
 Select exactly one chip feature. Install the relevant ESP target toolchain and linker/bootloader setup. Set credentials in the **build environment** (values will be embedded in the firmware image: not a secret storage mechanism).
 
@@ -43,7 +43,7 @@ cargo +esp build --release -p example-wifi-modes --bin wifi-apsta --features esp
 
 **Provisioning:** this example intentionally does not persist STA credentials. No ConfigSpace or flash is initialized. That is covered by `examples/config-manager` and the reusable portable Wi-Fi manager.
 
-## Hardware validation checklist
+## Hardware validation checklist (ESP32-C3/S3)
 
 1. Flash `wifi-sta`: verify successful association and IPv4 via the upstream network DHCP client.
 2. Flash `wifi-ap`: connect a phone/laptop using the build-time WPA2 password; inspect the client's assigned address, gateway and DNS (AP should offer neither).
