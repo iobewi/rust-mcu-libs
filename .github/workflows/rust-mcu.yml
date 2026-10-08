@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      xtensa_matrix: ${{ steps.matrix.outputs.xtensa_matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate workspace and discover crate CI
@@ -62,6 +63,8 @@ jobs:
         with:
           buildtargets: esp32s3
           default: false
+          version: '1.98.1.0'
+          github-token: ${{ github.token }}
       - name: Host tests
         if: matrix.chip == 'host'
         env:
@@ -83,6 +86,30 @@ jobs:
             -p "$PKG" --features esp32c3 "--$TARGETS"
       - name: ESP32-S3 cross-check
         if: matrix.chip == 'esp32s3'
+        env:
+          PKG: ${{ matrix.package }}
+          TARGETS: ${{ matrix.targets }}
+        run: |
+          cargo +esp check -Z build-std=core,alloc \
+            --target xtensa-esp32s3-none-elf \
+            -p "$PKG" --features esp32s3 "--$TARGETS"
+
+  xtensa-latest:
+    name: Xtensa latest / ${{ matrix.package }}
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.xtensa_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: esp-rs/xtensa-toolchain@v1.7.0
+        with:
+          buildtargets: esp32s3
+          default: false
+          version: latest
+          github-token: ${{ github.token }}
+      - name: Verify ESP32-S3 against latest Xtensa Rust
         env:
           PKG: ${{ matrix.package }}
           TARGETS: ${{ matrix.targets }}
