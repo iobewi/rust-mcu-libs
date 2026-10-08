@@ -1,5 +1,12 @@
 [workspace]
-members = ["fs/config"]
+members = [
+  "fs/config",
+  "fs/nvs/core",
+  "fs/nvs/esp32",
+  "fs/nvs/config-esp32",
+  "drivers/flash/esp32",
+  "drivers/flash/partitions-esp32",
+]
 resolver = "3"
 
 [workspace.package]
