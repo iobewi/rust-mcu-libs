@@ -433,10 +433,7 @@ mod tests {
         let wifi = manager.claim("wifi", Budget::new(4)).unwrap();
 
         let err = block_on(wifi.commit(b"12345")).unwrap_err();
-        assert!(matches!(
-            err,
-            SpaceError::TooLarge { size: 5, max: 4 }
-        ));
+        assert!(matches!(err, SpaceError::TooLarge { size: 5, max: 4 }));
     }
 
     #[test]
@@ -449,14 +446,8 @@ mod tests {
         block_on(wifi.commit(b"wifi-secret")).unwrap();
         block_on(tls.commit(b"tls-secret")).unwrap();
 
-        assert_eq!(
-            block_on(wifi.load()).unwrap().unwrap().data,
-            b"wifi-secret"
-        );
-        assert_eq!(
-            block_on(tls.load()).unwrap().unwrap().data,
-            b"tls-secret"
-        );
+        assert_eq!(block_on(wifi.load()).unwrap().unwrap().data, b"wifi-secret");
+        assert_eq!(block_on(tls.load()).unwrap().unwrap().data, b"tls-secret");
     }
 
     #[test]
