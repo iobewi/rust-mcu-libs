@@ -62,6 +62,18 @@ We strive for:
 
 Neither Rust nor a successful test suite can guarantee a component is “100% safe.” We prefer explicit guarantees supported by design, testing, and review over absolute claims.
 
+### 6. Stay current with the Rust embedded ecosystem
+
+**The latest stable, compatible upstream releases are our default target**, especially for Rust, Embassy, `esp-hal`, HALs, embedded traits, and related crates.
+
+- **Latest-first development:** use current stable releases when implementing or updating a component. Do not pin an old version just because it was used in a previous project.
+- **Compatibility must be demonstrated:** check the versions together through real compilation, tests, and target-specific builds. "Latest" is not a claim that every independently released crate is automatically compatible.
+- **Reproducible builds:** commit and maintain lockfiles for executable examples and firmware where appropriate. Reproducibility and up-to-date dependencies are complementary, not competing goals.
+- **Explicit exceptions:** if the newest release is incompatible, document the blocker, the tested working version, and the path to upgrade. Temporary pins must not silently become permanent.
+- **Continuous maintenance:** regularly review upstream releases, Rust toolchains, deprecations, and security advisories. Test dependency updates before adopting them; require hardware validation when behavior depends on peripherals, timing, flash, or radio.
+
+**We do not maintain compatibility with obsolete dependency versions by default.** Supporting older versions requires an explicit, justified use case.
+
 ## What belongs in this library?
 
 A candidate component should answer four questions:
