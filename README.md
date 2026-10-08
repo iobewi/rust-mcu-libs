@@ -113,6 +113,10 @@ An application should be able to:
 
 **No required global service manager. No mandatory wrapper around every dependency. No forced adoption of the whole repository.**
 
+## Architecture and coding rules
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the responsibilities of `common/`, `arch/<family>/`, and `examples/`, conditional MCU selection, hardware resource ownership, configuration-space composition and verification practices. Agent-specific mandatory development rules remain in [AGENTS.md](AGENTS.md).
+
 ## Repository direction
 
 We may retain a familiar, discoverable organization such as `config/`, `log/`, `net/`, `fs/`, `drivers/`, and `examples/`.
