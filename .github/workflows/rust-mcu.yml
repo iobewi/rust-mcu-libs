@@ -38,7 +38,7 @@ jobs:
           -p iobewi-nvs-core
           -p iobewi-wifi-core
           -p iobewi-wifi-manager
-          --lib --bins -- -D warnings
+          --all-targets -- -D warnings
       - name: Enforce library lockfile policy
         run: |
           if git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
