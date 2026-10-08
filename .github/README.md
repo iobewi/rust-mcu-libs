@@ -40,6 +40,14 @@ The latest checks are **not** `continue-on-error`; a Rust compatibility regressi
 
 Keep the pinned baseline version current by updating this workflow and documenting the new value. A green reference build alone does not establish latest compatibility.
 
+## Impact-aware validation
+
+For pull requests and pushes, discovery compares the relevant Git revisions and runs checks only for changed workspace members and their transitive dependents. Cargo's resolved dependency graph is authoritative, including renamed dependencies. Unknown changed files or changes in global CI/architecture files fail closed to full validation. Every workspace member still requires valid `ci.json` regardless of selection.
+
+A scheduled daily workflow and manual dispatch always test **all crates**, including the pinned and latest Xtensa checks, catching upstream changes even if source has not changed (this repository does not commit `Cargo.lock`). The always-running `affected-gate` status succeeds for genuinely empty affected matrices but fails if any selected check fails or discovery breaks. Format and lockfile checks remain global.
+
+The CI configuration intentionally triggers on all PRs; do not add root `paths` filters that leave required GitHub checks pending.
+
 ## Run discovery locally
 
 ```sh
