@@ -186,7 +186,7 @@ pub fn validate_partition_geometry(
     capacity: usize,
     erase_size: usize,
 ) -> Result<(), PartitionGeometryError> {
-    if erase_size == 0 || offset % erase_size != 0 || size % erase_size != 0 {
+    if erase_size == 0 || !offset.is_multiple_of(erase_size) || !size.is_multiple_of(erase_size) {
         return Err(PartitionGeometryError::Unaligned);
     }
     if size / erase_size < 2 {
