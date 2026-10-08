@@ -59,8 +59,8 @@ jobs:
 
   prepare-xtensa:
     name: Prepare Xtensa / ${{ matrix.variant }}
-    needs: [discover, prepare-xtensa]
-    if: always() && needs.discover.result == 'success' && needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
+    needs: discover
+    if: needs.discover.outputs.has_xtensa == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -151,8 +151,8 @@ jobs:
 
   xtensa-latest:
     name: Xtensa latest / ${{ matrix.package }}
-    needs: discover
-    if: needs.discover.outputs.has_xtensa == 'true'
+    needs: [discover, prepare-xtensa]
+    if: needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
