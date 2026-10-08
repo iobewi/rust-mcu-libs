@@ -21,7 +21,8 @@ async fn wifi_task(
         peripheral,
         spawner,
         STA_RESOURCES.init(StackResources::new()),
-    ).with_access_point(AP_RESOURCES.init(StackResources::new()));
+    )
+    .with_access_point(AP_RESOURCES.init(StackResources::new()));
 
     crate::app::run(&mut wifi, mode).await;
 }
