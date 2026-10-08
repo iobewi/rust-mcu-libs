@@ -1,0 +1,13 @@
+[package]
+name = "improv-serial"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Portable no_std Improv Serial protocol codec"
+repository.workspace = true
+readme = "README.md"
+keywords = ["improv", "wifi", "serial", "embedded", "no-std"]
+categories = ["embedded", "no-std"]
+
+[dependencies]
