@@ -1,0 +1,5 @@
+# Library repository: resolve and test current compatible dependencies
+**/Cargo.lock
+
+# Rust build outputs
+**/target/
