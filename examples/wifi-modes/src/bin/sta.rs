@@ -22,5 +22,7 @@ fn main() -> ! {
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
-    loop { core::hint::spin_loop(); }
+    loop {
+        core::hint::spin_loop();
+    }
 }
