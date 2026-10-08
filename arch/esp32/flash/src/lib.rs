@@ -22,6 +22,7 @@
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
 use embedded_storage::nor_flash::{ErrorType, MultiwriteNorFlash, NorFlash, ReadNorFlash};
+pub use esp_hal::peripherals::FLASH as FlashPeripheral;
 use esp_hal::peripherals::FLASH;
 use esp_storage::FlashStorage;
 use static_cell::StaticCell;
