@@ -14,6 +14,8 @@ members = [
 default-members = [
   "common/config/space",
   "common/fs/nvs",
+  "common/net/wifi/core",
+  "common/net/wifi/manager",
 ]
 resolver = "3"
 
