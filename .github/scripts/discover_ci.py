@@ -38,5 +38,7 @@ if __name__ == "__main__":
         if len(sys.argv) == 3 and sys.argv[1] == "--github-output":
             with open(sys.argv[2], "a") as output:
                 output.write("matrix=" + encoded + "\n")
+                xtensa = {"include": [item for item in result["include"] if item["chip"] == "esp32s3"]}
+                output.write("xtensa_matrix=" + json.dumps(xtensa, separators=(",", ":")) + "\n")
     except (ValueError, KeyError, OSError, json.JSONDecodeError) as error:
         sys.exit(f"CI discovery error: {error}")
