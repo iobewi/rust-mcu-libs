@@ -14,7 +14,7 @@ Physical flash access, locking, generation advancement, ConfigBackend implementa
 
 ## Integration
 
-Portable helper below the ESP ConfigSpace backend; it has no fs/config dependency and accepts plain byte budgets.
+Portable helper below the ESP ConfigSpace backend; it has no common/config/space dependency and accepts plain byte budgets.
 
 ## Public API
 
