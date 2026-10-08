@@ -59,12 +59,16 @@ jobs:
         include:
           - package: iobewi-esp-config-space
             features: esp32c3
+            targets: --lib
           - package: iobewi-esp-wifi
             features: esp32c3
+            targets: --lib
           - package: example-config-manager
             features: esp32c3
+            targets: --bins
           - package: example-wifi-modes
             features: esp32c3
+            targets: --bins
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
@@ -78,7 +82,7 @@ jobs:
           --target riscv32imc-unknown-none-elf
           -p ${{ matrix.package }}
           --features ${{ matrix.features }}
-          --lib --bins
+          ${{ matrix.targets }}
 
   esp32s3:
     name: ESP32-S3 / ${{ matrix.package }}
@@ -89,12 +93,16 @@ jobs:
         include:
           - package: iobewi-esp-config-space
             features: esp32s3
+            targets: --lib
           - package: iobewi-esp-wifi
             features: esp32s3
+            targets: --lib
           - package: example-config-manager
             features: esp32s3
+            targets: --bins
           - package: example-wifi-modes
             features: esp32s3
+            targets: --bins
     steps:
       - uses: actions/checkout@v4
       - uses: esp-rs/xtensa-toolchain@v1.7.0
@@ -108,4 +116,4 @@ jobs:
           --target xtensa-esp32s3-none-elf
           -p ${{ matrix.package }}
           --features ${{ matrix.features }}
-          --lib --bins
+          ${{ matrix.targets }}
