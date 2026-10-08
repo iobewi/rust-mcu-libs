@@ -7,6 +7,7 @@ use iobewi_esp_wifi::WifiManager;
 use iobewi_wifi_core::{AccessPointConfig, WifiAccessPoint, WifiTransport};
 use static_cell::StaticCell;
 
+#[derive(Clone, Copy)]
 pub enum Mode { Sta, Ap, ApSta }
 
 const STA_SOCKETS: usize = 2;
