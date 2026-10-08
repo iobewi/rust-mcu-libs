@@ -16,6 +16,9 @@ ESP NVS adapter for IOBEWI ConfigSpace
 
 ## Public API
 
+`NvsConfigBackend::from_flash(flash, label)` provides one-step flash ownership initialization and NVS discovery for a standalone firmware. Call it once per firmware image. A product already sharing flash with other components must initialize the owner at its composition root and use `NvsConfigBackend::from_label(shared_flash, label)` instead; never initialize a second physical owner.
+
+
 `NvsConfigBackend` implements `ConfigBackend`. Construction receives an existing `&'static SharedFlash` and `NvsPartition`; flash access is serialized through that shared owner. `is_healthy` and `self_check` expose backend health checks. `NvsPartition` and NVS capacity constants are re-exported for composition.
 
 Package features and dependency declarations are canonical in `Cargo.toml`.
