@@ -1,0 +1,8 @@
+[package]
+name = "iobewi-wifi-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable Wi-Fi contracts: station transport port and the provisioning capability"

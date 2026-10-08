@@ -1,0 +1,13 @@
+[package]
+name = "iobewi-wifi-manager"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Wi-Fi manager: durable credentials (WFC1), reconnection, provisioning and reprovisioning over a WifiTransport"
+
+[dependencies]
+iobewi-config-space = { path = "../../../config/space" }
+iobewi-wifi-core = { path = "../core" }
+log = { version = "0.4", default-features = false }
