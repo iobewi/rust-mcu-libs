@@ -211,7 +211,9 @@ impl Parser {
 }
 
 impl Default for Parser {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -249,15 +251,30 @@ mod tests {
 
     #[test]
     fn parses_known_rpc_commands() {
-        assert_eq!(parse(&rpc_frame(Command::GetCurrentState as u8, &[])), Some(ParsedCommand::GetCurrentState));
-        assert_eq!(parse(&rpc_frame(Command::GetDeviceInfo as u8, &[])), Some(ParsedCommand::GetDeviceInfo));
-        assert_eq!(parse(&rpc_frame(Command::GetWifiNetworks as u8, &[])), Some(ParsedCommand::GetWifiNetworks));
-        assert_eq!(parse(&rpc_frame(Command::GetNetworkState as u8, &[])), Some(ParsedCommand::GetNetworkState));
+        assert_eq!(
+            parse(&rpc_frame(Command::GetCurrentState as u8, &[])),
+            Some(ParsedCommand::GetCurrentState)
+        );
+        assert_eq!(
+            parse(&rpc_frame(Command::GetDeviceInfo as u8, &[])),
+            Some(ParsedCommand::GetDeviceInfo)
+        );
+        assert_eq!(
+            parse(&rpc_frame(Command::GetWifiNetworks as u8, &[])),
+            Some(ParsedCommand::GetWifiNetworks)
+        );
+        assert_eq!(
+            parse(&rpc_frame(Command::GetNetworkState as u8, &[])),
+            Some(ParsedCommand::GetNetworkState)
+        );
     }
 
     #[test]
     fn reports_unknown_rpc() {
-        assert_eq!(parse(&rpc_frame(0x55, &[])), Some(ParsedCommand::Unsupported(0x55)));
+        assert_eq!(
+            parse(&rpc_frame(0x55, &[])),
+            Some(ParsedCommand::Unsupported(0x55))
+        );
     }
 
     #[test]
@@ -275,7 +292,10 @@ mod tests {
         for &b in b"log line\nnoise" {
             assert_eq!(parser.feed(b), None);
         }
-        assert_eq!(frame.into_iter().find_map(|b| parser.feed(b)), Some(ParsedCommand::GetDeviceInfo));
+        assert_eq!(
+            frame.into_iter().find_map(|b| parser.feed(b)),
+            Some(ParsedCommand::GetDeviceInfo)
+        );
     }
 
     #[test]
