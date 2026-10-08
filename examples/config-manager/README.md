@@ -19,7 +19,7 @@ No address is hard-coded. The firmware expects a correctly provisioned ESP-IDF p
 
 - `src/app.rs`: portable `ConfigManager` scenario, generic over the existing `ConfigBackend` trait.
 - `src/main.rs`: `#[cfg]` target selection, with a compile-time error for unsupported selections.
-- `src/platform/esp32.rs`: Embassy entry point, ESP flash initialization and NVS backend.
+- `src/platform/esp32.rs`: Embassy entry point and one call to `NvsConfigBackend::from_flash`, which owns the standalone example's flash/NVS setup. Shared-flash products should use the existing-owner constructor instead.
 
 A new MCU gets its own platform module, selected using a Cargo feature. Its required storage adapter belongs under `arch/`, not inside the application logic. **No RP2040, RP2350 or Teensy implementation is claimed yet.**
 
