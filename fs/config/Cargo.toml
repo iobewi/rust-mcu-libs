@@ -1,0 +1,13 @@
+[package]
+name = "iobewi-config-space"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable no-std ownership and quota manager for component configuration spaces"
+readme = "README.md"
+keywords = ["embedded", "configuration", "no-std"]
+categories = ["embedded", "no-std"]
+
+[dependencies]
