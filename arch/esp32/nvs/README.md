@@ -14,7 +14,7 @@ Namespaces, ConfigSpace keys/framing, quotas, migrations, health policy and owne
 
 ## Integration
 
-Integration between esp-nvs and drivers/flash/esp32. The caller acquires SharedFlash access before opening the view.
+Integration between esp-nvs and arch/esp32/flash. The caller acquires SharedFlash access before opening the view.
 
 ## Public API
 
