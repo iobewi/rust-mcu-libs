@@ -6,6 +6,7 @@ members = [
   "common/net/wifi/manager",
   "arch/esp32/net/wifi",
   "examples/config-manager",
+  "examples/wifi-modes",
   "arch/esp32/fs/nvs",
   "arch/esp32/config/space",
   "arch/esp32/flash",
