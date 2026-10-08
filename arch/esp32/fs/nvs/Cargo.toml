@@ -1,0 +1,29 @@
+[package]
+name = "iobewi-esp-nvs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "ESP NVS hardware bridge over iobewi-esp-flash"
+keywords = ["esp32", "nvs", "embedded", "no-std"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[features]
+default = []
+esp32c3 = [
+  "iobewi-esp-flash/esp32c3",
+  "esp-rom-sys/esp32c3",
+]
+esp32s3 = [
+  "iobewi-esp-flash/esp32s3",
+  "esp-rom-sys/esp32s3",
+]
+
+[dependencies]
+embedded-storage = "0.3.1"
+iobewi-esp-flash = { path = "../../flash" }
+# No chip feature on esp-nvs: its chip features pull esp-storage >=0.8.1,<0.10, which excludes
+# the esp-storage 0.10 baseline. The only thing it took from there is the ROM CRC (below).
+esp-nvs = { version = "0.5.0", default-features = false }
+esp-rom-sys = { version = "~0.1.5", default-features = false }

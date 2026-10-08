@@ -1,6 +1,6 @@
 # Agent rules — iOBEWi Rust MCU Library
 
-These rules apply to every change in this repository, regardless of the AI agent or development tool. Read [README.md](README.md) first. Its philosophy is binding; this file translates it into working rules.
+These rules apply to every change in this repository, regardless of the AI agent or development tool. Read [README.md](README.md) and [ARCHITECTURE.md](ARCHITECTURE.md) first. Their philosophy and ownership rules are binding; this file translates them into working rules.
 
 ## Objective
 

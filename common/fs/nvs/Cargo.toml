@@ -1,0 +1,11 @@
+[package]
+name = "iobewi-nvs-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Chip-independent logic of the NVS-backed ConfigSpace persistence: record framing, generations, key rules and the NVS entry-accounting / capacity formulas"
+
+[dependencies]
+esp-nvs = { version = "0.5.0", default-features = false }

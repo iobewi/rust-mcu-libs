@@ -1,0 +1,21 @@
+[package]
+name = "iobewi-esp-partitions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Policy-free ESP-IDF partition table and raw partition helpers"
+keywords = ["esp32", "partition", "flash", "embedded", "no-std"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[features]
+default = []
+esp32c3 = ["esp-bootloader-esp-idf/esp32c3", "esp-storage/esp32c3"]
+esp32s3 = ["esp-bootloader-esp-idf/esp32s3", "esp-storage/esp32s3"]
+
+[dependencies]
+embedded-storage = "0.3.1"
+esp-bootloader-esp-idf = { version = "~0.6", default-features = false }
+esp-rom-sys = { version = "~0.1.5", default-features = false }
+esp-storage = { version = "~0.10", default-features = false, features = ["embedded-storage", "critical-section"] }

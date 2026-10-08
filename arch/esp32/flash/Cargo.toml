@@ -1,0 +1,23 @@
+[package]
+name = "iobewi-esp-flash"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Process-wide ESP physical flash ownership and serialized raw access"
+keywords = ["esp32", "flash", "embedded", "no-std"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[features]
+default = []
+esp32c3 = ["esp-hal/esp32c3", "esp-storage/esp32c3"]
+esp32s3 = ["esp-hal/esp32s3", "esp-storage/esp32s3"]
+
+[dependencies]
+embassy-sync = "0.8.0"
+embedded-storage = "0.3.1"
+esp-hal = { version = "~1.2", default-features = false, features = ["unstable"] }
+esp-rom-sys = { version = "~0.1.5", default-features = false }
+esp-storage = { version = "~0.10", default-features = false, features = ["embedded-storage", "critical-section"] }
+static_cell = "2.1.1"
