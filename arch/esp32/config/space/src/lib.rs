@@ -29,6 +29,7 @@ const HEALTH_NAMESPACE: esp_nvs::Key = esp_nvs::Key::from_str("cfg_health");
 const HEALTH_KEY: esp_nvs::Key = esp_nvs::Key::from_str("canary");
 
 pub use iobewi_esp_nvs::NvsPartition;
+pub use iobewi_esp_flash::FlashPeripheral;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NvsConfigError {
@@ -55,6 +56,18 @@ pub enum NvsStartupError {
     Backend(NvsConfigError),
 }
 impl NvsConfigBackend {
+    /// Initialize the single shared ESP flash owner and discover the NVS partition.
+    /// Call only once per firmware image, from the application composition root.
+    /// For firmware with other flash consumers, initialize the owner separately
+    /// and use `from_label` so all consumers share the same owner.
+    pub async fn from_flash(
+        flash: FlashPeripheral<'static>,
+        label: &str,
+    ) -> Result<Self, NvsStartupError> {
+        let shared = iobewi_esp_flash::init(flash);
+        Self::from_label(shared, label).await
+    }
+
     /// Discover the named data/NVS partition using the existing shared owner.
     /// No fallback address, erase/reformat-on-error or new FlashStorage instance.
     pub async fn from_label(
