@@ -49,7 +49,8 @@ pub fn for_each_entry(
     table_buffer: &mut [u8; PARTITION_TABLE_MAX_LEN],
     mut visit: impl FnMut(RawEntry<'_>),
 ) -> Result<(), PartitionError> {
-    let table = read_partition_table(flash, table_buffer).map_err(|_| PartitionError::TableUnreadable)?;
+    let table =
+        read_partition_table(flash, table_buffer).map_err(|_| PartitionError::TableUnreadable)?;
     for entry in table.iter() {
         visit(RawEntry {
             label: entry.label_as_str(),
@@ -73,8 +74,12 @@ pub fn find_by_label(
 ) -> Result<PartitionRange, PartitionError> {
     let mut found = None;
     for_each_entry(flash, table_buffer, |entry| {
-        if found.is_none() && entry.kind == kind && entry.subtype == subtype && entry.label == label {
-            found = Some(PartitionRange { offset: entry.offset, size: entry.size as usize });
+        if found.is_none() && entry.kind == kind && entry.subtype == subtype && entry.label == label
+        {
+            found = Some(PartitionRange {
+                offset: entry.offset,
+                size: entry.size as usize,
+            });
         }
     })?;
     found.ok_or(PartitionError::NotFound)
@@ -86,8 +91,8 @@ pub fn find(
     table_buffer: &mut [u8; PARTITION_TABLE_MAX_LEN],
     kind: PartitionType,
 ) -> Result<PartitionRange, PartitionError> {
-    let table = read_partition_table(flash, table_buffer)
-        .map_err(|_| PartitionError::TableUnreadable)?;
+    let table =
+        read_partition_table(flash, table_buffer).map_err(|_| PartitionError::TableUnreadable)?;
     let entry = table
         .find_partition(kind)
         .map_err(|_| PartitionError::TableUnreadable)?
@@ -127,8 +132,12 @@ where
     }
 
     let base = usize::try_from(partition.offset).map_err(|_| PartitionError::AddressOverflow)?;
-    let absolute_from = base.checked_add(from).ok_or(PartitionError::AddressOverflow)?;
-    let absolute_to = base.checked_add(to).ok_or(PartitionError::AddressOverflow)?;
+    let absolute_from = base
+        .checked_add(from)
+        .ok_or(PartitionError::AddressOverflow)?;
+    let absolute_to = base
+        .checked_add(to)
+        .ok_or(PartitionError::AddressOverflow)?;
 
     flash
         .erase(

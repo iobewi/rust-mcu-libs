@@ -12,7 +12,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt::Debug;
 use iobewi_config_space::{Budget, ConfigBackend, ConfigSpace};
-use iobewi_wifi_core::{AccessPointConfig, Network, WifiAccessPoint, WifiProvisioning, WifiTransport};
+use iobewi_wifi_core::{
+    AccessPointConfig, Network, WifiAccessPoint, WifiProvisioning, WifiTransport,
+};
 use log::{info, warn};
 
 const CONFIG_MAGIC: &[u8; 4] = b"WFC1";
@@ -30,8 +32,12 @@ impl WifiConfig {
     fn encode(&self) -> Option<Vec<u8>> {
         let ssid_len = u8::try_from(self.ssid.len()).ok()?;
         let password_len = u8::try_from(self.password.len()).ok()?;
-        let total = CONFIG_HEADER_LEN.checked_add(self.ssid.len())?.checked_add(self.password.len())?;
-        if total > CONFIG_BUDGET.max_bytes() { return None; }
+        let total = CONFIG_HEADER_LEN
+            .checked_add(self.ssid.len())?
+            .checked_add(self.password.len())?;
+        if total > CONFIG_BUDGET.max_bytes() {
+            return None;
+        }
         let mut out = Vec::with_capacity(total);
         out.extend_from_slice(CONFIG_MAGIC);
         out.push(ssid_len);
@@ -42,22 +48,32 @@ impl WifiConfig {
     }
 
     fn decode(raw: &[u8]) -> Option<Self> {
-        if raw.len() < CONFIG_HEADER_LEN || &raw[..4] != CONFIG_MAGIC { return None; }
+        if raw.len() < CONFIG_HEADER_LEN || &raw[..4] != CONFIG_MAGIC {
+            return None;
+        }
         let ssid_len = raw[4] as usize;
         let password_len = raw[5] as usize;
-        let expected = CONFIG_HEADER_LEN.checked_add(ssid_len)?.checked_add(password_len)?;
-        if raw.len() != expected { return None; }
+        let expected = CONFIG_HEADER_LEN
+            .checked_add(ssid_len)?
+            .checked_add(password_len)?;
+        if raw.len() != expected {
+            return None;
+        }
         let ssid_end = CONFIG_HEADER_LEN + ssid_len;
         let ssid = core::str::from_utf8(&raw[CONFIG_HEADER_LEN..ssid_end]).ok()?;
         let password = core::str::from_utf8(&raw[ssid_end..]).ok()?;
-        Some(Self { ssid: String::from(ssid), password: String::from(password) })
+        Some(Self {
+            ssid: String::from(ssid),
+            password: String::from(password),
+        })
     }
 }
 
 pub async fn is_provisioned<B: ConfigBackend>(space: &ConfigSpace<B>) -> bool {
     match space.load().await {
-        Ok(Some(snapshot)) => WifiConfig::decode(&snapshot.data)
-            .is_some_and(|config| !config.ssid.is_empty()),
+        Ok(Some(snapshot)) => {
+            WifiConfig::decode(&snapshot.data).is_some_and(|config| !config.ssid.is_empty())
+        }
         _ => false,
     }
 }
@@ -113,17 +129,25 @@ where
             Ok(Some(snapshot)) => match WifiConfig::decode(&snapshot.data) {
                 Some(config) => Some(config),
                 None => {
-                    warn!("Wi-Fi: stored config generation={} has an unsupported/corrupt schema", snapshot.generation);
+                    warn!(
+                        "Wi-Fi: stored config generation={} has an unsupported/corrupt schema",
+                        snapshot.generation
+                    );
                     None
                 }
             },
             Ok(None) => None,
-            Err(e) => { warn!("Wi-Fi: config-space load failed: {e:?}"); None }
+            Err(e) => {
+                warn!("Wi-Fi: config-space load failed: {e:?}");
+                None
+            }
         }
     }
 
     pub async fn reconnect_saved(&mut self) -> bool {
-        let Some(config) = self.saved_config().await else { return false; };
+        let Some(config) = self.saved_config().await else {
+            return false;
+        };
         info!("Wi-Fi: reconnecting to saved SSID={}", config.ssid);
         self.transport.connect(&config.ssid, config.password).await
     }
@@ -153,7 +177,11 @@ where
                 if config.ssid.is_empty() {
                     return MaintainError::NotProvisioned;
                 }
-                info!("wifi: connect attempt {} to SSID={}", failed + 1, config.ssid);
+                info!(
+                    "wifi: connect attempt {} to SSID={}",
+                    failed + 1,
+                    config.ssid
+                );
                 if self.transport.connect(&config.ssid, config.password).await {
                     if let Some(network) = self.transport.network_handle() {
                         break network;
@@ -174,9 +202,18 @@ where
     }
 
     async fn restore_previous(&mut self, previous: Option<WifiConfig>) {
-        let Some(previous) = previous else { return; };
-        info!("Wi-Fi: restoring previous SSID={} after failed reprovision", previous.ssid);
-        if !self.transport.connect(&previous.ssid, previous.password).await {
+        let Some(previous) = previous else {
+            return;
+        };
+        info!(
+            "Wi-Fi: restoring previous SSID={} after failed reprovision",
+            previous.ssid
+        );
+        if !self
+            .transport
+            .connect(&previous.ssid, previous.password)
+            .await
+        {
             warn!("Wi-Fi: previous network could not be restored");
         }
     }
@@ -188,14 +225,20 @@ where
             self.restore_previous(previous).await;
             return false;
         }
-        let candidate = WifiConfig { ssid: String::from(ssid), password };
+        let candidate = WifiConfig {
+            ssid: String::from(ssid),
+            password,
+        };
         let Some(encoded) = candidate.encode() else {
             warn!("Wi-Fi: candidate credentials exceed config-space schema limits");
             self.restore_previous(previous).await;
             return false;
         };
         match self.config.commit(&encoded).await {
-            Ok(generation) => { info!("Wi-Fi: configuration committed generation={generation}"); true }
+            Ok(generation) => {
+                info!("Wi-Fi: configuration committed generation={generation}");
+                true
+            }
             Err(e) => {
                 warn!("Wi-Fi: connected, but durable config commit failed: {e:?}");
                 self.restore_previous(previous).await;
@@ -204,10 +247,18 @@ where
         }
     }
 
-    pub async fn scan(&mut self) -> Vec<Network> { self.transport.scan().await }
-    pub fn ip(&self) -> Option<T::Address> { self.transport.ip() }
-    pub fn network_handle(&self) -> Option<T::NetworkHandle> { self.transport.network_handle() }
-    pub fn is_online(&self) -> bool { self.transport.is_online() }
+    pub async fn scan(&mut self) -> Vec<Network> {
+        self.transport.scan().await
+    }
+    pub fn ip(&self) -> Option<T::Address> {
+        self.transport.ip()
+    }
+    pub fn network_handle(&self) -> Option<T::NetworkHandle> {
+        self.transport.network_handle()
+    }
+    pub fn is_online(&self) -> bool {
+        self.transport.is_online()
+    }
 }
 
 /// Access point control for a transport that can host one. Pure delegation:
@@ -227,7 +278,10 @@ where
 impl<T: WifiTransport + WifiAccessPoint, B: ConfigBackend> WifiManager<T, B> {
     pub async fn start_access_point(&mut self, config: &AccessPointConfig) -> bool {
         // The SSID and passphrase are never logged.
-        info!("Wi-Fi: starting access point on channel {}", config.channel());
+        info!(
+            "Wi-Fi: starting access point on channel {}",
+            config.channel()
+        );
         let started = self.transport.start_access_point(config).await;
         if !started {
             warn!("Wi-Fi: access point could not be started");
@@ -288,8 +342,8 @@ where
 mod tests {
     use super::*;
     use alloc::collections::{BTreeMap, VecDeque};
-    use alloc::string::ToString;
     use alloc::rc::Rc;
+    use alloc::string::ToString;
     use core::cell::RefCell;
     use core::future::Future;
     use core::task::{Context, Poll, Waker};
@@ -317,17 +371,29 @@ mod tests {
 
     impl ConfigBackend for MemBackend {
         type Error = ();
-        fn capacity_units(&self) -> usize { 4096 }
-        fn reservation_units(&self, _: &str, b: Budget) -> Option<usize> { Some(b.max_bytes()) }
+        fn capacity_units(&self) -> usize {
+            4096
+        }
+        fn reservation_units(&self, _: &str, b: Budget) -> Option<usize> {
+            Some(b.max_bytes())
+        }
         async fn load(&self, space: &str) -> Result<Option<Snapshot>, ()> {
             Ok(self.0.borrow().values.get(space).cloned())
         }
         async fn commit(&self, space: &str, data: &[u8]) -> Result<u64, ()> {
             let mut m = self.0.borrow_mut();
-            if m.fail_commit { return Err(()); }
+            if m.fail_commit {
+                return Err(());
+            }
             m.generation += 1;
             let generation = m.generation;
-            m.values.insert(space.to_string(), Snapshot { generation, data: data.to_vec() });
+            m.values.insert(
+                space.to_string(),
+                Snapshot {
+                    generation,
+                    data: data.to_vec(),
+                },
+            );
             Ok(generation)
         }
         async fn clear(&self, space: &str) -> Result<u64, ()> {
@@ -368,7 +434,11 @@ mod tests {
             ok
         }
         async fn scan(&mut self) -> Vec<Network> {
-            alloc::vec![Network { ssid: "lab".to_string(), signal_strength: -40, secured: true }]
+            alloc::vec![Network {
+                ssid: "lab".to_string(),
+                signal_strength: -40,
+                secured: true
+            }]
         }
         async fn wait_down(&mut self) {
             core::future::poll_fn(|_| {
@@ -383,29 +453,49 @@ mod tests {
             })
             .await
         }
-        fn ip(&self) -> Option<u32> { self.0.borrow().online.then_some(7) }
-        fn network_handle(&self) -> Option<u8> { self.0.borrow().online.then_some(1) }
-        fn is_online(&self) -> bool { self.0.borrow().online }
+        fn ip(&self) -> Option<u32> {
+            self.0.borrow().online.then_some(7)
+        }
+        fn network_handle(&self) -> Option<u8> {
+            self.0.borrow().online.then_some(1)
+        }
+        fn is_online(&self) -> bool {
+            self.0.borrow().online
+        }
     }
 
     impl WifiAccessPoint for Fake {
         type NetworkHandle = u16;
         async fn start_access_point(&mut self, config: &AccessPointConfig) -> bool {
             let mut s = self.0.borrow_mut();
-            s.ap_starts.push((config.ssid().to_string(), config.password().to_string(), config.channel()));
-            if s.ap_fail { return false; }
+            s.ap_starts.push((
+                config.ssid().to_string(),
+                config.password().to_string(),
+                config.channel(),
+            ));
+            if s.ap_fail {
+                return false;
+            }
             s.ap_active = true;
-            if s.ap_restarts_station { s.online = false; }
+            if s.ap_restarts_station {
+                s.online = false;
+            }
             true
         }
         async fn stop_access_point(&mut self) {
             let mut s = self.0.borrow_mut();
             s.ap_stops += 1;
-            if s.ap_active && s.ap_restarts_station { s.online = false; }
+            if s.ap_active && s.ap_restarts_station {
+                s.online = false;
+            }
             s.ap_active = false;
         }
-        fn is_access_point_active(&self) -> bool { self.0.borrow().ap_active }
-        fn access_point_handle(&self) -> Option<u16> { self.0.borrow().ap_active.then_some(9) }
+        fn is_access_point_active(&self) -> bool {
+            self.0.borrow().ap_active
+        }
+        fn access_point_handle(&self) -> Option<u16> {
+            self.0.borrow().ap_active.then_some(9)
+        }
     }
 
     fn ap_config() -> AccessPointConfig {
@@ -416,7 +506,9 @@ mod tests {
         let backend = MemBackend::default();
         let fake = Fake::default();
         fake.0.borrow_mut().outcomes = outcomes.iter().copied().collect();
-        let space = ConfigManager::new(backend.clone()).claim("wifi", CONFIG_BUDGET).unwrap();
+        let space = ConfigManager::new(backend.clone())
+            .claim("wifi", CONFIG_BUDGET)
+            .unwrap();
         (WifiManager::new(fake.clone(), space), fake, backend)
     }
 
@@ -425,27 +517,46 @@ mod tests {
     }
 
     fn seed(b: &MemBackend, ssid: &str, pw: &str) {
-        let raw = WifiConfig { ssid: ssid.to_string(), password: pw.to_string() }.encode().unwrap();
-        b.0.borrow_mut().values.insert("wifi".to_string(), Snapshot { generation: 1, data: raw });
+        let raw = WifiConfig {
+            ssid: ssid.to_string(),
+            password: pw.to_string(),
+        }
+        .encode()
+        .unwrap();
+        b.0.borrow_mut().values.insert(
+            "wifi".to_string(),
+            Snapshot {
+                generation: 1,
+                data: raw,
+            },
+        );
     }
 
     #[derive(Default)]
     struct Sleeps(RefCell<std::vec::Vec<u32>>);
     impl Sleep for Sleeps {
-        async fn sleep_ms(&self, ms: u32) { self.0.borrow_mut().push(ms); }
+        async fn sleep_ms(&self, ms: u32) {
+            self.0.borrow_mut().push(ms);
+        }
     }
 
     /// Never wakes: models a backoff still in progress.
     struct StuckSleep;
     impl Sleep for StuckSleep {
-        async fn sleep_ms(&self, _ms: u32) { core::future::pending::<()>().await }
+        async fn sleep_ms(&self, _ms: u32) {
+            core::future::pending::<()>().await
+        }
     }
 
     #[derive(Default)]
     struct Events(std::vec::Vec<&'static str>);
     impl LinkObserver<u8> for Events {
-        fn link_down(&mut self) { self.0.push("down"); }
-        fn ready(&mut self, _n: u8) { self.0.push("ready"); }
+        fn link_down(&mut self) {
+            self.0.push("down");
+        }
+        fn ready(&mut self, _n: u8) {
+            self.0.push("ready");
+        }
     }
 
     fn poll_once<F: Future>(f: &mut core::pin::Pin<&mut F>) -> Poll<F::Output> {
@@ -476,12 +587,19 @@ mod tests {
         assert_eq!(ev.0, ["ready", "down", "ready"]);
         assert_eq!(*sleeps.0.borrow(), [1000, 2000]);
         assert_eq!(fake.0.borrow().connects.len(), 4);
-        assert!(fake.0.borrow().connects.iter().all(|c| c == &("lab".to_string(), "pw".to_string())));
+        assert!(
+            fake.0
+                .borrow()
+                .connects
+                .iter()
+                .all(|c| c == &("lab".to_string(), "pw".to_string()))
+        );
     }
 
     #[test]
     fn ap_absent_at_boot_retries_with_backoff_and_resets_after_success() {
-        let (mut m, fake, b) = setup(&[false, false, false, false, false, false, true, false, true]);
+        let (mut m, fake, b) =
+            setup(&[false, false, false, false, false, false, true, false, true]);
         seed(&b, "lab", "pw");
         let sleeps = Sleeps::default();
         let mut ev = Events::default();
@@ -502,7 +620,10 @@ mod tests {
         let (mut m, fake, _b) = setup(&[true]);
         let sleeps = Sleeps::default();
         let mut ev = Events::default();
-        assert_eq!(block_on(m.maintain(&sleeps, &mut ev)), MaintainError::NotProvisioned);
+        assert_eq!(
+            block_on(m.maintain(&sleeps, &mut ev)),
+            MaintainError::NotProvisioned
+        );
         assert!(fake.0.borrow().connects.is_empty());
         assert!(sleeps.0.borrow().is_empty());
         assert!(ev.0.is_empty());
@@ -551,11 +672,19 @@ mod tests {
     #[test]
     fn corrupt_or_empty_ssid_credentials_are_not_provisioned() {
         let (mut m, fake, b) = setup(&[true]);
-        b.0.borrow_mut().values.insert("wifi".into(), Snapshot { generation: 1, data: b"junk".to_vec() });
+        b.0.borrow_mut().values.insert(
+            "wifi".into(),
+            Snapshot {
+                generation: 1,
+                data: b"junk".to_vec(),
+            },
+        );
         assert!(!block_on(m.reconnect_saved()));
         assert!(fake.0.borrow().connects.is_empty());
         seed(&b, "", "x");
-        let space = ConfigManager::new(b.clone()).claim("wifi", CONFIG_BUDGET).unwrap();
+        let space = ConfigManager::new(b.clone())
+            .claim("wifi", CONFIG_BUDGET)
+            .unwrap();
         assert!(!block_on(is_provisioned(&space)));
     }
 
@@ -564,7 +693,10 @@ mod tests {
         let (mut m, fake, b) = setup(&[true]);
         seed(&b, "lab", "secret");
         assert!(block_on(m.reconnect_saved()));
-        assert_eq!(fake.0.borrow().connects, [("lab".to_string(), "secret".to_string())]);
+        assert_eq!(
+            fake.0.borrow().connects,
+            [("lab".to_string(), "secret".to_string())]
+        );
         assert!(m.is_online());
         assert_eq!(m.ip(), Some(7));
         assert_eq!(m.network_handle(), Some(1));
@@ -596,7 +728,13 @@ mod tests {
         seed(&b, "old", "oldpw");
         assert!(!block_on(m.provision("new", "newpw".to_string())));
         let calls = fake.0.borrow().connects.clone();
-        assert_eq!(calls, [("new".to_string(), "newpw".to_string()), ("old".to_string(), "oldpw".to_string())]);
+        assert_eq!(
+            calls,
+            [
+                ("new".to_string(), "newpw".to_string()),
+                ("old".to_string(), "oldpw".to_string())
+            ]
+        );
         assert_eq!(stored(&b).unwrap(), b"WFC1\x03\x05oldoldpw");
         assert!(m.is_online());
     }
@@ -607,7 +745,10 @@ mod tests {
         seed(&b, "old", "oldpw");
         assert!(block_on(m.provision("new", "newpw".to_string())));
         // One connect only: the transport itself owns disconnect-before-reconfigure.
-        assert_eq!(fake.0.borrow().connects, [("new".to_string(), "newpw".to_string())]);
+        assert_eq!(
+            fake.0.borrow().connects,
+            [("new".to_string(), "newpw".to_string())]
+        );
         assert_eq!(stored(&b).unwrap(), b"WFC1\x03\x05newnewpw");
     }
 
@@ -633,7 +774,11 @@ mod tests {
     #[test]
     fn provisioning_capability_delegates_to_the_manager_policy() {
         let (mut m, _fake, b) = setup(&[true]);
-        assert!(block_on(WifiProvisioning::provision(&mut m, "home", "pw".to_string())));
+        assert!(block_on(WifiProvisioning::provision(
+            &mut m,
+            "home",
+            "pw".to_string()
+        )));
         assert!(stored(&b).is_some());
         assert_eq!(WifiProvisioning::address(&m), Some(7));
         assert_eq!(block_on(WifiProvisioning::scan(&mut m)).len(), 1);
@@ -647,13 +792,20 @@ mod tests {
         assert!(block_on(m.start_access_point(&ap_config())));
         assert!(m.is_access_point_active());
         assert_eq!(m.access_point_handle(), Some(9));
-        assert_eq!(fake.0.borrow().ap_starts, [("IOBEWI-Setup".to_string(), "setup-pass-1".to_string(), 6)]);
+        assert_eq!(
+            fake.0.borrow().ap_starts,
+            [("IOBEWI-Setup".to_string(), "setup-pass-1".to_string(), 6)]
+        );
         block_on(m.stop_access_point());
         assert!(!m.is_access_point_active());
         assert_eq!(m.access_point_handle(), None);
         assert_eq!(fake.0.borrow().ap_stops, 1);
         assert!(stored(&b).is_none(), "the access point is RAM-only");
-        assert_eq!(b.0.borrow().generation, 0, "no config-space commit or clear happened");
+        assert_eq!(
+            b.0.borrow().generation,
+            0,
+            "no config-space commit or clear happened"
+        );
     }
 
     #[test]
@@ -700,13 +852,19 @@ mod tests {
             assert!(poll_once(&mut fut).is_pending()); // online
         } // reprovisioning/AP rule: drop maintain before touching the access point
         assert!(block_on(m.start_access_point(&ap_config())));
-        assert!(!fake.0.borrow().online, "the access point start took the station down");
+        assert!(
+            !fake.0.borrow().online,
+            "the access point start took the station down"
+        );
         {
             let mut fut = core::pin::pin!(m.maintain(&sleeps, &mut ev));
             assert!(poll_once(&mut fut).is_pending()); // reconnects from the saved credentials
         }
         assert_eq!(ev.0, ["ready", "ready"]);
         assert!(fake.0.borrow().online);
-        assert!(m.is_access_point_active(), "the access point survives the station reconnect");
+        assert!(
+            m.is_access_point_active(),
+            "the access point survives the station reconnect"
+        );
     }
 }

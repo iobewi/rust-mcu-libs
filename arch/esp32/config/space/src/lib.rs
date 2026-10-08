@@ -28,8 +28,8 @@ const NAMESPACE: esp_nvs::Key = esp_nvs::Key::from_str("cfg_space");
 const HEALTH_NAMESPACE: esp_nvs::Key = esp_nvs::Key::from_str("cfg_health");
 const HEALTH_KEY: esp_nvs::Key = esp_nvs::Key::from_str("canary");
 
-pub use iobewi_esp_nvs::NvsPartition;
 pub use iobewi_esp_flash::FlashPeripheral;
+pub use iobewi_esp_nvs::NvsPartition;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NvsConfigError {

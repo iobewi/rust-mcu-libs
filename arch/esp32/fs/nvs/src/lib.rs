@@ -6,8 +6,8 @@
 //! record framing, quotas, migrations and health policy belong to consumers.
 
 use embedded_storage::nor_flash::{ErrorType, MultiwriteNorFlash, NorFlash, ReadNorFlash};
-use esp_nvs::platform::Crc;
 use esp_nvs::Nvs;
+use esp_nvs::platform::Crc;
 use iobewi_esp_flash::EspFlash;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
