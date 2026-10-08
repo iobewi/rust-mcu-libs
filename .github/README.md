@@ -1,16 +1,47 @@
-# GitHub Actions
+# GitHub Actions: per-crate CI
 
-The workflow `rust-mcu.yml` runs for pull requests, pushes to `main`, and manual dispatch.
+Every `[workspace].members` package must contain **`ci.json`** beside its `Cargo.toml`. The root workflow never lists package names or chip combinations.
 
-- **Portable:** formatting, host unit tests and Clippy for the four portable crates.
-- **ESP32-C3:** cross-target checks for the ESP ConfigSpace adapter, Wi-Fi driver and both examples (including all three Wi-Fi binaries).
-- **ESP32-S3:** equivalent checks using the Espressif Xtensa Rust toolchain.
-- **Lockfile policy:** reject committed `Cargo.lock` files. Cargo may generate ignored lockfiles on a runner, but none are checked in.
+Example for a portable crate:
+
+```json
+{"profile": "host"}
+```
+
+Example for an ESP32 driver:
+
+```json
+{"profile": "esp32"}
+```
+
+Example for firmware binaries:
+
+```json
+{"profile": "esp32-bins"}
+```
+
+## Profiles and coverage
+
+- `host`: host unit tests and Clippy on all targets with warnings denied.
+- `esp32`: cross-compile the library for ESP32-C3 and ESP32-S3.
+- `esp32-bins`: cross-compile all firmware binaries for ESP32-C3 and ESP32-S3.
+
+The workflow also enforces `cargo fmt --all -- --check` across the workspace and prohibits tracked `Cargo.lock` files.
+
+`.github/scripts/discover_ci.py` reads the root workspace manifest and validates each member's configuration. A missing or invalid `ci.json` fails discovery; a new crate cannot silently bypass CI. The discovered jobs run as a GitHub Actions dynamic matrix.
+
+This is an initial, intentionally small profile vocabulary. For a new MCU architecture, add a common execution profile and installer once, rather than duplicating workflow YAML per crate. An ESP32-only profile is not a promise of other MCU support.
+
+## Run discovery locally
+
+```sh
+python3 .github/scripts/discover_ci.py
+```
+
+Python 3.11+ is required for `tomllib`.
 
 ## Boundaries
 
-This CI checks source compilation; it does not flash hardware, verify AP clients receive DHCP leases, verify persistence after power interruption, or establish runtime readiness.
+Compilation is not a hardware acceptance gate. AP DHCP leases, AP+STA coexistence, power-cut persistence and boot-time behavior still require physical validation.
 
-The workflow has **not been executed yet**. Initial runs may reveal upstream dependency incompatibilities or target-specific build requirements, which should be fixed in focused follow-ups rather than silently weakening checks.
-
-Rust and dependency versions are resolved from the current compatible ecosystem; no `Cargo.lock` is committed.
+Profiles are declarative metadata; they are not independently executable shell scripts. This keeps the toolchain setup centralized and avoids executing arbitrary per-crate commands.
