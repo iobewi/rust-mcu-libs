@@ -115,7 +115,7 @@ An application should be able to:
 
 ## Architecture and coding rules
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the responsibilities of `common/`, `arch/<family>/`, and `examples/`, conditional MCU selection, hardware resource ownership, configuration-space composition and verification practices. Agent-specific mandatory development rules remain in [AGENTS.md](AGENTS.md).
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the responsibilities of `common/`, `arch/<family>/`, and `examples/`, conditional MCU selection, hardware resource ownership, configuration-space composition and verification practices. Agent-specific mandatory development rules remain in [AGENTS.md](AGENTS.md). **Every workspace crate, including `common/`, `arch/`, and `examples/`, must declare its CI profile in `ci.json` beside `Cargo.toml`.** See the [per-crate CI guide](.github/README.md) for supported profiles, automatic job discovery and local validation.
 
 ## Repository direction
 

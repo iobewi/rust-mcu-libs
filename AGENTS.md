@@ -19,7 +19,8 @@ Build **small, reusable, high-quality Rust MCU building blocks and reference com
 9. **Safe and constrained by design.** Prefer safe Rust and `no_std` where appropriate; make allocations, memory limits, ownership, error handling, and failure behavior explicit. Any `unsafe` needs documented invariants, justification, and targeted review.
 10. **No unrelated work.** Change only what the task requires. Do not migrate old iOBEWi code, reorganize directories, add crates, or change public APIs without concrete justification. Existing code is a source to evaluate, not a migration mandate.
 11. **Test before claiming success.** Run the most relevant local checks (formatting, tests, linting, target builds), then hardware tests when required by the risk. Never present unrun tests or unavailable hardware qualification as passed.
-12. **Report facts, not promises.** Summarize the use case, reused crates, newly added value, files changed, versions actually tested, checks and their results, and any limitations or unverified assumptions.
+12. **Every workspace crate owns CI metadata.** Any new member under `common/`, `arch/`, or `examples/` MUST include a `ci.json` alongside `Cargo.toml`, with a supported validation profile as specified by [.github/README.md](.github/README.md). Update the profile when targets or test needs change; never exclude a crate from CI to avoid a failure. The mandatory discovery gate checks all `[workspace].members` and fails on missing or invalid metadata. When adding a new MCU/profile, extend the shared CI executor and its documentation, rather than hardcoding a crate into the workflow.
+13. **Report facts, not promises.** Summarize the use case, reused crates, newly added value, files changed, versions actually tested, checks and their results, and any limitations or unverified assumptions.
 
 ## Required decision process for a new brick
 
@@ -32,6 +33,16 @@ Before adding code, be able to answer:
 - How will its behavior and resource constraints be verified?
 
 If an existing crate already meets the use case, **recommend using it directly instead of creating an iOBEWi component**.
+
+## Universal crate delivery checklist
+
+For any crate—portable library, platform-specific adapter, or reference example—apply the same process:
+
+1. Declare its workspace membership and choose an appropriate `ci.json` profile; consult [.github/README.md](.github/README.md).
+2. Keep portable behavior under `common/`, MCU integration under `arch/`, and scenario/platform composition under `examples/` as documented in [ARCHITECTURE.md](ARCHITECTURE.md).
+3. Add focused tests and practical examples appropriate to its responsibilities; verify locally before using the CI as a gate.
+4. Run the crate's configured checks and applicable global checks (Rustfmt, no tracked `Cargo.lock`), and inspect every failed job rather than disabling a gate.
+5. Record what was actually verified, including target, build/test outcome and unverified hardware behavior; a green cross-build does not replace a physical hardware test.
 
 ## Definition of done
 

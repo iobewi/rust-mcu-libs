@@ -14,106 +14,79 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  portable:
-    name: Portable Rust (host)
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate workspace and discover crate CI
+        id: matrix
+        run: python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT"
+      - name: Reject tracked Cargo.lock files
+        run: |
+          if git ls-files | grep -E '(^|/)Cargo\.lock$'; then
+            echo "Cargo.lock files must not be tracked" >&2
+            exit 1
+          fi
+
+  format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
-      - name: Format portable crates
-        run: cargo fmt --all -- --check
-      - name: Test portable crates
-        run: >-
-          cargo test
-          -p iobewi-config-space
-          -p iobewi-nvs-core
-          -p iobewi-wifi-core
-          -p iobewi-wifi-manager
-      - name: Clippy portable crates
-        run: >-
-          cargo clippy
-          -p iobewi-config-space
-          -p iobewi-nvs-core
-          -p iobewi-wifi-core
-          -p iobewi-wifi-manager
-          --all-targets -- -D warnings
-      - name: Enforce library lockfile policy
-        run: |
-          if git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
-            echo "Cargo.lock must not be tracked in rust-mcu-libs" >&2
-            exit 1
-          fi
-          if git ls-files | grep -E '(^|/)Cargo\.lock$'; then
-            echo "Tracked Cargo.lock found" >&2
-            exit 1
-          fi
+          components: rustfmt
+      - run: cargo fmt --all -- --check
 
-  esp32c3:
-    name: ESP32-C3 / ${{ matrix.package }}
+  crate:
+    name: ${{ matrix.package }} / ${{ matrix.chip }}
+    needs: discover
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - package: iobewi-esp-config-space
-            features: esp32c3
-            targets: --lib
-          - package: iobewi-esp-wifi
-            features: esp32c3
-            targets: --lib
-          - package: example-config-manager
-            features: esp32c3
-            targets: --bins
-          - package: example-wifi-modes
-            features: esp32c3
-            targets: --bins
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.chip == 'host'
+        with:
+          components: clippy
       - uses: dtolnay/rust-toolchain@nightly
+        if: matrix.chip == 'esp32c3'
         with:
           targets: riscv32imc-unknown-none-elf
           components: rust-src
-      - name: Check C3 package and associated binaries
-        run: >-
-          cargo +nightly check
-          -Z build-std=core,alloc
-          --target riscv32imc-unknown-none-elf
-          -p ${{ matrix.package }}
-          --features ${{ matrix.features }}
-          ${{ matrix.targets }}
-
-  esp32s3:
-    name: ESP32-S3 / ${{ matrix.package }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - package: iobewi-esp-config-space
-            features: esp32s3
-            targets: --lib
-          - package: iobewi-esp-wifi
-            features: esp32s3
-            targets: --lib
-          - package: example-config-manager
-            features: esp32s3
-            targets: --bins
-          - package: example-wifi-modes
-            features: esp32s3
-            targets: --bins
-    steps:
-      - uses: actions/checkout@v4
       - uses: esp-rs/xtensa-toolchain@v1.7.0
+        if: matrix.chip == 'esp32s3'
         with:
           buildtargets: esp32s3
           default: false
-      - name: Check S3 package and associated binaries
-        run: >-
-          cargo +esp check
-          -Z build-std=core,alloc
-          --target xtensa-esp32s3-none-elf
-          -p ${{ matrix.package }}
-          --features ${{ matrix.features }}
-          ${{ matrix.targets }}
+      - name: Host tests
+        if: matrix.chip == 'host'
+        env:
+          PKG: ${{ matrix.package }}
+        run: cargo test -p "$PKG"
+      - name: Host Clippy (including tests)
+        if: matrix.chip == 'host'
+        env:
+          PKG: ${{ matrix.package }}
+        run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+      - name: ESP32-C3 cross-check
+        if: matrix.chip == 'esp32c3'
+        env:
+          PKG: ${{ matrix.package }}
+          TARGETS: ${{ matrix.targets }}
+        run: |
+          cargo +nightly check -Z build-std=core,alloc \
+            --target riscv32imc-unknown-none-elf \
+            -p "$PKG" --features esp32c3 "--$TARGETS"
+      - name: ESP32-S3 cross-check
+        if: matrix.chip == 'esp32s3'
+        env:
+          PKG: ${{ matrix.package }}
+          TARGETS: ${{ matrix.targets }}
+        run: |
+          cargo +esp check -Z build-std=core,alloc \
+            --target xtensa-esp32s3-none-elf \
+            -p "$PKG" --features esp32s3 "--$TARGETS"
