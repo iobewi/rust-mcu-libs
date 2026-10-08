@@ -38,7 +38,7 @@ jobs:
           -p iobewi-nvs-core
           -p iobewi-wifi-core
           -p iobewi-wifi-manager
-          --all-targets -- -D warnings
+          --lib --bins -- -D warnings
       - name: Enforce library lockfile policy
         run: |
           if git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
@@ -70,6 +70,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: riscv32imc-unknown-none-elf
+          components: rust-src
       - name: Check C3 package and associated binaries
         run: >-
           cargo +nightly check
@@ -77,7 +78,7 @@ jobs:
           --target riscv32imc-unknown-none-elf
           -p ${{ matrix.package }}
           --features ${{ matrix.features }}
-          --all-targets
+          --lib --bins
 
   esp32s3:
     name: ESP32-S3 / ${{ matrix.package }}
@@ -107,4 +108,4 @@ jobs:
           --target xtensa-esp32s3-none-elf
           -p ${{ matrix.package }}
           --features ${{ matrix.features }}
-          --all-targets
+          --lib --bins
