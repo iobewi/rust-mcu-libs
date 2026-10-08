@@ -106,7 +106,11 @@ impl AccessPointConfig {
         if !(1..=13).contains(&channel) {
             return Err(AccessPointConfigError::Channel);
         }
-        Ok(Self { ssid: String::from(ssid), password: String::from(password), channel })
+        Ok(Self {
+            ssid: String::from(ssid),
+            password: String::from(password),
+            channel,
+        })
     }
 
     pub fn ssid(&self) -> &str {
@@ -171,33 +175,60 @@ mod tests {
     #[test]
     fn a_valid_configuration_is_accepted_and_read_back() {
         let c = AccessPointConfig::new("IOBEWI-Setup", "12345678", 6).unwrap();
-        assert_eq!((c.ssid(), c.password(), c.channel()), ("IOBEWI-Setup", "12345678", 6));
+        assert_eq!(
+            (c.ssid(), c.password(), c.channel()),
+            ("IOBEWI-Setup", "12345678", 6)
+        );
     }
 
     #[test]
     fn ssid_length_is_one_to_thirty_two_bytes() {
-        assert_eq!(AccessPointConfig::new("", "12345678", 1), Err(AccessPointConfigError::Ssid));
+        assert_eq!(
+            AccessPointConfig::new("", "12345678", 1),
+            Err(AccessPointConfigError::Ssid)
+        );
         assert!(AccessPointConfig::new(&"a".repeat(32), "12345678", 1).is_ok());
-        assert_eq!(AccessPointConfig::new(&"a".repeat(33), "12345678", 1), Err(AccessPointConfigError::Ssid));
+        assert_eq!(
+            AccessPointConfig::new(&"a".repeat(33), "12345678", 1),
+            Err(AccessPointConfigError::Ssid)
+        );
         // Length is in bytes: 17 two-byte characters are 34 bytes.
-        assert_eq!(AccessPointConfig::new(&"é".repeat(17), "12345678", 1), Err(AccessPointConfigError::Ssid));
+        assert_eq!(
+            AccessPointConfig::new(&"é".repeat(17), "12345678", 1),
+            Err(AccessPointConfigError::Ssid)
+        );
     }
 
     #[test]
     fn passphrase_is_wpa2_sized_so_an_open_access_point_cannot_exist() {
-        assert_eq!(AccessPointConfig::new("x", "", 1), Err(AccessPointConfigError::Password));
-        assert_eq!(AccessPointConfig::new("x", "1234567", 1), Err(AccessPointConfigError::Password));
+        assert_eq!(
+            AccessPointConfig::new("x", "", 1),
+            Err(AccessPointConfigError::Password)
+        );
+        assert_eq!(
+            AccessPointConfig::new("x", "1234567", 1),
+            Err(AccessPointConfigError::Password)
+        );
         assert!(AccessPointConfig::new("x", "12345678", 1).is_ok());
         assert!(AccessPointConfig::new("x", &"p".repeat(63), 1).is_ok());
-        assert_eq!(AccessPointConfig::new("x", &"p".repeat(64), 1), Err(AccessPointConfigError::Password));
+        assert_eq!(
+            AccessPointConfig::new("x", &"p".repeat(64), 1),
+            Err(AccessPointConfigError::Password)
+        );
     }
 
     #[test]
     fn channel_is_one_to_thirteen() {
-        assert_eq!(AccessPointConfig::new("x", "12345678", 0), Err(AccessPointConfigError::Channel));
+        assert_eq!(
+            AccessPointConfig::new("x", "12345678", 0),
+            Err(AccessPointConfigError::Channel)
+        );
         assert!(AccessPointConfig::new("x", "12345678", 1).is_ok());
         assert!(AccessPointConfig::new("x", "12345678", 13).is_ok());
-        assert_eq!(AccessPointConfig::new("x", "12345678", 14), Err(AccessPointConfigError::Channel));
+        assert_eq!(
+            AccessPointConfig::new("x", "12345678", 14),
+            Err(AccessPointConfigError::Channel)
+        );
     }
 
     #[test]
