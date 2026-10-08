@@ -1,7 +1,7 @@
 //! ESP32-specific HAL, Embassy runtime and radio resource composition.
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
-use esp_hal::{interrupt::software::SoftwareInterruptControl, timer::timg::TimerGroup};
+use esp_hal::timer::timg::TimerGroup;
 use iobewi_esp_wifi::WifiManager;
 use static_cell::StaticCell;
 
@@ -30,9 +30,8 @@ pub fn boot(mode: crate::app::Mode) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
     esp_alloc::heap_allocator!(size: 96 * 1024);
 
-    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();
     let executor = EXECUTOR.init(esp_rtos::embassy::Executor::new());
