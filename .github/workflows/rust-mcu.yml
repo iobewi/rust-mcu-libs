@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
 
 permissions:
   contents: read
@@ -19,11 +21,26 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       xtensa_matrix: ${{ steps.matrix.outputs.xtensa_matrix }}
+      has_jobs: ${{ steps.matrix.outputs.has_jobs }}
+      has_xtensa: ${{ steps.matrix.outputs.has_xtensa }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Validate workspace and discover crate CI
         id: matrix
-        run: python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT"
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_PR: ${{ github.event.pull_request.base.sha }}
+          BASE_PUSH: ${{ github.event.before }}
+        run: |
+          if [[ "$EVENT" == "pull_request" ]]; then
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PR"
+          elif [[ "$EVENT" == "push" && "$BASE_PUSH" != "0000000000000000000000000000000000000000" && -n "$BASE_PUSH" ]]; then
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PUSH"
+          else
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --full
+          fi
       - name: Reject tracked Cargo.lock files
         run: |
           if git ls-files | grep -E '(^|/)Cargo\.lock$'; then
@@ -43,6 +60,7 @@ jobs:
   crate:
     name: ${{ matrix.package }} / ${{ matrix.chip }}
     needs: discover
+    if: needs.discover.outputs.has_jobs == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -97,6 +115,7 @@ jobs:
   xtensa-latest:
     name: Xtensa latest / ${{ matrix.package }}
     needs: discover
+    if: needs.discover.outputs.has_xtensa == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -117,3 +136,22 @@ jobs:
           cargo +esp check -Z build-std=core,alloc \
             --target xtensa-esp32s3-none-elf \
             -p "$PKG" --features esp32s3 "--$TARGETS"
+
+  affected-gate:
+    name: Affected crate validation
+    runs-on: ubuntu-latest
+    needs: [discover, format, crate, xtensa-latest]
+    if: always()
+    steps:
+      - name: Confirm discovery and all selected checks passed
+        env:
+          DISCOVER: ${{ needs.discover.result }}
+          FORMAT: ${{ needs.format.result }}
+          CRATE: ${{ needs.crate.result }}
+          XTENSA: ${{ needs.xtensa-latest.result }}
+          HAS_JOBS: ${{ needs.discover.outputs.has_jobs }}
+          HAS_XTENSA: ${{ needs.discover.outputs.has_xtensa }}
+        run: |
+          [[ "$DISCOVER" == success && "$FORMAT" == success ]] || exit 1
+          if [[ "$HAS_JOBS" == true ]]; then [[ "$CRATE" == success ]] || exit 1; fi
+          if [[ "$HAS_XTENSA" == true ]]; then [[ "$XTENSA" == success ]] || exit 1; fi
