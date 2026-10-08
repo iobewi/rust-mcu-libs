@@ -2,12 +2,14 @@
 members = [
   "common/config/space",
   "common/fs/nvs",
+  "examples/config-manager",
   "arch/esp32/fs/nvs",
   "arch/esp32/config/space",
   "arch/esp32/flash",
   "arch/esp32/flash/partitions",
 ]
 default-members = [
+  "examples/config-manager",
   "common/config/space",
   "common/fs/nvs",
 ]
