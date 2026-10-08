@@ -23,12 +23,12 @@ esp32s3 = [
 ]
 
 [dependencies]
-iobewi-config-space = { path = "../../config" }
-iobewi-nvs-core = { path = "../core" }
-iobewi-esp-flash = { path = "../../../drivers/flash/esp32" }
-iobewi-esp-nvs = { path = "../esp32" }
+iobewi-config-space = { path = "../../../../common/config/space" }
+iobewi-nvs-core = { path = "../../../../common/fs/nvs" }
+iobewi-esp-flash = { path = "../../flash" }
+iobewi-esp-nvs = { path = ".." }
 esp-nvs = "0.5.0"
 log = { version = "0.4.29", default-features = false }
 
-iobewi-esp-partitions = { path = "../../../drivers/flash/partitions-esp32" }
+iobewi-esp-partitions = { path = "../../partitions" }
 embedded-storage = "0.3.1"

@@ -1,11 +1,15 @@
 [workspace]
 members = [
-  "fs/config",
-  "fs/nvs/core",
-  "fs/nvs/esp32",
-  "fs/nvs/config-esp32",
-  "drivers/flash/esp32",
-  "drivers/flash/partitions-esp32",
+  "common/config/space",
+  "common/fs/nvs",
+  "arch/esp32/nvs",
+  "arch/esp32/nvs/config-space",
+  "arch/esp32/flash",
+  "arch/esp32/partitions",
+]
+default-members = [
+  "common/config/space",
+  "common/fs/nvs",
 ]
 resolver = "3"
 
