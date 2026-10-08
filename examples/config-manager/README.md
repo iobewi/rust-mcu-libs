@@ -1,6 +1,8 @@
-# Config manager — ESP32 reference firmware
+# Config manager — multi-MCU reference example
 
-Small ESP32 firmware that composes existing iOBEWi building blocks rather than wrapping them:
+One hardware-independent scenario with a compile-time selected MCU integration. The current implementation runs on ESP32; future RP2040/RP2350 or Teensy implementations can be added without changing `app.rs`.
+
+The example composes existing iOBEWi building blocks rather than wrapping them:
 
 - `common/config/space`: isolated configuration ownership and quotas;
 - `arch/esp32/config/space`: configuration persistence over NVS;
@@ -12,6 +14,14 @@ Small ESP32 firmware that composes existing iOBEWi building blocks rather than w
 On first boot, discover the ESP-IDF **data/NVS partition labelled `nvs`**, claim a 32-byte space named `demo`, and save `config-ready`. On subsequent boots, read back the persisted value. The value is checked; it is **not erased or reformatted**.
 
 No address is hard-coded. The firmware expects a correctly provisioned ESP-IDF partition table with a sufficiently sized NVS partition. It does not create one.
+
+## Source layout
+
+- `src/app.rs`: portable `ConfigManager` scenario, generic over the existing `ConfigBackend` trait.
+- `src/main.rs`: `#[cfg]` target selection, with a compile-time error for unsupported selections.
+- `src/platform/esp32.rs`: Embassy entry point, ESP flash initialization and NVS backend.
+
+A new MCU gets its own platform module, selected using a Cargo feature. Its required storage adapter belongs under `arch/`, not inside the application logic. **No RP2040, RP2350 or Teensy implementation is claimed yet.**
 
 ## Target selection
 
