@@ -24,6 +24,10 @@ jobs:
       mcu_matrix: ${{ steps.matrix.outputs.mcu_matrix }}
       has_host: ${{ steps.matrix.outputs.has_host }}
       has_mcu: ${{ steps.matrix.outputs.has_mcu }}
+      esp32c3_packages: ${{ steps.matrix.outputs.esp32c3_packages }}
+      esp32s3_packages: ${{ steps.matrix.outputs.esp32s3_packages }}
+      has_esp32c3: ${{ steps.matrix.outputs.has_esp32c3 }}
+      has_esp32s3: ${{ steps.matrix.outputs.has_esp32s3 }}
       xtensa_matrix: ${{ steps.matrix.outputs.xtensa_matrix }}
       has_jobs: ${{ steps.matrix.outputs.has_jobs }}
       has_xtensa: ${{ steps.matrix.outputs.has_xtensa }}
@@ -83,16 +87,47 @@ jobs:
           PKG: ${{ matrix.package }}
         run: cargo clippy -p "$PKG" --all-targets -- -D warnings
 
-  # Gates 0 and 1: no Xtensa download until formatting and host tests pass.
-  prepare-xtensa:
-    name: Prepare Xtensa / ${{ matrix.variant }}
+  # Each MCU job compiles all selected crates on ONE runner.
+  # Xtensa is installed once per compiler variant; no toolchain artifacts.
+  esp32c3:
+    name: ESP32-C3 selected crates
     needs: [discover, format, host-tests]
-    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_xtensa == 'true'
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_esp32c3 == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: riscv32imc-unknown-none-elf
+          components: rust-src
+      - name: Compile selected ESP32-C3 crates
+        env:
+          PACKAGES: ${{ needs.discover.outputs.esp32c3_packages }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          for item in json.loads(os.environ["PACKAGES"]):
+              cmd = ["cargo", "+nightly", "check", "-Z", "build-std=core,alloc",
+                     "--target", "riscv32imc-unknown-none-elf",
+                     "-p", item["package"], "--features", "esp32c3", "--" + item["targets"]]
+              print("::group::" + item["package"], flush=True)
+              try:
+                  subprocess.run(cmd, check=True)
+              finally:
+                  print("::endgroup::", flush=True)
+          PY
+
+  esp32s3:
+    name: ESP32-S3 selected crates / ${{ matrix.variant }}
+    needs: [discover, format, host-tests]
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_esp32s3 == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"variant":"pinned","version":"1.98.1.0"}]}' || '{"include":[{"variant":"pinned","version":"1.98.1.0"},{"variant":"latest","version":"latest"}]}') }}
     steps:
+      - uses: actions/checkout@v4
       - uses: esp-rs/xtensa-toolchain@v1.7.0
         with:
           buildtargets: esp32s3
@@ -100,116 +135,44 @@ jobs:
           override: false
           version: ${{ matrix.version }}
           github-token: ${{ github.token }}
-      - name: Bundle compiler once
-        run: |
-          test -x "$HOME/.rustup/toolchains/esp/bin/rustc"
-          tar -C "$HOME/.rustup/toolchains" -cf "$RUNNER_TEMP/xtensa.tar" esp
-      - uses: actions/upload-artifact@v4
-        with:
-          name: xtensa-${{ matrix.variant }}
-          path: ${{ runner.temp }}/xtensa.tar
-          retention-days: 1
-          compression-level: 0
-
-  crate:
-    name: ${{ matrix.package }} / ${{ matrix.chip }}
-    needs: [discover, format, host-tests, prepare-xtensa]
-    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_mcu == 'true' && (needs.discover.outputs.has_xtensa != 'true' || needs.prepare-xtensa.result == 'success')
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.discover.outputs.mcu_matrix) }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-        if: matrix.chip == 'esp32c3'
-        with:
-          targets: riscv32imc-unknown-none-elf
-          components: rust-src
-      - uses: actions/download-artifact@v4
-        if: matrix.chip == 'esp32s3'
-        with:
-          name: xtensa-pinned
-          path: ${{ runner.temp }}/xtensa
-      - name: Activate shared Xtensa compiler
-        if: matrix.chip == 'esp32s3'
-        run: |
-          mkdir -p "$RUNNER_TEMP/xtensa/unpacked"
-          tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf "$RUNNER_TEMP/xtensa/xtensa.tar"
-          rustup toolchain link esp "$RUNNER_TEMP/xtensa/unpacked/esp"
-          cargo +esp --version
-      - name: ESP32-C3 cross-check
-        if: matrix.chip == 'esp32c3'
+      - name: Compile selected ESP32-S3 crates
         env:
-          PKG: ${{ matrix.package }}
-          TARGETS: ${{ matrix.targets }}
+          PACKAGES: ${{ needs.discover.outputs.esp32s3_packages }}
         run: |
-          cargo +nightly check -Z build-std=core,alloc \
-            --target riscv32imc-unknown-none-elf \
-            -p "$PKG" --features esp32c3 "--$TARGETS"
-      - name: ESP32-S3 cross-check
-        if: matrix.chip == 'esp32s3'
-        env:
-          PKG: ${{ matrix.package }}
-          TARGETS: ${{ matrix.targets }}
-        run: |
-          cargo +esp check -Z build-std=core,alloc \
-            --target xtensa-esp32s3-none-elf \
-            -p "$PKG" --features esp32s3 "--$TARGETS"
-
-  xtensa-latest:
-    name: Xtensa latest / ${{ matrix.package }}
-    needs: [discover, format, host-tests, prepare-xtensa]
-    if: always() && github.event_name != 'pull_request' && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.discover.outputs.xtensa_matrix) }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: xtensa-latest
-          path: ${{ runner.temp }}/xtensa
-      - name: Activate shared latest Xtensa compiler
-        run: |
-          mkdir -p "$RUNNER_TEMP/xtensa/unpacked"
-          tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf "$RUNNER_TEMP/xtensa/xtensa.tar"
-          rustup toolchain link esp "$RUNNER_TEMP/xtensa/unpacked/esp"
-          cargo +esp --version
-      - name: Verify ESP32-S3 against latest Xtensa Rust
-        env:
-          PKG: ${{ matrix.package }}
-          TARGETS: ${{ matrix.targets }}
-        run: |
-          cargo +esp check -Z build-std=core,alloc \
-            --target xtensa-esp32s3-none-elf \
-            -p "$PKG" --features esp32s3 "--$TARGETS"
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          for item in json.loads(os.environ["PACKAGES"]):
+              cmd = ["cargo", "+esp", "check", "-Z", "build-std=core,alloc",
+                     "--target", "xtensa-esp32s3-none-elf",
+                     "-p", item["package"], "--features", "esp32s3", "--" + item["targets"]]
+              print("::group::" + item["package"], flush=True)
+              try:
+                  subprocess.run(cmd, check=True)
+              finally:
+                  print("::endgroup::", flush=True)
+          PY
 
   affected-gate:
     name: Affected crate validation
     runs-on: ubuntu-latest
-    needs: [discover, format, host-tests, prepare-xtensa, crate, xtensa-latest]
+    needs: [discover, format, host-tests, esp32c3, esp32s3]
     if: always()
     steps:
       - name: Confirm discovery and all selected checks passed
         env:
           DISCOVER: ${{ needs.discover.result }}
           FORMAT: ${{ needs.format.result }}
-          CRATE: ${{ needs.crate.result }}
+          C3: ${{ needs.esp32c3.result }}
+          S3: ${{ needs.esp32s3.result }}
           HOST: ${{ needs.host-tests.result }}
-          PREPARE: ${{ needs.prepare-xtensa.result }}
-          XTENSA: ${{ needs.xtensa-latest.result }}
           HAS_JOBS: ${{ needs.discover.outputs.has_jobs }}
           HAS_HOST: ${{ needs.discover.outputs.has_host }}
           HAS_MCU: ${{ needs.discover.outputs.has_mcu }}
-          HAS_XTENSA: ${{ needs.discover.outputs.has_xtensa }}
-          EVENT: ${{ github.event_name }}
+          HAS_C3: ${{ needs.discover.outputs.has_esp32c3 }}
+          HAS_S3: ${{ needs.discover.outputs.has_esp32s3 }}
         run: |
           [[ "$DISCOVER" == success && "$FORMAT" == success ]] || exit 1
           if [[ "$HAS_HOST" == true ]]; then [[ "$HOST" == success ]] || exit 1; fi
-          if [[ "$HAS_MCU" == true ]]; then [[ "$CRATE" == success ]] || exit 1; fi
-          if [[ "$HAS_XTENSA" == true ]]; then
-            [[ "$PREPARE" == success ]] || exit 1
-            if [[ "$EVENT" != pull_request ]]; then [[ "$XTENSA" == success ]] || exit 1; fi
-          fi
+          if [[ "$HAS_C3" == true ]]; then [[ "$C3" == success ]] || exit 1; fi
+          if [[ "$HAS_S3" == true ]]; then [[ "$S3" == success ]] || exit 1; fi

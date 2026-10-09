@@ -87,7 +87,7 @@ def discover(base=None, head="HEAD", full=False):
         selected = set(packages)
     else:
         changed = git("diff", "--name-only", "--no-renames", base, head).splitlines()
-        selected = select(changed, packages, reverse, base)
+        selected = select(changed, packages, reverse)
     matrix = []
     for name in sorted(selected):
         profile = profiles[name]
@@ -117,6 +117,10 @@ if __name__ == "__main__":
                 output.write("mcu_matrix=" + json.dumps(mcu, separators=(",", ":")) + "\n")
                 output.write("has_host=" + str(bool(host["include"])).lower() + "\n")
                 output.write("has_mcu=" + str(bool(mcu["include"])).lower() + "\n")
+                for chip in ("esp32c3", "esp32s3"):
+                    entries = [item for item in mcu["include"] if item["chip"] == chip]
+                    output.write(chip + "_packages=" + json.dumps(entries, separators=(",", ":")) + "\n")
+                    output.write("has_" + chip + "=" + str(bool(entries)).lower() + "\n")
                 output.write("matrix=" + encoded + "\n")
                 output.write("xtensa_matrix=" + json.dumps(xtensa, separators=(",", ":")) + "\n")
                 output.write("has_jobs=" + str(bool(result["include"])).lower() + "\n")

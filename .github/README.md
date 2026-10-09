@@ -28,17 +28,17 @@ Example for firmware binaries:
 
 The workflow also enforces `cargo fmt --all -- --check` across the workspace and prohibits tracked `Cargo.lock` files.
 
-`.github/scripts/discover_ci.py` reads the root workspace manifest and validates each member's configuration. A missing or invalid `ci.json` fails discovery; a new crate cannot silently bypass CI. The discovered jobs run as a GitHub Actions dynamic matrix.
+`.github/scripts/discover_ci.py` reads the root workspace manifest and validates each member's configuration. A missing or invalid `ci.json` fails discovery; a new crate cannot silently bypass CI. Discovery produces a host-test matrix and per-chip lists of affected MCU crates. Host tests remain a matrix; each MCU list is compiled sequentially in one runner per target/toolchain variant.
 
 This is an initial, intentionally small profile vocabulary. For a new MCU architecture, add a common execution profile and installer once, rather than duplicating workflow YAML per crate. An ESP32-only profile is not a promise of other MCU support.
 
 ## Xtensa baseline and latest compatibility
 
-A `prepare-xtensa` matrix installs each Xtensa Rust compiler **once per workflow run**: pinned `1.98.1.0` and upstream `latest`. The job bundles the installed toolchain and uploads a short-lived GitHub Actions artifact (`xtensa-pinned` / `xtensa-latest`). The normal ESP32-S3 and mandatory `xtensa-latest` build jobs download their respective artifact and register it using `rustup toolchain link esp`. Neither consumer invokes `espup` nor queries the upstream API. Both matrices come from `ci.json`; new ESP32 crates are included automatically, without edits to the workflow.
+For each event, the ESP32-S3 job installs each required Xtensa compiler **once per runner**, then checks all preselected ESP32-S3 crates sequentially on that same runner. No toolchain archive is uploaded, downloaded, or distributed to individual crate jobs. The pinned baseline is `1.98.1.0`. PRs run affected ESP32-C3 and pinned ESP32-S3 checks; pushes to `main` include `latest` for affected crates; daily schedules and manual dispatch run **all workspace crates** with both pinned and latest S3 toolchains.
 
-The setup and latest checks are **not** `continue-on-error`; a Rust compatibility regression fails CI. The preparation action receives GitHub's workflow token to authenticate API calls. One upstream query per toolchain per run (instead of one per crate) lowers rate-limit pressure. Preparation failures block dependent ESP32-S3 checks. Artifacts are run-scoped and retained for one day. An infrastructure download error still fails the job and must be diagnosed, not misreported as a code incompatibility.
+The ESP32-C3 job similarly checks all selected C3 crates on one runner. Each package invocation keeps its `--lib` or `--bins` mode, selected from `ci.json`, and each compilation gets a separate collapsible GitHub log group. The jobs stop on the first failed check. Rust's build directory is reused across checks on the same runner.
 
-Keep the pinned baseline version current by updating this workflow and documenting the new value. A green reference build alone does not establish latest compatibility.
+Toolchain installation failures and compiler compatibility regressions fail the required final gate. The Xtensa install action receives the workflow token for authenticated GitHub API access. No upstream toolchain distribution is attempted per crate.
 
 ## Validation by GitHub event
 
@@ -50,7 +50,7 @@ Adding a crate to `workspace.members` or `default-members` does not alone trigge
 
 ## Fail-fast quality gates
 
-The workflow runs in ordered stages. **Gate 0:** workspace/CI metadata discovery, tracked lockfile policy and Rust formatting. **Gate 1:** host unit tests and strict Clippy for affected portable crates (`fail-fast: true`). **Gate 2:** only after successful earlier stages, install the Xtensa toolchains and cross-check affected MCU crates against C3, pinned S3 and latest S3. A host failure prevents expensive MCU jobs from being scheduled. If no host crate is affected, the skipped host stage is treated as a valid empty stage; missing required checks or actual failures still block the final `affected-gate`.
+The workflow runs in ordered stages. **Gate 0:** workspace/CI metadata discovery, tracked lockfile policy and Rust formatting. **Gate 1:** host unit tests and strict Clippy for affected portable crates (`fail-fast: true`). **Gate 2:** only after successful earlier stages, install the Xtensa toolchains and cross-check affected MCU crates against C3 and pinned S3 (plus latest S3 on main and scheduled/manual runs). A host failure prevents expensive MCU jobs from being scheduled. If no host crate is affected, the skipped host stage is treated as a valid empty stage; missing required checks or actual failures still block the final `affected-gate`.
 
 ## Impact-aware validation
 
