@@ -1,11 +1,3 @@
----
-layer: portable-contract
-status: implemented
-invariants:
-  - INV-001
-gates: []
----
-
 # iobewi-log
 
 ## Summary
@@ -22,7 +14,7 @@ Console hardware, persistence, network activation/authorization and delivery. Ca
 
 ## Architecture
 
-Portable capture layer consumed by future log transport. The target supplies the console callback and application prefix; future log config binds ConfigSpace to this policy without introducing platform dependencies (INV-001).
+Portable capture layer consumed by future log transport. The target supplies the console callback and application prefix; future log config binds ConfigSpace to this policy without introducing platform dependencies.
 
 ## Public API
 
@@ -37,10 +29,6 @@ Portable capture layer consumed by future log transport. The target supplies the
 ## Memory budget
 
 Captured storage is inline, with no heap allocation per record or rule. Measured with `size_of` on x86_64: record 248 bytes, deque 5,976 bytes (old text deque 4,056; +1,920), policy 656 bytes. A compile-only `thumbv7em-none-eabi` 32-bit layout probe reports: record 236 bytes, deque 5,676 bytes (old text deque 3,948; +1,728), policy 584 bytes. These exclude mutex/RefCell/Option bookkeeping and are compiler layout measurements, not ESP linker or hardware RAM qualification. The binding additionally needs a 1024-byte inline YAML buffer while encoding; ConfigSpace snapshots use their existing allocated byte vector. Target and message capacities remain independent. Existing LogMetadata consumers may allocate strings.
-
-## Invariants
-
-- `INV-001`
 
 ## Validation
 
