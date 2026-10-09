@@ -86,6 +86,11 @@ jobs:
         env:
           PKG: ${{ matrix.package }}
         run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+      - name: Optional WebSocket feature tests and Clippy
+        if: matrix.package == 'iobewi-http-client'
+        run: |
+          cargo test -p iobewi-http-client --features websocket
+          cargo clippy -p iobewi-http-client --features websocket --all-targets -- -D warnings
 
   # Each MCU job compiles all selected crates on ONE runner.
   # Xtensa is installed once per compiler variant; no toolchain artifacts.
