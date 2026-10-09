@@ -35,6 +35,7 @@ edge-nal-embassy = { version = "0.9", default-features = false, features = [
   "medium-ethernet",
   "proto-ipv4",
   "udp",
+  "multicast",
 ] }
 esp-hal = { version = "~1.2", default-features = false, features = ["unstable"] }
 esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = [
