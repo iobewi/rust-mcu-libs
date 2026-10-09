@@ -34,9 +34,9 @@ This is an initial, intentionally small profile vocabulary. For a new MCU archit
 
 ## Xtensa baseline and latest compatibility
 
-The normal ESP32-S3 crate job uses the reference Xtensa Rust `1.98.1.0` toolchain to keep a reproducible baseline. A **separate mandatory** `xtensa-latest` job matrix runs every ESP32-S3 crate against the latest toolchain advertised by upstream. Both matrices come from `ci.json`; new ESP32 crates are included automatically, without edits to the workflow.
+A `prepare-xtensa` matrix installs each Xtensa Rust compiler **once per workflow run**: pinned `1.98.1.0` and upstream `latest`. The job bundles the installed toolchain and uploads a short-lived GitHub Actions artifact (`xtensa-pinned` / `xtensa-latest`). The normal ESP32-S3 and mandatory `xtensa-latest` build jobs download their respective artifact and register it using `rustup toolchain link esp`. Neither consumer invokes `espup` nor queries the upstream API. Both matrices come from `ci.json`; new ESP32 crates are included automatically, without edits to the workflow.
 
-The latest checks are **not** `continue-on-error`; a Rust compatibility regression fails CI. The action receives GitHub's workflow token to authenticate API calls, reducing anonymous GitHub rate-limit failures. An infrastructure download error still fails the job and must be diagnosed, not misreported as a code incompatibility.
+The setup and latest checks are **not** `continue-on-error`; a Rust compatibility regression fails CI. The preparation action receives GitHub's workflow token to authenticate API calls. One upstream query per toolchain per run (instead of one per crate) lowers rate-limit pressure. Preparation failures block dependent ESP32-S3 checks. Artifacts are run-scoped and retained for one day. An infrastructure download error still fails the job and must be diagnosed, not misreported as a code incompatibility.
 
 Keep the pinned baseline version current by updating this workflow and documenting the new value. A green reference build alone does not establish latest compatibility.
 

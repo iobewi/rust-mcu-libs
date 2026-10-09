@@ -57,10 +57,42 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
 
+  prepare-xtensa:
+    name: Prepare Xtensa / ${{ matrix.variant }}
+    needs: discover
+    if: needs.discover.outputs.has_xtensa == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: pinned
+            version: '1.98.1.0'
+          - variant: latest
+            version: latest
+    steps:
+      - uses: esp-rs/xtensa-toolchain@v1.7.0
+        with:
+          buildtargets: esp32s3
+          default: false
+          override: false
+          version: ${{ matrix.version }}
+          github-token: ${{ github.token }}
+      - name: Bundle compiler once
+        run: |
+          test -x "$HOME/.rustup/toolchains/esp/bin/rustc"
+          tar -C "$HOME/.rustup/toolchains" -cf "$RUNNER_TEMP/xtensa.tar" esp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xtensa-${{ matrix.variant }}
+          path: ${{ runner.temp }}/xtensa.tar
+          retention-days: 1
+          compression-level: 0
+
   crate:
     name: ${{ matrix.package }} / ${{ matrix.chip }}
-    needs: discover
-    if: needs.discover.outputs.has_jobs == 'true'
+    needs: [discover, prepare-xtensa]
+    if: always() && needs.discover.result == 'success' && needs.discover.outputs.has_jobs == 'true' && (needs.discover.outputs.has_xtensa != 'true' || needs.prepare-xtensa.result == 'success')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -76,13 +108,18 @@ jobs:
         with:
           targets: riscv32imc-unknown-none-elf
           components: rust-src
-      - uses: esp-rs/xtensa-toolchain@v1.7.0
+      - uses: actions/download-artifact@v4
         if: matrix.chip == 'esp32s3'
         with:
-          buildtargets: esp32s3
-          default: false
-          version: '1.98.1.0'
-          github-token: ${{ github.token }}
+          name: xtensa-pinned
+          path: ${{ runner.temp }}/xtensa
+      - name: Activate shared Xtensa compiler
+        if: matrix.chip == 'esp32s3'
+        run: |
+          mkdir -p "$RUNNER_TEMP/xtensa/unpacked"
+          tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf "$RUNNER_TEMP/xtensa/xtensa.tar"
+          rustup toolchain link esp "$RUNNER_TEMP/xtensa/unpacked/esp"
+          cargo +esp --version
       - name: Host tests
         if: matrix.chip == 'host'
         env:
@@ -114,20 +151,24 @@ jobs:
 
   xtensa-latest:
     name: Xtensa latest / ${{ matrix.package }}
-    needs: discover
-    if: needs.discover.outputs.has_xtensa == 'true'
+    needs: [discover, prepare-xtensa]
+    if: needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.discover.outputs.xtensa_matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: esp-rs/xtensa-toolchain@v1.7.0
+      - uses: actions/download-artifact@v4
         with:
-          buildtargets: esp32s3
-          default: false
-          version: latest
-          github-token: ${{ github.token }}
+          name: xtensa-latest
+          path: ${{ runner.temp }}/xtensa
+      - name: Activate shared latest Xtensa compiler
+        run: |
+          mkdir -p "$RUNNER_TEMP/xtensa/unpacked"
+          tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf "$RUNNER_TEMP/xtensa/xtensa.tar"
+          rustup toolchain link esp "$RUNNER_TEMP/xtensa/unpacked/esp"
+          cargo +esp --version
       - name: Verify ESP32-S3 against latest Xtensa Rust
         env:
           PKG: ${{ matrix.package }}
@@ -140,7 +181,7 @@ jobs:
   affected-gate:
     name: Affected crate validation
     runs-on: ubuntu-latest
-    needs: [discover, format, crate, xtensa-latest]
+    needs: [discover, format, prepare-xtensa, crate, xtensa-latest]
     if: always()
     steps:
       - name: Confirm discovery and all selected checks passed
@@ -148,10 +189,13 @@ jobs:
           DISCOVER: ${{ needs.discover.result }}
           FORMAT: ${{ needs.format.result }}
           CRATE: ${{ needs.crate.result }}
+          PREPARE: ${{ needs.prepare-xtensa.result }}
           XTENSA: ${{ needs.xtensa-latest.result }}
           HAS_JOBS: ${{ needs.discover.outputs.has_jobs }}
           HAS_XTENSA: ${{ needs.discover.outputs.has_xtensa }}
         run: |
           [[ "$DISCOVER" == success && "$FORMAT" == success ]] || exit 1
           if [[ "$HAS_JOBS" == true ]]; then [[ "$CRATE" == success ]] || exit 1; fi
-          if [[ "$HAS_XTENSA" == true ]]; then [[ "$XTENSA" == success ]] || exit 1; fi
+          if [[ "$HAS_XTENSA" == true ]]; then
+            [[ "$PREPARE" == success && "$XTENSA" == success ]] || exit 1
+          fi
