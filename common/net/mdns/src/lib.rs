@@ -10,7 +10,7 @@ use edge_mdns::{
     buf::BufferAccess,
     domain::base::Ttl,
     host::Host,
-    io::{self, MdnsIoError, DEFAULT_SOCKET},
+    io::{self, MdnsIoError, IPV4_DEFAULT_SOCKET},
     HostAnswersMdnsHandler,
 };
 use edge_nal::{UdpBind, UdpSplit};
@@ -38,10 +38,10 @@ where
     T: UdpBind,
     RB: BufferAccess<[u8]>,
     SB: BufferAccess<[u8]>,
-    R: rand_core::RngCore,
+    R: rand_core::Rng,
     M: RawMutex,
 {
-    let mut socket = io::bind(stack, DEFAULT_SOCKET, Some(Ipv4Addr::UNSPECIFIED), Some(0)).await?;
+    let mut socket = io::bind(stack, IPV4_DEFAULT_SOCKET, Some(Ipv4Addr::UNSPECIFIED), Some(0)).await?;
     let (receive, send) = socket.split();
     let host = Host {
         hostname,
