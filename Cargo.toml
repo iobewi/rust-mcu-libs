@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "common/time/ntp",
   "examples/https-health",
   "common/net/http/tls",
   "arch/esp32/crypto/rng",
