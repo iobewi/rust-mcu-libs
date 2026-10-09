@@ -15,7 +15,7 @@ extern crate alloc;
 extern crate std;
 
 use alloc::string::String;
-use iobewi_http_server::json::{json_error, json_ok, JsonResponse};
+use iobewi_http_server::json::{JsonResponse, json_error, json_ok};
 use iobewi_http_server::response::StatusCode;
 use serde::Deserialize;
 
@@ -45,22 +45,41 @@ pub trait ProvisioningBackend {
     async fn save_ca(&self, ca_pem: &str) -> Result<(), SaveCertError>;
 }
 
-pub async fn cert_response<B: ProvisioningBackend>(backend: &B, bearer: &str, body: &str) -> JsonResponse {
+pub async fn cert_response<B: ProvisioningBackend>(
+    backend: &B,
+    bearer: &str,
+    body: &str,
+) -> JsonResponse {
     if !backend.authorize(bearer).await {
         return json_error(StatusCode::UNAUTHORIZED, "{\"error\":\"unauthorized\"}");
     }
     let Ok(request) = serde_json::from_str::<CertBody>(body) else {
-        return json_error(StatusCode::BAD_REQUEST, "{\"error\":\"missing_cert_or_key\"}");
+        return json_error(
+            StatusCode::BAD_REQUEST,
+            "{\"error\":\"missing_cert_or_key\"}",
+        );
     };
     match backend.save_cert(&request.cert_pem, &request.key_pem).await {
         Ok(()) => json_ok(String::from("{\"status\":\"saved\"}")),
-        Err(SaveCertError::Invalid) => json_error(StatusCode::BAD_REQUEST, "{\"error\":\"invalid_certificate\"}"),
-        Err(SaveCertError::Mismatch) => json_error(StatusCode::BAD_REQUEST, "{\"error\":\"cert_key_mismatch\"}"),
-        Err(SaveCertError::Storage) => json_error(StatusCode::INTERNAL_SERVER_ERROR, "{\"error\":\"nvs_write_failed\"}"),
+        Err(SaveCertError::Invalid) => json_error(
+            StatusCode::BAD_REQUEST,
+            "{\"error\":\"invalid_certificate\"}",
+        ),
+        Err(SaveCertError::Mismatch) => {
+            json_error(StatusCode::BAD_REQUEST, "{\"error\":\"cert_key_mismatch\"}")
+        }
+        Err(SaveCertError::Storage) => json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "{\"error\":\"nvs_write_failed\"}",
+        ),
     }
 }
 
-pub async fn ca_response<B: ProvisioningBackend>(backend: &B, bearer: &str, body: &str) -> JsonResponse {
+pub async fn ca_response<B: ProvisioningBackend>(
+    backend: &B,
+    bearer: &str,
+    body: &str,
+) -> JsonResponse {
     if !backend.authorize(bearer).await {
         return json_error(StatusCode::UNAUTHORIZED, "{\"error\":\"unauthorized\"}");
     }
@@ -69,9 +88,14 @@ pub async fn ca_response<B: ProvisioningBackend>(backend: &B, bearer: &str, body
     };
     match backend.save_ca(&request.ca_pem).await {
         Ok(()) => json_ok(String::from("{\"status\":\"saved\"}")),
-        Err(SaveCertError::Storage) => json_error(StatusCode::INTERNAL_SERVER_ERROR, "{\"error\":\"nvs_write_failed\"}"),
-        Err(SaveCertError::Invalid | SaveCertError::Mismatch) =>
-            json_error(StatusCode::BAD_REQUEST, "{\"error\":\"invalid_certificate\"}"),
+        Err(SaveCertError::Storage) => json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "{\"error\":\"nvs_write_failed\"}",
+        ),
+        Err(SaveCertError::Invalid | SaveCertError::Mismatch) => json_error(
+            StatusCode::BAD_REQUEST,
+            "{\"error\":\"invalid_certificate\"}",
+        ),
     }
 }
 
@@ -107,23 +131,35 @@ mod tests {
             self.allow && token == "t"
         }
         async fn save_cert(&self, cert: &str, key: &str) -> Result<(), SaveCertError> {
-            self.saved.borrow_mut().push(("cert", alloc::vec![cert.to_string(), key.to_string()]));
+            self.saved
+                .borrow_mut()
+                .push(("cert", alloc::vec![cert.to_string(), key.to_string()]));
             self.result.clone()
         }
         async fn save_ca(&self, ca: &str) -> Result<(), SaveCertError> {
-            self.saved.borrow_mut().push(("ca", alloc::vec![ca.to_string()]));
+            self.saved
+                .borrow_mut()
+                .push(("ca", alloc::vec![ca.to_string()]));
             self.result.clone()
         }
     }
 
     fn backend(allow: bool, result: Result<(), SaveCertError>) -> Backend {
-        Backend { allow, result, saved: Rc::default() }
+        Backend {
+            allow,
+            result,
+            saved: Rc::default(),
+        }
     }
 
     #[test]
     fn unauthorized_requests_never_reach_the_backend() {
         let b = backend(true, Ok(()));
-        block_on(cert_response(&b, "wrong", r#"{"cert_pem":"c","key_pem":"k"}"#));
+        block_on(cert_response(
+            &b,
+            "wrong",
+            r#"{"cert_pem":"c","key_pem":"k"}"#,
+        ));
         block_on(ca_response(&b, "", r#"{"ca_pem":"x"}"#));
         assert!(b.saved.borrow().is_empty());
     }
@@ -139,16 +175,27 @@ mod tests {
     #[test]
     fn valid_bodies_are_passed_through_verbatim() {
         let b = backend(true, Ok(()));
-        block_on(cert_response(&b, "t", r#"{"cert_pem":"CERT","key_pem":"KEY"}"#));
+        block_on(cert_response(
+            &b,
+            "t",
+            r#"{"cert_pem":"CERT","key_pem":"KEY"}"#,
+        ));
         block_on(ca_response(&b, "t", r#"{"ca_pem":"CA"}"#));
         let saved = b.saved.borrow();
-        assert_eq!(saved[0], ("cert", alloc::vec!["CERT".to_string(), "KEY".to_string()]));
+        assert_eq!(
+            saved[0],
+            ("cert", alloc::vec!["CERT".to_string(), "KEY".to_string()])
+        );
         assert_eq!(saved[1], ("ca", alloc::vec!["CA".to_string()]));
     }
 
     #[test]
     fn every_backend_error_still_produces_a_response() {
-        for err in [SaveCertError::Invalid, SaveCertError::Mismatch, SaveCertError::Storage] {
+        for err in [
+            SaveCertError::Invalid,
+            SaveCertError::Mismatch,
+            SaveCertError::Storage,
+        ] {
             let b = backend(true, Err(err));
             block_on(cert_response(&b, "t", r#"{"cert_pem":"c","key_pem":"k"}"#));
             block_on(ca_response(&b, "t", r#"{"ca_pem":"x"}"#));
