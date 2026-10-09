@@ -1,66 +1,60 @@
 #![no_std]
 
-//! The logical slot model of the A/B firmware layout in use today: two OTA
-//! application slots, `ota_0` and `ota_1`, and the layout identifier OTA
-//! clients see.
-//!
-//! Deliberately *only* what exists: no generic slot roles (kernel/userspace/
-//! recovery), no per-slot metadata, no partition-table knowledge -- locating
-//! a slot in flash is a platform adapter's job, selecting a boot target is
-//! `iobewi-firmware-boot`'s.
+//! Logical firmware domains and their independent A/B slot pairs.
+//! No flash, ESP partition labels, boot policy or update policy.
 
-/// Identifier of the partition layout (the compatibility contract exposed to
-/// OTA clients as `partition_layout`): two OTA slots, A/B.
-pub const PARTITION_LAYOUT: &str = "embewi-ab-v1";
-
-/// Number of OTA application slots in [`PARTITION_LAYOUT`].
-pub const SLOT_COUNT: u8 = 2;
-
-/// OTA-capable application slots.
+/// Optional firmware domain. A-only devices do not need domain B.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppSlot {
-    Ota0,
-    Ota1,
+pub enum Domain {
+    A,
+    B,
 }
 
-impl AppSlot {
-    pub fn from_name(name: &str) -> Option<Self> {
-        match name {
-            "ota_0" => Some(Self::Ota0),
-            "ota_1" => Some(Self::Ota1),
-            _ => None,
-        }
-    }
+/// Logical position within one firmware domain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Slot {
+    Zero,
+    One,
+}
 
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Ota0 => "ota_0",
-            Self::Ota1 => "ota_1",
-        }
-    }
-
+impl Slot {
     pub const fn other(self) -> Self {
         match self {
-            Self::Ota0 => Self::Ota1,
-            Self::Ota1 => Self::Ota0,
+            Self::Zero => Self::One,
+            Self::One => Self::Zero,
         }
     }
 
-    /// 0-based slot index, as used by the EWBT sequence arithmetic
-    /// (`iobewi_firmware_boot::slot_of`).
     pub const fn index(self) -> u8 {
         match self {
-            Self::Ota0 => 0,
-            Self::Ota1 => 1,
+            Self::Zero => 0,
+            Self::One => 1,
         }
     }
 
     pub const fn from_index(index: u8) -> Option<Self> {
         match index {
-            0 => Some(Self::Ota0),
-            1 => Some(Self::Ota1),
+            0 => Some(Self::Zero),
+            1 => Some(Self::One),
             _ => None,
         }
+    }
+}
+
+/// Identifies one logical firmware image slot: A0, A1, B0 or B1.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FirmwareSlot {
+    pub domain: Domain,
+    pub slot: Slot,
+}
+
+impl FirmwareSlot {
+    pub const fn new(domain: Domain, slot: Slot) -> Self {
+        Self { domain, slot }
+    }
+
+    pub const fn other(self) -> Self {
+        Self { domain: self.domain, slot: self.slot.other() }
     }
 }
 
@@ -69,29 +63,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn names_are_the_on_flash_labels() {
-        assert_eq!(AppSlot::Ota0.as_str(), "ota_0");
-        assert_eq!(AppSlot::Ota1.as_str(), "ota_1");
-        assert_eq!(AppSlot::from_name("ota_0"), Some(AppSlot::Ota0));
-        assert_eq!(AppSlot::from_name("ota_1"), Some(AppSlot::Ota1));
-        assert_eq!(AppSlot::from_name("ota_2"), None);
-        assert_eq!(AppSlot::from_name("factory"), None);
-        assert_eq!(AppSlot::from_name(""), None);
-    }
-
-    #[test]
-    fn other_is_an_involution_and_indices_round_trip() {
-        for slot in [AppSlot::Ota0, AppSlot::Ota1] {
-            assert_ne!(slot.other(), slot);
-            assert_eq!(slot.other().other(), slot);
-            assert_eq!(AppSlot::from_index(slot.index()), Some(slot));
-            assert_eq!(AppSlot::from_name(slot.as_str()), Some(slot));
+    fn both_domains_have_independent_pairs() {
+        for domain in [Domain::A, Domain::B] {
+            for slot in [Slot::Zero, Slot::One] {
+                let item = FirmwareSlot::new(domain, slot);
+                assert_eq!(item.other().other(), item);
+                assert_eq!(item.other().domain, domain);
+                assert_ne!(item.other().slot, slot);
+                assert_eq!(Slot::from_index(slot.index()), Some(slot));
+            }
         }
-        assert_eq!(AppSlot::from_index(SLOT_COUNT), None);
+        assert_eq!(Slot::from_index(2), None);
     }
 
     #[test]
-    fn the_layout_identifier_is_unchanged() {
-        assert_eq!(PARTITION_LAYOUT, "embewi-ab-v1");
+    fn a_only_requires_no_b_slot() {
+        let active = FirmwareSlot::new(Domain::A, Slot::Zero);
+        assert_eq!(active.other(), FirmwareSlot::new(Domain::A, Slot::One));
     }
 }
