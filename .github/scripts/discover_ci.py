@@ -87,7 +87,7 @@ def discover(base=None, head="HEAD", full=False):
         selected = set(packages)
     else:
         changed = git("diff", "--name-only", "--no-renames", base, head).splitlines()
-        selected = select(changed, packages, reverse)
+        selected = select(changed, packages, reverse, base)
     matrix = []
     for name in sorted(selected):
         profile = profiles[name]

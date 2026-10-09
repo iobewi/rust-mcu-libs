@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "common/log/core",
   "common/config/space",
   "common/fs/nvs",
   "common/net/wifi/core",
@@ -15,6 +16,7 @@ members = [
   "arch/esp32/flash/partitions",
 ]
 default-members = [
+  "common/log/core",
   "common/config/space",
   "common/fs/nvs",
   "common/net/wifi/core",

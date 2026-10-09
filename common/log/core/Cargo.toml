@@ -1,0 +1,17 @@
+[package]
+name = "iobewi-log"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Bounded no-std local logging and runtime filtering without transport"
+
+[dependencies]
+critical-section = "1.2"
+heapless = "0.9"
+log = "0.4"
+static_cell = "2.1.1"
+
+[dev-dependencies]
+critical-section = { version = "1.2", features = ["std"] }
