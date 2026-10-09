@@ -1,0 +1,42 @@
+[package]
+name = "iobewi-esp-tls"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "ESP TLS transport: global MbedTLS instance, Embassy DNS/TCP/TLS dialer, TLS listener and session stream (net/tls/core implementations)"
+repository.workspace = true
+readme = "README.md"
+keywords = ["esp32", "tls", "mbedtls", "embedded", "no-std"]
+categories = ["embedded", "network-programming", "no-std"]
+
+[features]
+default = []
+esp32c3 = ["portable-atomic/critical-section", "dep:static_cell", "dep:iobewi-esp-entropy", "iobewi-esp-entropy/esp32c3", "iobewi-esp-entropy/rand-core"]
+# `use-gcc` is NOT enabled for ESP32-C3: mbedtls-rs-sys defaults to clang there
+# and that already works (a standard-shaped riscv32 triple isn't affected by
+# the bug below). ESP32-S3 needs it: mbedtls-rs-sys's default clang path
+# calls cmake-rs's `Config::target()` with the raw Xtensa Rust target triple
+# ("xtensa-esp32s3-none-elf"), which cmake-rs mis-parses into a bogus,
+# duplicate `--target=` C flag ("xtensa-none-elf", later rejected by clang as
+# "unknown target triple 'xtensa-none-unknown-elf'") -- a documented cmake-rs
+# limitation with non-standard/4-component triples, not anything wrong with
+# the MbedTLS build itself. `use-gcc` takes mbedtls-rs-sys's other code path
+# (`derive_forced_c_compiler`), which for this target selects the real
+# `xtensa-esp32s3-elf-gcc` cross-compiler directly and never calls
+# `Config::target()` with the problematic triple at all.
+esp32s3 = ["dep:static_cell", "dep:iobewi-esp-entropy", "iobewi-esp-entropy/esp32s3", "iobewi-esp-entropy/rand-core", "iobewi-crypto-mbedtls/use-gcc"]
+embassy-net = ["dep:embassy-net", "dep:embassy-time", "dep:embedded-io-async", "dep:iobewi-net-io", "dep:iobewi-net-tls-core", "dep:iobewi-esp-tcp", "dep:log"]
+
+[dependencies]
+portable-atomic = { version = "1", default-features = false }
+iobewi-crypto-mbedtls = { path = "../../../crypto/mbedtls" }
+iobewi-esp-entropy = { path = "../../crypto/rng", default-features = false, optional = true }
+iobewi-esp-tcp = { path = "../tcp", optional = true }
+iobewi-net-io = { path = "../../../../common/net/io", optional = true }
+iobewi-net-tls-core = { path = "../../../../common/net/tls/core", optional = true }
+embedded-io-async = { version = "0.7.0", optional = true }
+static_cell = { version = "2.1.1", optional = true }
+embassy-net = { version = "0.9.1", default-features = false, features = ["dns", "medium-ethernet", "proto-ipv4", "tcp"], optional = true }
+embassy-time = { version = "0.5.0", default-features = false, optional = true }
+log = { version = "0.4", optional = true }
