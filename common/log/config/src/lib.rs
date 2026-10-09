@@ -153,12 +153,7 @@ mod tests {
     extern crate std;
     use super::*;
     use iobewi_config_space::{Budget, ConfigManager, Snapshot};
-    use std::{
-        cell::RefCell,
-        future::Future,
-        rc::Rc,
-        vec::Vec,
-    };
+    use std::{cell::RefCell, future::Future, rc::Rc, vec::Vec};
 
     fn block_on<F: Future>(future: F) -> F::Output {
         let mut context = core::task::Context::from_waker(core::task::Waker::noop());
