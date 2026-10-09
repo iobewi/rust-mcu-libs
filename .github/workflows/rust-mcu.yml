@@ -57,9 +57,10 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
 
+  # Gate 0: discovery and format must both pass before expensive toolchain setup.
   prepare-xtensa:
     name: Prepare Xtensa / ${{ matrix.variant }}
-    needs: discover
+    needs: [discover, format]
     if: needs.discover.outputs.has_xtensa == 'true'
     runs-on: ubuntu-latest
     strategy:
@@ -91,8 +92,8 @@ jobs:
 
   crate:
     name: ${{ matrix.package }} / ${{ matrix.chip }}
-    needs: [discover, prepare-xtensa]
-    if: always() && needs.discover.result == 'success' && needs.discover.outputs.has_jobs == 'true' && (needs.discover.outputs.has_xtensa != 'true' || needs.prepare-xtensa.result == 'success')
+    needs: [discover, format, prepare-xtensa]
+    if: needs.discover.outputs.has_jobs == 'true' && (needs.discover.outputs.has_xtensa != 'true' || needs.prepare-xtensa.result == 'success')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -151,7 +152,7 @@ jobs:
 
   xtensa-latest:
     name: Xtensa latest / ${{ matrix.package }}
-    needs: [discover, prepare-xtensa]
+    needs: [discover, format, prepare-xtensa]
     if: needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
     runs-on: ubuntu-latest
     strategy:
