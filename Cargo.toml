@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "common/log/stream",
   "common/net/mdns",
   "common/time/ntp",
   "examples/https-health",
