@@ -8,8 +8,14 @@ use iobewi_wifi_core::WifiTransport;
 use static_cell::StaticCell;
 
 const SOCKETS: usize = 3;
-const CERT: &str = match option_env!("IOBEWI_TLS_CERT_PEM") { Some(v) => v, None => "" };
-const KEY: &str = match option_env!("IOBEWI_TLS_KEY_PEM") { Some(v) => v, None => "" };
+const CERT: &str = match option_env!("IOBEWI_TLS_CERT_PEM") {
+    Some(v) => v,
+    None => "",
+};
+const KEY: &str = match option_env!("IOBEWI_TLS_KEY_PEM") {
+    Some(v) => v,
+    None => "",
+};
 
 fn now_unix() -> Option<u64> {
     None // No wall-clock source required for this server-only smoke test.
@@ -25,7 +31,8 @@ async fn https_task(peripheral: esp_hal::peripherals::WIFI<'static>, spawner: Sp
     let mut wifi =
         WifiManager::<SOCKETS>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
     let ssid = option_env!("IOBEWI_STA_SSID").expect("Set IOBEWI_STA_SSID for device use");
-    let password = option_env!("IOBEWI_STA_PASSWORD").expect("Set IOBEWI_STA_PASSWORD for device use");
+    let password =
+        option_env!("IOBEWI_STA_PASSWORD").expect("Set IOBEWI_STA_PASSWORD for device use");
     assert!(
         wifi.connect(ssid, String::from(password)).await,
         "STA join failed"
