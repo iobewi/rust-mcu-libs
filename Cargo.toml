@@ -4,6 +4,7 @@ members = [
   "common/fs/nvs",
   "common/net/wifi/core",
   "common/net/improv/serial",
+  "common/net/improv/provisioning",
   "common/net/wifi/manager",
   "arch/esp32/net/wifi",
   "examples/config-manager",
