@@ -7,11 +7,11 @@
 
 use core::net::{Ipv4Addr, Ipv6Addr};
 use edge_mdns::{
+    HostAnswersMdnsHandler,
     buf::BufferAccess,
     domain::base::Ttl,
     host::Host,
-    io::{self, MdnsIoError, IPV4_DEFAULT_SOCKET},
-    HostAnswersMdnsHandler,
+    io::{self, IPV4_DEFAULT_SOCKET, MdnsIoError},
 };
 use edge_nal::{UdpBind, UdpSplit};
 use embassy_sync::{blocking_mutex::raw::RawMutex, signal::Signal};
@@ -41,7 +41,13 @@ where
     R: rand_core::Rng,
     M: RawMutex,
 {
-    let mut socket = io::bind(stack, IPV4_DEFAULT_SOCKET, Some(Ipv4Addr::UNSPECIFIED), Some(0)).await?;
+    let mut socket = io::bind(
+        stack,
+        IPV4_DEFAULT_SOCKET,
+        Some(Ipv4Addr::UNSPECIFIED),
+        Some(0),
+    )
+    .await?;
     let (receive, send) = socket.split();
     let host = Host {
         hostname,
