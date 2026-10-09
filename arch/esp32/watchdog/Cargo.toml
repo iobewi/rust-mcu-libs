@@ -1,0 +1,16 @@
+[package]
+name = "iobewi-esp-watchdog"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "ESP timer-group watchdog hardware primitive"
+
+[features]
+default = []
+esp32c3 = ["esp-hal/esp32c3"]
+esp32s3 = ["esp-hal/esp32s3"]
+
+[dependencies]
+esp-hal = { version = "~1.2", default-features = false, features = ["unstable"] }
