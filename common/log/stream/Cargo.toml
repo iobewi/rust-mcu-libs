@@ -1,0 +1,20 @@
+[package]
+name = "iobewi-log-stream"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Best-effort TLS WebSocket streaming of bounded log records"
+
+[dependencies]
+iobewi-entropy = { path = "../../crypto/rng" }
+iobewi-log = { path = "../core" }
+iobewi-http-client = { path = "../../net/http/client", features = ["websocket"] }
+iobewi-net-io = { path = "../../net/io" }
+iobewi-net-tls-core = { path = "../../net/tls/core" }
+embassy-time = { version = "0.5", default-features = false }
+embedded-io-async = "0.7"
+log = "0.4"
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
