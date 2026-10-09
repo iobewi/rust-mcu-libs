@@ -21,8 +21,8 @@ use alloc::ffi::CString;
 
 use iobewi_crypto_core::{Identity, PairError, TlsCrypto};
 use iobewi_entropy::EntropySource;
-use mbedtls_rs::sys::hook::timer::{hook_timer, MbedtlsTimer};
-use mbedtls_rs::sys::hook::wall_clock::{hook_wall_clock, MbedtlsWallClock};
+use mbedtls_rs::sys::hook::timer::{MbedtlsTimer, hook_timer};
+use mbedtls_rs::sys::hook::wall_clock::{MbedtlsWallClock, hook_wall_clock};
 use mbedtls_rs::sys::{mbedtls_ms_time_t, tm};
 use mbedtls_rs::{Certificate, Credentials, PrivateKey, ServerSessionConfig, SessionConfig, X509};
 use static_cell::StaticCell;
@@ -99,10 +99,15 @@ unsafe extern "C" fn mbedtls_rng(
 
 /// Parses the leaf certificate and private key and verifies that they form a
 /// pair. No persistence is performed.
-pub fn validate_cert_key_pair(rng: &dyn EntropySource, cert_pem: &str, key_pem: &str) -> Result<(), PairError> {
+pub fn validate_cert_key_pair(
+    rng: &dyn EntropySource,
+    cert_pem: &str,
+    key_pem: &str,
+) -> Result<(), PairError> {
     use mbedtls_rs::sys::{
-        mbedtls_pk_check_pair, mbedtls_pk_context, mbedtls_pk_free, mbedtls_pk_init, mbedtls_pk_parse_key,
-        mbedtls_x509_crt, mbedtls_x509_crt_free, mbedtls_x509_crt_init, mbedtls_x509_crt_parse,
+        mbedtls_pk_check_pair, mbedtls_pk_context, mbedtls_pk_free, mbedtls_pk_init,
+        mbedtls_pk_parse_key, mbedtls_x509_crt, mbedtls_x509_crt_free, mbedtls_x509_crt_init,
+        mbedtls_x509_crt_parse,
     };
 
     struct Contexts {
@@ -121,10 +126,15 @@ pub fn validate_cert_key_pair(rng: &dyn EntropySource, cert_pem: &str, key_pem: 
     }
 
     let rng_ref: &dyn EntropySource = rng;
-    let rng_ctx = (&rng_ref as *const &dyn EntropySource).cast_mut().cast::<core::ffi::c_void>();
+    let rng_ctx = (&rng_ref as *const &dyn EntropySource)
+        .cast_mut()
+        .cast::<core::ffi::c_void>();
     let cert_c = CString::new(cert_pem).map_err(|_| PairError::Invalid)?;
     let key_c = CString::new(key_pem).map_err(|_| PairError::Invalid)?;
-    let mut ctx = Contexts { crt: Box::default(), pk: Box::default() };
+    let mut ctx = Contexts {
+        crt: Box::default(),
+        pk: Box::default(),
+    };
 
     // SAFETY: fresh contexts and NUL-terminated PEM buffers valid for the
     // duration of each MbedTLS call.
@@ -132,7 +142,12 @@ pub fn validate_cert_key_pair(rng: &dyn EntropySource, cert_pem: &str, key_pem: 
         mbedtls_x509_crt_init(&mut *ctx.crt);
         mbedtls_pk_init(&mut *ctx.pk);
 
-        if mbedtls_x509_crt_parse(&mut *ctx.crt, cert_c.as_ptr().cast(), cert_c.count_bytes() + 1) != 0 {
+        if mbedtls_x509_crt_parse(
+            &mut *ctx.crt,
+            cert_c.as_ptr().cast(),
+            cert_c.count_bytes() + 1,
+        ) != 0
+        {
             return Err(PairError::Invalid);
         }
 
@@ -156,7 +171,6 @@ pub fn validate_cert_key_pair(rng: &dyn EntropySource, cert_pem: &str, key_pem: 
 
     Ok(())
 }
-
 
 #[derive(Debug)]
 pub enum IdentityGenerationError {
@@ -191,15 +205,13 @@ pub fn generate_self_signed_identity(
 ) -> Result<GeneratedIdentity, IdentityGenerationError> {
     use mbedtls_rs::sys::{
         mbedtls_md_type_t_MBEDTLS_MD_SHA256, mbedtls_pk_context, mbedtls_pk_copy_from_psa,
-        mbedtls_pk_free, mbedtls_pk_init, mbedtls_pk_write_key_pem,
-        mbedtls_x509write_cert, mbedtls_x509write_crt_free,
-        mbedtls_x509write_crt_init, mbedtls_x509write_crt_pem,
-        mbedtls_x509write_crt_set_basic_constraints,
-        mbedtls_x509write_crt_set_issuer_key, mbedtls_x509write_crt_set_issuer_name,
-        mbedtls_x509write_crt_set_md_alg, mbedtls_x509write_crt_set_serial_raw,
-        mbedtls_x509write_crt_set_subject_key, mbedtls_x509write_crt_set_subject_name,
-        mbedtls_x509write_crt_set_validity, psa_crypto_init, psa_destroy_key,
-        psa_generate_key, psa_key_attributes_t,
+        mbedtls_pk_free, mbedtls_pk_init, mbedtls_pk_write_key_pem, mbedtls_x509write_cert,
+        mbedtls_x509write_crt_free, mbedtls_x509write_crt_init, mbedtls_x509write_crt_pem,
+        mbedtls_x509write_crt_set_basic_constraints, mbedtls_x509write_crt_set_issuer_key,
+        mbedtls_x509write_crt_set_issuer_name, mbedtls_x509write_crt_set_md_alg,
+        mbedtls_x509write_crt_set_serial_raw, mbedtls_x509write_crt_set_subject_key,
+        mbedtls_x509write_crt_set_subject_name, mbedtls_x509write_crt_set_validity,
+        psa_crypto_init, psa_destroy_key, psa_generate_key, psa_key_attributes_t,
     };
 
     // PSA encodings from the PSA Crypto specification. They are macros in C,
@@ -231,7 +243,9 @@ pub fn generate_self_signed_identity(
     }
 
     let rng_ref: &dyn EntropySource = rng;
-    let rng_ctx = (&rng_ref as *const &dyn EntropySource).cast_mut().cast::<core::ffi::c_void>();
+    let rng_ctx = (&rng_ref as *const &dyn EntropySource)
+        .cast_mut()
+        .cast::<core::ffi::c_void>();
     let subject = alloc::format!("CN={common_name}");
     let subject = CString::new(subject).map_err(|_| IdentityGenerationError::InvalidName)?;
     let mut ctx = Contexts {
@@ -308,10 +322,7 @@ pub fn generate_self_signed_identity(
             c"20260101000000".as_ptr(),
             c"20991231235959".as_ptr(),
         ))?;
-        mbedtls_x509write_crt_set_md_alg(
-            &mut *ctx.crt,
-            mbedtls_md_type_t_MBEDTLS_MD_SHA256,
-        );
+        mbedtls_x509write_crt_set_md_alg(&mut *ctx.crt, mbedtls_md_type_t_MBEDTLS_MD_SHA256);
         setup(mbedtls_x509write_crt_set_basic_constraints(
             &mut *ctx.crt,
             0,
@@ -319,11 +330,7 @@ pub fn generate_self_signed_identity(
         ))?;
 
         let mut key_buf = [0u8; 1024];
-        let rc = mbedtls_pk_write_key_pem(
-            &*ctx.pk,
-            key_buf.as_mut_ptr(),
-            key_buf.len(),
-        );
+        let rc = mbedtls_pk_write_key_pem(&*ctx.pk, key_buf.as_mut_ptr(), key_buf.len());
         if rc != 0 {
             return Err(IdentityGenerationError::KeyEncoding(rc));
         }
@@ -340,9 +347,7 @@ pub fn generate_self_signed_identity(
             return Err(IdentityGenerationError::CertificateEncoding(rc));
         }
 
-        fn pem_string(
-            buf: &[u8],
-        ) -> Result<alloc::string::String, IdentityGenerationError> {
+        fn pem_string(buf: &[u8]) -> Result<alloc::string::String, IdentityGenerationError> {
             let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
             let text = core::str::from_utf8(&buf[..end])
                 .map_err(|_| IdentityGenerationError::InvalidUtf8)?;
@@ -370,18 +375,18 @@ pub fn server_config_from_pem(
     cert_pem: &str,
     key_pem: &str,
 ) -> Result<SessionConfig<'static>, ServerConfigError> {
-    let cert_c =
-        CString::new(cert_pem).map_err(|_| ServerConfigError::InvalidCertificatePem)?;
-    let key_c =
-        CString::new(key_pem).map_err(|_| ServerConfigError::InvalidPrivateKeyPem)?;
-    let certificate = Certificate::new(X509::PEM(&cert_c))
-        .map_err(|_| ServerConfigError::InvalidCertificate)?;
+    let cert_c = CString::new(cert_pem).map_err(|_| ServerConfigError::InvalidCertificatePem)?;
+    let key_c = CString::new(key_pem).map_err(|_| ServerConfigError::InvalidPrivateKeyPem)?;
+    let certificate =
+        Certificate::new(X509::PEM(&cert_c)).map_err(|_| ServerConfigError::InvalidCertificate)?;
     let private_key = PrivateKey::new(X509::PEM(&key_c), None)
         .map_err(|_| ServerConfigError::InvalidPrivateKey)?;
-    Ok(SessionConfig::Server(ServerSessionConfig::new(Credentials {
-        certificate,
-        private_key,
-    })))
+    Ok(SessionConfig::Server(ServerSessionConfig::new(
+        Credentials {
+            certificate,
+            private_key,
+        },
+    )))
 }
 
 /// Verifies that a CA PEM parses as an X.509 certificate.
@@ -418,7 +423,10 @@ impl<R: EntropySource> TlsCrypto for MbedtlsCrypto<R> {
         let generated = generate_self_signed_identity(&self.rng, common_name)
             .map_err(|e| log::warn!("tls: identity generation failed: {e:?}"))
             .ok()?;
-        Some(Identity { cert_pem: generated.cert_pem, key_pem: generated.key_pem })
+        Some(Identity {
+            cert_pem: generated.cert_pem,
+            key_pem: generated.key_pem,
+        })
     }
 
     fn validate_ca(&self, ca: &str) -> bool {
