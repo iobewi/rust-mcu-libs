@@ -1,4 +1,6 @@
-# Transactional A/B Boot — format et contrat
+# Transactional A/B Boot — format de démarrage A
+
+Ce document décrit le **format historique du boot ESP32 de A**, et non la politique générique de l'ensemble des firmwares. Voir [Firmware A/B](dual-ota.md) pour les modes A seul et A+B.
 
 ## Terminologie
 
