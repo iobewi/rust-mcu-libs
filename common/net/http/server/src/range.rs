@@ -10,7 +10,7 @@ pub struct ContentRange {
 
 impl ContentRange {
     /// Whether the provided range has no bytes (start exceeds end).
-    pub fn is_empty(&self) -> bool {
+    pub fn is_empty(self) -> bool {
         self.start > self.end
     }
 
