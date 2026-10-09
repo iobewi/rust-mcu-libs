@@ -1,0 +1,19 @@
+[package]
+name = "iobewi-http-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable HTTP server: router, serve loop and the net/io connection adapter (picoserve-based)"
+
+[dependencies]
+log = "0.4"
+embedded-io-async = "0.7.0"
+iobewi-net-io = { path = "../../io" }
+embassy-sync = "0.8.0"
+picoserve = { version = "0.20.0", default-features = false, features = ["embassy", "alloc"] }
+
+[dev-dependencies]
+critical-section = { version = "1.2", features = ["std"] }
+embassy-time = { version = "0.5.0", features = ["std", "generic-queue-8"] }
