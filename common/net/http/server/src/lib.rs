@@ -1,5 +1,4 @@
 #![no_std]
-
 //! HTTP request handling for any connected socket. The caller chooses the
 //! transport and supplies routes; this crate never opens a network port.
 
@@ -10,11 +9,11 @@ use picoserve::io::Socket;
 use picoserve::routing::PathRouter;
 use picoserve::{Config, EmbassyRuntime, Router};
 
+pub use picoserve::Router as HttpRouter;
 /// Shared HTTP routing and response types for framework services. A service
 /// contributes handlers to the caller's router; the application selects the
 /// complete route set and the transport listener.
-pub use picoserve::{io, request, response, routing, ResponseSent};
-pub use picoserve::Router as HttpRouter;
+pub use picoserve::{ResponseSent, io, request, response, routing};
 
 pub mod auth;
 pub mod io_socket;
@@ -29,8 +28,11 @@ pub async fn serve_connection<R: PathRouter, S: Socket<EmbassyRuntime>>(
     config: &Config,
     http_buffer: &mut [u8],
     socket: S,
-) -> Result<picoserve::DisconnectionInfo<picoserve::NoGracefulShutdown>, picoserve::Error<S::Error>> {
-    picoserve::Server::new(router, config, http_buffer).serve(socket).await
+) -> Result<picoserve::DisconnectionInfo<picoserve::NoGracefulShutdown>, picoserve::Error<S::Error>>
+{
+    picoserve::Server::new(router, config, http_buffer)
+        .serve(socket)
+        .await
 }
 
 /// Size of the HTTP request/response buffer reused across connections.
@@ -51,7 +53,10 @@ pub async fn serve_one<R: PathRouter, S: Socket<EmbassyRuntime>>(
     http_buffer: &mut [u8],
     socket: S,
 ) {
-    if serve_connection(router, config, http_buffer, socket).await.is_err() {
+    if serve_connection(router, config, http_buffer, socket)
+        .await
+        .is_err()
+    {
         log::debug!("http: connection closed with an error");
     }
 }
@@ -68,8 +73,13 @@ pub async fn serve_forever_io<L: ConnectionListener, R: PathRouter>(
     let mut http_buffer = [0u8; HTTP_BUFFER_LEN];
     loop {
         if let Ok(connection) = listener.accept().await {
-            serve_one(router, &config, &mut http_buffer, io_socket::IoSocket::new(connection)).await;
+            serve_one(
+                router,
+                &config,
+                &mut http_buffer,
+                io_socket::IoSocket::new(connection),
+            )
+            .await;
         }
     }
 }
-
