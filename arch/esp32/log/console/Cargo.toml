@@ -13,5 +13,5 @@ esp32c3 = ["dep:esp-println", "esp-println/esp32c3"]
 esp32s3 = ["dep:esp-println", "esp-println/esp32s3"]
 
 [dependencies]
-esp-println = { version = "~0.18", default-features = false, optional = true }
+esp-println = { version = "~0.18", default-features = false, features = ["auto"], optional = true }
 log = "0.4"
