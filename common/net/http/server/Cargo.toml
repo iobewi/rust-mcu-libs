@@ -11,6 +11,7 @@ description = "Portable HTTP server: router, serve loop and the net/io connectio
 log = "0.4"
 embedded-io-async = "0.7.0"
 iobewi-net-io = { path = "../../io" }
+iobewi-net-tls-core = { path = "../../tls/core" }
 embassy-sync = "0.8.0"
 picoserve = { version = "0.20.0", default-features = false, features = ["embassy", "alloc"] }
 
