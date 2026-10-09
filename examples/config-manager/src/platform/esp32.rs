@@ -18,6 +18,7 @@ async fn config_task(flash: FlashPeripheral<'static>) {
 #[esp_hal::main]
 fn main() -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
+    iobewi_log::install(iobewi_esp_console::console_print, "example_config_manager");
     esp_alloc::heap_allocator!(size: 64 * 1024);
     let flash = peripherals.FLASH;
     let timg0 = TimerGroup::new(peripherals.TIMG0);
