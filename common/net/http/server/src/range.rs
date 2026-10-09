@@ -31,9 +31,20 @@ mod tests {
 
     #[test]
     fn rejects_bad_bounds_and_overflow() {
-        assert_eq!(parse_content_range("bytes 1024-2047/4096").unwrap().len(), Some(1024));
+        assert_eq!(
+            parse_content_range("bytes 1024-2047/4096").unwrap().len(),
+            Some(1024)
+        );
         assert_eq!(parse_content_range("bytes 2048-1024/4096"), None);
         assert_eq!(parse_content_range("bytes 0-4096/4096"), None);
-        assert_eq!(ContentRange { start: 0, end: u64::MAX, total: u64::MAX }.len(), None);
+        assert_eq!(
+            ContentRange {
+                start: 0,
+                end: u64::MAX,
+                total: u64::MAX
+            }
+            .len(),
+            None
+        );
     }
 }
