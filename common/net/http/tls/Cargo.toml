@@ -1,0 +1,14 @@
+[package]
+name = "iobewi-tls-http"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "HTTP provisioning routes of the TLS identity/trust service (cert / CA) over iobewi-http-server and iobewi-tls-service"
+
+[dependencies]
+iobewi-http-server = { path = "../server" }
+iobewi-tls-service = { path = "../../tls/service" }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
