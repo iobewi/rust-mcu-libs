@@ -23,7 +23,12 @@ pub struct EspTcpListener<'a> {
 
 impl<'a> EspTcpListener<'a> {
     pub fn new(stack: Stack<'static>, port: u16, rx: &'a mut [u8], tx: &'a mut [u8]) -> Self {
-        Self { stack, port, rx, tx }
+        Self {
+            stack,
+            port,
+            rx,
+            tx,
+        }
     }
 
     pub async fn accept_connection(&mut self) -> Result<TcpSocket<'_>, ()> {
@@ -69,7 +74,10 @@ impl Close for EspTcpStream<'_> {
 }
 
 impl ConnectionListener for EspTcpListener<'_> {
-    type Connection<'a> = EspTcpStream<'a> where Self: 'a;
+    type Connection<'a>
+        = EspTcpStream<'a>
+    where
+        Self: 'a;
 
     async fn accept(&mut self) -> Result<Self::Connection<'_>, ()> {
         self.accept_connection().await.map(EspTcpStream)
