@@ -1,0 +1,14 @@
+[package]
+name = "iobewi-esp-tcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "ESP TCP transport: an embassy-net listener and accepted socket as net/io connections"
+
+[dependencies]
+iobewi-net-io = { path = "../../../../common/net/io" }
+embedded-io-async = "0.7.0"
+embassy-net = { version = "0.9.1", default-features = false, features = ["tcp", "medium-ethernet", "proto-ipv4"] }
+log = "0.4"
