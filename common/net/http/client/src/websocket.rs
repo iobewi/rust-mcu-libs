@@ -3,7 +3,10 @@
 
 use alloc::{format, string::String};
 use core::fmt::Write as _;
-use edge_http::ws::{is_upgrade_accepted, upgrade_request_headers, MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN};
+use edge_http::ws::{
+    MAX_BASE64_KEY_LEN, MAX_BASE64_KEY_RESPONSE_LEN, NONCE_LEN, is_upgrade_accepted,
+    upgrade_request_headers,
+};
 use edge_ws::{FrameHeader, FrameType};
 use embedded_io_async::{ErrorType, Read, Write};
 
@@ -21,7 +24,11 @@ where
     S: Read + Write,
     S::Error: core::fmt::Display,
 {
-    if [host, path, bearer].iter().any(|v| v.contains('\r') || v.contains('\n')) || !path.starts_with('/') {
+    if [host, path, bearer]
+        .iter()
+        .any(|v| v.contains('\r') || v.contains('\n'))
+        || !path.starts_with('/')
+    {
         return Err(String::from("invalid WebSocket request field"));
     }
     let mut key_buf = [0u8; MAX_BASE64_KEY_LEN];
@@ -34,8 +41,14 @@ where
         }
     }
     let _ = write!(request, "Authorization: Bearer {bearer}\r\n\r\n");
-    session.write_all(request.as_bytes()).await.map_err(|e| format!("upgrade request failed: {e}"))?;
-    session.flush().await.map_err(|e| format!("upgrade flush failed: {e}"))?;
+    session
+        .write_all(request.as_bytes())
+        .await
+        .map_err(|e| format!("upgrade request failed: {e}"))?;
+    session
+        .flush()
+        .await
+        .map_err(|e| format!("upgrade flush failed: {e}"))?;
 
     let mut resp_buf = [0u8; 512];
     let mut filled = 0;
@@ -43,8 +56,13 @@ where
         if filled >= resp_buf.len() {
             return Err(String::from("upgrade response headers too large"));
         }
-        let n = session.read(&mut resp_buf[filled..]).await.map_err(|e| format!("upgrade read failed: {e}"))?;
-        if n == 0 { return Err(String::from("connection closed during upgrade")); }
+        let n = session
+            .read(&mut resp_buf[filled..])
+            .await
+            .map_err(|e| format!("upgrade read failed: {e}"))?;
+        if n == 0 {
+            return Err(String::from("connection closed during upgrade"));
+        }
         filled += n;
         if let Some(pos) = resp_buf[..filled].windows(4).position(|w| w == b"\r\n\r\n") {
             break pos + 4;
@@ -54,12 +72,16 @@ where
     let mut httparse_headers = [httparse::EMPTY_HEADER; 24];
     let mut response = httparse::Response::new(&mut httparse_headers);
     match response.parse(&resp_buf[..header_end]) {
-        Ok(httparse::Status::Complete(_)) => {},
+        Ok(httparse::Status::Complete(_)) => {}
         Ok(httparse::Status::Partial) => return Err(String::from("incomplete upgrade response")),
         Err(e) => return Err(format!("upgrade response parse failed: {e:?}")),
     }
-    let code = response.code.ok_or_else(|| String::from("upgrade response has no status code"))?;
-    let header_pairs: heapless::Vec<(&str, &str), 24> = response.headers.iter()
+    let code = response
+        .code
+        .ok_or_else(|| String::from("upgrade response has no status code"))?;
+    let header_pairs: heapless::Vec<(&str, &str), 24> = response
+        .headers
+        .iter()
         .filter_map(|h| core::str::from_utf8(h.value).ok().map(|v| (h.name, v)))
         .collect();
     let mut accept_buf = [0u8; MAX_BASE64_KEY_RESPONSE_LEN];
@@ -76,15 +98,26 @@ where
     S: Read + Write,
     S::Error: core::fmt::Debug,
 {
-    let mut header = FrameHeader::recv(&mut *session).await.map_err(|e| format!("recv failed: {e:?}"))?;
+    let mut header = FrameHeader::recv(&mut *session)
+        .await
+        .map_err(|e| format!("recv failed: {e:?}"))?;
     let mut payload = [0u8; 125];
-    let payload = header.recv_payload(&mut *session, &mut payload).await.map_err(|e| format!("recv_payload failed: {e:?}"))?;
+    let payload = header
+        .recv_payload(&mut *session, &mut payload)
+        .await
+        .map_err(|e| format!("recv_payload failed: {e:?}"))?;
     match header.frame_type {
         FrameType::Ping => {
             header.frame_type = FrameType::Pong;
             header.mask_key = Some(mask_key);
-            header.send(&mut *session).await.map_err(|e| format!("pong send failed: {e:?}"))?;
-            header.send_payload(&mut *session, payload).await.map_err(|e| format!("pong payload failed: {e:?}"))?;
+            header
+                .send(&mut *session)
+                .await
+                .map_err(|e| format!("pong send failed: {e:?}"))?;
+            header
+                .send_payload(&mut *session, payload)
+                .await
+                .map_err(|e| format!("pong payload failed: {e:?}"))?;
         }
         FrameType::Close => return Ok(false),
         _ => {}
@@ -95,12 +128,19 @@ where
 /// Process a frame after the caller has read its first byte to distinguish
 /// an idle connection from a partially received frame. Once any frame byte
 /// arrives, callers must close the session if processing times out.
-pub async fn process_frame_after_first<S>(session: &mut S, first: u8, mask_key: u32) -> Result<bool, String>
+pub async fn process_frame_after_first<S>(
+    session: &mut S,
+    first: u8,
+    mask_key: u32,
+) -> Result<bool, String>
 where
     S: Read + Write,
     S::Error: core::fmt::Debug,
 {
-    let mut prefixed = Prefixed { session, first: Some(first) };
+    let mut prefixed = Prefixed {
+        session,
+        first: Some(first),
+    };
     process_frame(&mut prefixed, mask_key).await
 }
 
@@ -142,13 +182,14 @@ where
     S::Error: core::fmt::Debug,
 {
     edge_ws::io::send(session, FrameType::Text(false), Some(mask_key), payload)
-        .await.map_err(|e| format!("send failed: {e:?}"))
+        .await
+        .map_err(|e| format!("send failed: {e:?}"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testutil::{block_on, Duplex};
+    use crate::testutil::{Duplex, block_on};
     use alloc::vec::Vec;
     use edge_http::ws::sec_key_response;
 
@@ -175,7 +216,16 @@ mod tests {
     fn upgrade_sends_an_authenticated_request_and_accepts_the_matching_key() {
         // First pass: learn the key the client derives from the nonce.
         let mut probe = Duplex::default();
-        assert!(block_on(upgrade(&mut probe, "core.example", "/ws/logs", "tok", &NONCE)).is_err());
+        assert!(
+            block_on(upgrade(
+                &mut probe,
+                "core.example",
+                "/ws/logs",
+                "tok",
+                &NONCE
+            ))
+            .is_err()
+        );
         let request = sent(&probe);
         let text = core::str::from_utf8(&request).unwrap();
         assert!(text.starts_with("GET /ws/logs HTTP/1.1\r\n"));
@@ -188,22 +238,36 @@ mod tests {
         let accept = sec_key_response(&key, &mut buf).to_string();
 
         let mut d = Duplex::default();
-        d.state.borrow_mut().input.extend(upgrade_response("101 Switching Protocols", &accept));
+        d.state
+            .borrow_mut()
+            .input
+            .extend(upgrade_response("101 Switching Protocols", &accept));
         block_on(upgrade(&mut d, "core.example", "/ws/logs", "tok", &NONCE)).unwrap();
     }
 
     #[test]
     fn upgrade_rejects_wrong_accept_wrong_status_and_bad_fields() {
         let mut d = Duplex::default();
-        d.state.borrow_mut().input.extend(upgrade_response("101 Switching Protocols", "bogus"));
+        d.state
+            .borrow_mut()
+            .input
+            .extend(upgrade_response("101 Switching Protocols", "bogus"));
         assert!(block_on(upgrade(&mut d, "h", "/ws", "t", &NONCE)).is_err());
 
         let mut d = Duplex::default();
-        d.state.borrow_mut().input.extend(upgrade_response("401 Unauthorized", "bogus"));
+        d.state
+            .borrow_mut()
+            .input
+            .extend(upgrade_response("401 Unauthorized", "bogus"));
         assert!(block_on(upgrade(&mut d, "h", "/ws", "t", &NONCE)).is_err());
 
         let mut d = Duplex::default();
-        for (host, path, bearer) in [("h\r\n", "/ws", "t"), ("h", "/ws\n", "t"), ("h", "/ws", "t\r"), ("h", "ws", "t")] {
+        for (host, path, bearer) in [
+            ("h\r\n", "/ws", "t"),
+            ("h", "/ws\n", "t"),
+            ("h", "/ws", "t\r"),
+            ("h", "ws", "t"),
+        ] {
             assert!(block_on(upgrade(&mut d, host, path, bearer, &NONCE)).is_err());
         }
         assert!(sent(&d).is_empty());
@@ -218,7 +282,11 @@ mod tests {
         assert_eq!(out[0], 0x81, "FIN + text opcode");
         assert_eq!(out[1], 0x80 | 3, "mask bit + length");
         assert_eq!(&out[2..6], &mask.to_be_bytes());
-        let unmasked: Vec<u8> = out[6..].iter().enumerate().map(|(i, b)| b ^ mask.to_be_bytes()[i % 4]).collect();
+        let unmasked: Vec<u8> = out[6..]
+            .iter()
+            .enumerate()
+            .map(|(i, b)| b ^ mask.to_be_bytes()[i % 4])
+            .collect();
         assert_eq!(unmasked, b"hi!");
         assert_eq!(out.len(), 9);
     }
@@ -233,7 +301,11 @@ mod tests {
         assert_eq!(out[0], 0x8A, "pong");
         assert_eq!(out[1], 0x80 | 2);
         assert_eq!(&out[2..6], &mask.to_be_bytes());
-        let unmasked: Vec<u8> = out[6..].iter().enumerate().map(|(i, b)| b ^ mask.to_be_bytes()[i % 4]).collect();
+        let unmasked: Vec<u8> = out[6..]
+            .iter()
+            .enumerate()
+            .map(|(i, b)| b ^ mask.to_be_bytes()[i % 4])
+            .collect();
         assert_eq!(unmasked, b"ok");
     }
 
