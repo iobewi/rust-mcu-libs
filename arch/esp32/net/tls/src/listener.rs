@@ -3,10 +3,10 @@
 //! them (this crate names no HTTP framework). HTTPS is this listener plus the
 //! HTTP server, composed by the application -- there is no "https" driver.
 
-use embassy_net::Stack;
-use embassy_time::{Duration, Timer, with_timeout};
 use crate::mbedtls_rs::{Session, SessionConfig, SessionError};
 use crate::{TlsReferenceStatic, embassy::TlsStream};
+use embassy_net::Stack;
+use embassy_time::{Duration, Timer, with_timeout};
 use iobewi_esp_tcp::EspTcpListener;
 use iobewi_net_io::ConnectionListener;
 use iobewi_net_tls_core::TlsListener;
@@ -55,7 +55,10 @@ impl<LoadIdentity> ConnectionListener for EspTlsListener<'_, LoadIdentity>
 where
     LoadIdentity: AsyncFn() -> Option<SessionConfig<'static>>,
 {
-    type Connection<'a> = TlsStream<'a, 'a> where Self: 'a;
+    type Connection<'a>
+        = TlsStream<'a, 'a>
+    where
+        Self: 'a;
 
     async fn accept(&mut self) -> Result<Self::Connection<'_>, ()> {
         let Some(config) = (self.identity)().await else {
