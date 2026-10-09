@@ -20,6 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      host_matrix: ${{ steps.matrix.outputs.host_matrix }}
+      mcu_matrix: ${{ steps.matrix.outputs.mcu_matrix }}
+      has_host: ${{ steps.matrix.outputs.has_host }}
+      has_mcu: ${{ steps.matrix.outputs.has_mcu }}
       xtensa_matrix: ${{ steps.matrix.outputs.xtensa_matrix }}
       has_jobs: ${{ steps.matrix.outputs.has_jobs }}
       has_xtensa: ${{ steps.matrix.outputs.has_xtensa }}
@@ -57,11 +61,33 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
 
-  # Gate 0: discovery and format must both pass before expensive toolchain setup.
+  host-tests:
+    name: Host tests and Clippy / ${{ matrix.package }}
+    needs: [discover, format]
+    if: needs.discover.outputs.has_host == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJSON(needs.discover.outputs.host_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Unit tests
+        env:
+          PKG: ${{ matrix.package }}
+        run: cargo test -p "$PKG"
+      - name: Clippy
+        env:
+          PKG: ${{ matrix.package }}
+        run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+
+  # Gates 0 and 1: no Xtensa download until formatting and host tests pass.
   prepare-xtensa:
     name: Prepare Xtensa / ${{ matrix.variant }}
-    needs: [discover, format]
-    if: needs.discover.outputs.has_xtensa == 'true'
+    needs: [discover, format, host-tests]
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_xtensa == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -92,18 +118,14 @@ jobs:
 
   crate:
     name: ${{ matrix.package }} / ${{ matrix.chip }}
-    needs: [discover, format, prepare-xtensa]
-    if: needs.discover.outputs.has_jobs == 'true' && (needs.discover.outputs.has_xtensa != 'true' || needs.prepare-xtensa.result == 'success')
+    needs: [discover, format, host-tests, prepare-xtensa]
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_mcu == 'true' && (needs.discover.outputs.has_xtensa != 'true' || needs.prepare-xtensa.result == 'success')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.discover.outputs.mcu_matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        if: matrix.chip == 'host'
-        with:
-          components: clippy
       - uses: dtolnay/rust-toolchain@nightly
         if: matrix.chip == 'esp32c3'
         with:
@@ -121,16 +143,6 @@ jobs:
           tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf "$RUNNER_TEMP/xtensa/xtensa.tar"
           rustup toolchain link esp "$RUNNER_TEMP/xtensa/unpacked/esp"
           cargo +esp --version
-      - name: Host tests
-        if: matrix.chip == 'host'
-        env:
-          PKG: ${{ matrix.package }}
-        run: cargo test -p "$PKG"
-      - name: Host Clippy (including tests)
-        if: matrix.chip == 'host'
-        env:
-          PKG: ${{ matrix.package }}
-        run: cargo clippy -p "$PKG" --all-targets -- -D warnings
       - name: ESP32-C3 cross-check
         if: matrix.chip == 'esp32c3'
         env:
@@ -152,8 +164,8 @@ jobs:
 
   xtensa-latest:
     name: Xtensa latest / ${{ matrix.package }}
-    needs: [discover, format, prepare-xtensa]
-    if: needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
+    needs: [discover, format, host-tests, prepare-xtensa]
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -182,7 +194,7 @@ jobs:
   affected-gate:
     name: Affected crate validation
     runs-on: ubuntu-latest
-    needs: [discover, format, prepare-xtensa, crate, xtensa-latest]
+    needs: [discover, format, host-tests, prepare-xtensa, crate, xtensa-latest]
     if: always()
     steps:
       - name: Confirm discovery and all selected checks passed
@@ -190,13 +202,17 @@ jobs:
           DISCOVER: ${{ needs.discover.result }}
           FORMAT: ${{ needs.format.result }}
           CRATE: ${{ needs.crate.result }}
+          HOST: ${{ needs.host-tests.result }}
           PREPARE: ${{ needs.prepare-xtensa.result }}
           XTENSA: ${{ needs.xtensa-latest.result }}
           HAS_JOBS: ${{ needs.discover.outputs.has_jobs }}
+          HAS_HOST: ${{ needs.discover.outputs.has_host }}
+          HAS_MCU: ${{ needs.discover.outputs.has_mcu }}
           HAS_XTENSA: ${{ needs.discover.outputs.has_xtensa }}
         run: |
           [[ "$DISCOVER" == success && "$FORMAT" == success ]] || exit 1
-          if [[ "$HAS_JOBS" == true ]]; then [[ "$CRATE" == success ]] || exit 1; fi
+          if [[ "$HAS_HOST" == true ]]; then [[ "$HOST" == success ]] || exit 1; fi
+          if [[ "$HAS_MCU" == true ]]; then [[ "$CRATE" == success ]] || exit 1; fi
           if [[ "$HAS_XTENSA" == true ]]; then
             [[ "$PREPARE" == success && "$XTENSA" == success ]] || exit 1
           fi
