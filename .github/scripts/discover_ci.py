@@ -95,6 +95,12 @@ if __name__ == "__main__":
         print(encoded)
         if args.github_output:
             with open(args.github_output, "a") as output:
+                host = {"include": [item for item in result["include"] if item["chip"] == "host"]}
+                mcu = {"include": [item for item in result["include"] if item["chip"] != "host"]}
+                output.write("host_matrix=" + json.dumps(host, separators=(",", ":")) + "\n")
+                output.write("mcu_matrix=" + json.dumps(mcu, separators=(",", ":")) + "\n")
+                output.write("has_host=" + str(bool(host["include"])).lower() + "\n")
+                output.write("has_mcu=" + str(bool(mcu["include"])).lower() + "\n")
                 output.write("matrix=" + encoded + "\n")
                 output.write("xtensa_matrix=" + json.dumps(xtensa, separators=(",", ":")) + "\n")
                 output.write("has_jobs=" + str(bool(result["include"])).lower() + "\n")
