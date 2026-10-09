@@ -10,7 +10,7 @@
 use core::cell::RefCell;
 
 use critical_section::Mutex;
-use embassy_time::{with_timeout, Duration, Instant, Timer};
+use embassy_time::{Duration, Instant, Timer, with_timeout};
 
 /// Keep 64-bit clock state valid also on targets without 64-bit atomics.
 #[derive(Clone, Copy)]
@@ -29,7 +29,9 @@ pub fn is_set() -> bool {
 /// Current Unix epoch seconds UTC, or `None` before the first valid sync.
 pub fn now() -> Option<u64> {
     let sync = critical_section::with(|cs| *SYNC.borrow(cs).borrow())?;
-    let elapsed_us = Instant::now().as_micros().saturating_sub(sync.mono_at_sync_us);
+    let elapsed_us = Instant::now()
+        .as_micros()
+        .saturating_sub(sync.mono_at_sync_us);
     Some(sync.epoch_at_sync_s + elapsed_us / 1_000_000)
 }
 
@@ -40,15 +42,19 @@ pub async fn wait(timeout: Duration) -> bool {
         while !is_set() {
             Timer::after_millis(50).await;
         }
-    }).await.is_ok();
+    })
+    .await
+    .is_ok();
     observed || is_set()
 }
-
 
 /// Records `epoch_s` (Unix seconds UTC) as the current time, anchored to the
 /// monotonic clock at the instant of the call.
 pub fn set_synced(epoch_s: u64) {
-    let sync = Sync { epoch_at_sync_s: epoch_s, mono_at_sync_us: Instant::now().as_micros() };
+    let sync = Sync {
+        epoch_at_sync_s: epoch_s,
+        mono_at_sync_us: Instant::now().as_micros(),
+    };
     critical_section::with(|cs| *SYNC.borrow(cs).borrow_mut() = Some(sync));
 }
 
