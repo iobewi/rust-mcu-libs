@@ -108,11 +108,13 @@ jobs:
       - name: Bundle compiler once
         run: |
           test -x "$HOME/.rustup/toolchains/esp/bin/rustc"
-          tar -C "$HOME/.rustup/toolchains" -cf "$RUNNER_TEMP/xtensa.tar" esp
+          du -sh "$HOME/.rustup/toolchains/esp"
+          tar -C "$HOME/.rustup/toolchains" -cf - esp | zstd -T0 -6 -o "$RUNNER_TEMP/xtensa.tar.zst"
+          du -h "$RUNNER_TEMP/xtensa.tar.zst"
       - uses: actions/upload-artifact@v4
         with:
           name: xtensa-${{ matrix.variant }}
-          path: ${{ runner.temp }}/xtensa.tar
+          path: ${{ runner.temp }}/xtensa.tar.zst
           retention-days: 1
           compression-level: 0
 
@@ -140,7 +142,7 @@ jobs:
         if: matrix.chip == 'esp32s3'
         run: |
           mkdir -p "$RUNNER_TEMP/xtensa/unpacked"
-          tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf "$RUNNER_TEMP/xtensa/xtensa.tar"
+          zstd -dc "$RUNNER_TEMP/xtensa/xtensa.tar.zst" | tar -C "$RUNNER_TEMP/xtensa/unpacked" -xf -
           rustup toolchain link esp "$RUNNER_TEMP/xtensa/unpacked/esp"
           cargo +esp --version
       - name: ESP32-C3 cross-check
