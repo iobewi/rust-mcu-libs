@@ -219,7 +219,6 @@ pub fn discard() {
     critical_section::with(|cs| RING.borrow(cs).borrow_mut().clear());
 }
 
-
 #[cfg(test)]
 mod tests {
     extern crate std;
