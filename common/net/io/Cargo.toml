@@ -1,0 +1,11 @@
+[package]
+name = "iobewi-net-io"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Low-level connection contracts: Close, Connection, ConnectionListener, outbound Connector (no HTTP, TLS, Wi-Fi or platform types)"
+
+[dependencies]
+embedded-io-async = "0.7.0"
