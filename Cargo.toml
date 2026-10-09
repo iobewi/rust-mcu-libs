@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "common/log/core",
+  "common/log/config",
   "common/config/space",
   "common/fs/nvs",
   "common/net/wifi/core",
