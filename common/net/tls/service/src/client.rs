@@ -65,8 +65,13 @@ where
         if !(self.clock_is_set)() {
             return Err(ClientTlsError::ClockUnsynced);
         }
-        let ca = crate::trusted_ca(self.tls_config).await.ok_or(ClientTlsError::NoCa)?;
-        self.dialer.dial(host, port, &ca, rx, tx).await.map_err(ClientTlsError::Connect)
+        let ca = crate::trusted_ca(self.tls_config)
+            .await
+            .ok_or(ClientTlsError::NoCa)?;
+        self.dialer
+            .dial(host, port, &ca, rx, tx)
+            .await
+            .map_err(ClientTlsError::Connect)
     }
 
     fn local_address(&self) -> Option<String> {
