@@ -1,5 +1,8 @@
 [workspace]
 members = [
+  "arch/esp32/crypto/rng",
+  "arch/esp32/net/tcp",
+  "arch/esp32/net/tls",
   "common/net/tls/service",
   "arch/esp32/crypto/mbedtls",
   "common/time/core",
