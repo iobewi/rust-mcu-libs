@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "common/firmware/slots",
   "arch/esp32/watchdog",
   "common/log/stream",
   "common/net/mdns",
