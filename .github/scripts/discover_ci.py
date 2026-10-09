@@ -10,16 +10,32 @@ import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ALLOWED = {"host", "esp32", "esp32-bins"}
-GLOBAL = {".github/", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
+GLOBAL = {".github/", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
 
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
-def select(changed, packages, reverse):
+def workspace_members_only(base):
+    try:
+        old = tomllib.loads(git('show', base + ':Cargo.toml'))
+        new = tomllib.loads((ROOT / 'Cargo.toml').read_text())
+    except (subprocess.CalledProcessError, OSError, ValueError):
+        return False
+    for workspace in (old, new):
+        workspace['workspace'].pop('members', None)
+        workspace['workspace'].pop('default-members', None)
+    return old == new
+
+def select(changed, packages, reverse, base=None):
     affected = set()
     if any(any(p == prefix or p.startswith(prefix) for prefix in GLOBAL) for p in changed):
         return set(packages)
     for path in changed:
+        if path == 'Cargo.toml' and base and workspace_members_only(base):
+            old = tomllib.loads(git('show', base + ':Cargo.toml'))['workspace']['members']
+            new = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['members']
+            affected.update(name for name, directory in packages.items() if directory in set(old) ^ set(new))
+            continue
         owners = [name for name, directory in packages.items() if path.startswith(directory + "/")]
         if not owners:
             return set(packages)  # unknown root-level change: fail safe
