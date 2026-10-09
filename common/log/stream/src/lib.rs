@@ -12,7 +12,6 @@ use embassy_time::{Duration, Instant, Timer, with_timeout};
 use embedded_io_async::{ErrorType, Read, Write};
 use iobewi_entropy::EntropySource;
 use iobewi_log::{RING_CAPACITY, discard, pop_record};
-use iobewi_net_io::Connector;
 use iobewi_net_tls_core::SecureClientTransport;
 use log::{info, warn};
 use serde::Serialize;
@@ -102,6 +101,7 @@ fn jittered(base: Duration, random: u32) -> Duration {
     Duration::from_millis((base_ms + base_ms * percent / 100).max(1000) as u64)
 }
 
+#[allow(clippy::too_many_arguments)] // Transport buffers and handshake inputs are independently owned.
 async fn connect_and_upgrade<'a, T: SecureClientTransport, E: EntropySource>(
     transport: &'a T,
     entropy: &E,
