@@ -40,6 +40,10 @@ The setup and latest checks are **not** `continue-on-error`; a Rust compatibilit
 
 Keep the pinned baseline version current by updating this workflow and documenting the new value. A green reference build alone does not establish latest compatibility.
 
+## Fail-fast quality gates
+
+The workflow runs in ordered stages. **Gate 0:** workspace/CI metadata discovery, tracked lockfile policy and Rust formatting. **Gate 1:** host unit tests and strict Clippy for affected portable crates (`fail-fast: true`). **Gate 2:** only after successful earlier stages, install the Xtensa toolchains and cross-check affected MCU crates against C3, pinned S3 and latest S3. A host failure prevents expensive MCU jobs from being scheduled. If no host crate is affected, the skipped host stage is treated as a valid empty stage; missing required checks or actual failures still block the final `affected-gate`.
+
 ## Impact-aware validation
 
 For pull requests and pushes, discovery compares the relevant Git revisions and runs checks only for changed workspace members and their transitive dependents. Cargo's resolved dependency graph is authoritative, including renamed dependencies. Unknown changed files or changes in global CI/architecture files fail closed to full validation. Every workspace member still requires valid `ci.json` regardless of selection.
