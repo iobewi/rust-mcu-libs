@@ -155,11 +155,9 @@ impl<S: ErrorType> ErrorType for Prefixed<'_, S> {
 
 impl<S: Read> Read for Prefixed<'_, S> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        if !buf.is_empty() {
-            if let Some(first) = self.first.take() {
-                buf[0] = first;
-                return Ok(1);
-            }
+        if !buf.is_empty() && let Some(first) = self.first.take() {
+            buf[0] = first;
+            return Ok(1);
         }
         self.session.read(buf).await
     }
