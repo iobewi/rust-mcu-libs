@@ -1,0 +1,20 @@
+[package]
+name = "iobewi-http-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable outbound HTTP/1.1 client primitives and WebSocket client over any connected stream"
+
+[features]
+default = []
+# Outbound WebSocket upgrade + frames (adds edge-http / edge-ws / heapless).
+websocket = ["dep:edge-http", "dep:edge-ws", "dep:heapless"]
+
+[dependencies]
+embedded-io-async = "0.7.0"
+httparse = { version = "1", default-features = false }
+edge-http = { version = "0.8", default-features = false, features = ["io"], optional = true }
+edge-ws = { version = "0.8", default-features = false, features = ["io"], optional = true }
+heapless = { version = "0.9", optional = true }
