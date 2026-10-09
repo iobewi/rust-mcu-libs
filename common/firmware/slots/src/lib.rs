@@ -54,7 +54,10 @@ impl FirmwareSlot {
     }
 
     pub const fn other(self) -> Self {
-        Self { domain: self.domain, slot: self.slot.other() }
+        Self {
+            domain: self.domain,
+            slot: self.slot.other(),
+        }
     }
 }
 
