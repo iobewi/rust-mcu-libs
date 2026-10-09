@@ -1,0 +1,8 @@
+[package]
+name = "iobewi-crypto-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable TLS-material crypto contract: certificate/key/CA validation and identity generation (no sockets, no persistence)"
