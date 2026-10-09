@@ -115,6 +115,8 @@ where
         rng,
         change,
     );
-    mdns.run(HostAnswersMdnsHandler::new(ServiceAnswers::new(&host, service)))
-        .await
+    mdns.run(HostAnswersMdnsHandler::new(ServiceAnswers::new(
+        &host, service,
+    )))
+    .await
 }
