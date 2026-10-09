@@ -11,4 +11,4 @@ description = "Embassy mDNS host responder composition using edge-mdns"
 edge-mdns = { version = "0.8", default-features = false, features = ["io"] }
 edge-nal = { version = "0.7", default-features = false }
 embassy-sync = { version = "0.8", default-features = false }
-rand_core = { version = "0.9", default-features = false }
+rand_core = { version = "0.10", default-features = false }
