@@ -10,7 +10,7 @@ use edge_mdns::{
     HostAnswersMdnsHandler,
     buf::BufferAccess,
     domain::base::Ttl,
-    host::Host,
+    host::{Host, Service, ServiceAnswers},
     io::{self, IPV4_DEFAULT_SOCKET, MdnsIoError},
 };
 use edge_nal::{UdpBind, UdpSplit};
@@ -66,4 +66,55 @@ where
         change,
     );
     mdns.run(HostAnswersMdnsHandler::new(&host)).await
+}
+
+/// Respond to hostname and DNS-SD service discovery queries.
+///
+/// Publishes the hostname A record alongside the supplied service's PTR,
+/// SRV and TXT records. The caller owns the service definition and may use
+/// edge-mdns handlers directly for more elaborate discovery policies.
+#[allow(clippy::too_many_arguments)]
+pub async fn respond_service<T, RB, SB, R, M>(
+    stack: &T,
+    receive_buffer: RB,
+    send_buffer: SB,
+    rng: R,
+    change: &Signal<M, ()>,
+    hostname: &str,
+    ipv4: Ipv4Addr,
+    service: &Service<'_>,
+) -> Result<(), MdnsIoError<T::Error>>
+where
+    T: UdpBind,
+    RB: BufferAccess<[u8]>,
+    SB: BufferAccess<[u8]>,
+    R: rand_core::Rng,
+    M: RawMutex,
+{
+    let mut socket = io::bind(
+        stack,
+        IPV4_DEFAULT_SOCKET,
+        Some(Ipv4Addr::UNSPECIFIED),
+        Some(0),
+    )
+    .await?;
+    let (receive, send) = socket.split();
+    let host = Host {
+        hostname,
+        ipv4,
+        ipv6: Ipv6Addr::UNSPECIFIED,
+        ttl: Ttl::from_secs(60),
+    };
+    let mdns = io::Mdns::new(
+        Some(Ipv4Addr::UNSPECIFIED),
+        Some(0),
+        receive,
+        send,
+        receive_buffer,
+        send_buffer,
+        rng,
+        change,
+    );
+    mdns.run(HostAnswersMdnsHandler::new(ServiceAnswers::new(&host, service)))
+        .await
 }
