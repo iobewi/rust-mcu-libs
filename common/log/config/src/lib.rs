@@ -157,18 +157,11 @@ mod tests {
         cell::RefCell,
         future::Future,
         rc::Rc,
-        sync::Arc,
-        task::{Wake, Waker},
         vec::Vec,
     };
 
-    struct Noop;
-    impl Wake for Noop {
-        fn wake(self: Arc<Self>) {}
-    }
     fn block_on<F: Future>(future: F) -> F::Output {
-        let waker = Waker::from(Arc::new(Noop));
-        let mut context = core::task::Context::from_waker(&waker);
+        let mut context = core::task::Context::from_waker(core::task::Waker::noop());
         let mut future = core::pin::pin!(future);
         loop {
             if let core::task::Poll::Ready(value) = future.as_mut().poll(&mut context) {
