@@ -9,6 +9,11 @@ pub struct ContentRange {
 }
 
 impl ContentRange {
+    /// Whether the provided range has no bytes (start exceeds end).
+    pub fn is_empty(&self) -> bool {
+        self.start > self.end
+    }
+
     pub fn len(self) -> Option<u64> {
         self.end.checked_sub(self.start)?.checked_add(1)
     }
