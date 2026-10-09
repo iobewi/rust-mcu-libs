@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![recursion_limit = "256"]
 
 #[cfg(all(feature = "esp32c3", feature = "esp32s3"))]
 compile_error!("Choose exactly one MCU feature");
