@@ -119,11 +119,13 @@ mod tests {
         }
     }
 
+    type SavedRequests = Rc<RefCell<Vec<(&'static str, Vec<String>)>>>;
+
     #[derive(Clone)]
     struct Backend {
         allow: bool,
         result: Result<(), SaveCertError>,
-        saved: Rc<RefCell<Vec<(&'static str, alloc::vec::Vec<alloc::string::String>)>>>,
+        saved: SavedRequests,
     }
 
     impl ProvisioningBackend for Backend {
@@ -134,13 +136,13 @@ mod tests {
             self.saved
                 .borrow_mut()
                 .push(("cert", alloc::vec![cert.to_string(), key.to_string()]));
-            self.result.clone()
+            self.result
         }
         async fn save_ca(&self, ca: &str) -> Result<(), SaveCertError> {
             self.saved
                 .borrow_mut()
                 .push(("ca", alloc::vec![ca.to_string()]));
-            self.result.clone()
+            self.result
         }
     }
 
