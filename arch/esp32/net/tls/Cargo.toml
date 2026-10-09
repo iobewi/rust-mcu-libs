@@ -12,7 +12,7 @@ categories = ["embedded", "network-programming", "no-std"]
 
 [features]
 default = []
-esp32c3 = ["embassy-net", "dep:static_cell", "dep:iobewi-esp-entropy", "iobewi-esp-entropy/esp32c3", "iobewi-esp-entropy/rand-core"]
+esp32c3 = ["embassy-net", "portable-atomic/unsafe-assume-single-core", "dep:static_cell", "dep:iobewi-esp-entropy", "iobewi-esp-entropy/esp32c3", "iobewi-esp-entropy/rand-core"]
 # `use-gcc` is NOT enabled for ESP32-C3: mbedtls-rs-sys defaults to clang there
 # and that already works (a standard-shaped riscv32 triple isn't affected by
 # the bug below). ESP32-S3 needs it: mbedtls-rs-sys's default clang path
