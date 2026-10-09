@@ -12,7 +12,7 @@ default = []
 # ESP32-S3 needs mbedtls-rs-sys's GCC path (see iobewi-esp-tls for the
 # cmake-rs/Xtensa triple explanation).
 use-gcc = ["mbedtls-rs/use-gcc"]
-esp32c3 = ["portable-atomic/critical-section"]
+esp32c3 = ["portable-atomic/unsafe-assume-single-core"]
 esp32s3 = ["use-gcc"]
 
 [dependencies]
