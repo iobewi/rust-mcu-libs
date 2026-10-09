@@ -1,0 +1,18 @@
+[package]
+name = "iobewi-tls-service"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "TLS identity/trust configuration service, provisioning API and fail-closed secure outbound connector, over the crypto and net/io contracts"
+
+[features]
+default = []
+
+[dependencies]
+iobewi-crypto-core = { path = "../../../crypto/core" }
+iobewi-net-io = { path = "../../io" }
+iobewi-net-tls-core = { path = "../core" }
+iobewi-config-space = { path = "../../../config/space" }
+log = { version = "0.4", default-features = false }
