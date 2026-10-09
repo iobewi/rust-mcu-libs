@@ -12,8 +12,8 @@ use embassy_time::{Duration, Instant, Timer, with_timeout};
 use embedded_io_async::{ErrorType, Read, Write};
 use iobewi_entropy::EntropySource;
 use iobewi_log::{RING_CAPACITY, discard, pop_record};
-use iobewi_net_tls_core::SecureClientTransport;
 use iobewi_net_io::Connector;
+use iobewi_net_tls_core::SecureClientTransport;
 use log::{info, warn};
 use serde::Serialize;
 
