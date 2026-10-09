@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "common/time/core",
   "common/crypto/core",
   "common/crypto/rng",
   "common/net/tls/core",
