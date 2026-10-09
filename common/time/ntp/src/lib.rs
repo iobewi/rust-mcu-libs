@@ -31,7 +31,8 @@ pub struct SyncOptions {
 #[embassy_executor::task]
 pub async fn sync_task(stack: Stack<'static>, options: SyncOptions) -> ! {
     loop {
-        let attempt = with_timeout(options.exchange_timeout, sync_once(stack, options)).await
+        let attempt = with_timeout(options.exchange_timeout, sync_once(stack, options))
+            .await
             .map_err(|_| SyncError::Timeout)
             .and_then(core::convert::identity);
         match attempt {
@@ -72,8 +73,13 @@ async fn sync_once(stack: Stack<'static>, options: SyncOptions) -> Result<u64, S
     let mut rx_buffer = [0u8; 128];
     let mut tx_meta = [PacketMetadata::EMPTY; 4];
     let mut tx_buffer = [0u8; 128];
-    let mut socket =
-        UdpSocket::new(stack, &mut rx_meta, &mut rx_buffer, &mut tx_meta, &mut tx_buffer);
+    let mut socket = UdpSocket::new(
+        stack,
+        &mut rx_meta,
+        &mut rx_buffer,
+        &mut tx_meta,
+        &mut tx_buffer,
+    );
     socket.bind(0).map_err(SyncError::Bind)?;
     let socket = UdpSocketWrapper::new(socket);
 
