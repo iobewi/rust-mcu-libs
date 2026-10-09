@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "common/net/io",
   "common/net/http/client",
   "common/log/core",
   "arch/esp32/log/console",
