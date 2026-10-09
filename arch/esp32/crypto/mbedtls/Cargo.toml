@@ -12,7 +12,7 @@ default = []
 # ESP32-S3 needs mbedtls-rs-sys's GCC path (see iobewi-esp-tls for the
 # cmake-rs/Xtensa triple explanation).
 use-gcc = ["mbedtls-rs/use-gcc"]
-esp32c3 = []
+esp32c3 = ["portable-atomic/critical-section"]
 esp32s3 = ["use-gcc"]
 
 [dependencies]
@@ -22,6 +22,7 @@ iobewi-time = { path = "../../../../common/time/core" }
 log = { version = "0.4", default-features = false }
 embassy-time = { version = "0.5.0", default-features = false }
 static_cell = "2.1.1"
+portable-atomic = { version = "1", default-features = false }
 mbedtls-rs = { version = "0.3.0", default-features = false, features = [
   "tls-core", "tls-client", "tls-server",
   "tls-proto-tls12", "tls-proto-tls13",
