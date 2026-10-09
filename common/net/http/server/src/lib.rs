@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use iobewi_net_io::ConnectionListener;
+use iobewi_net_tls_core::TlsListener;
 use picoserve::io::Socket;
 use picoserve::routing::PathRouter;
 use picoserve::{Config, EmbassyRuntime, Router};
@@ -82,4 +83,13 @@ pub async fn serve_forever_io<L: ConnectionListener, R: PathRouter>(
             .await;
         }
     }
+}
+
+/// Serve HTTP exclusively over connections authenticated by a TLS listener.
+/// A plaintext listener cannot satisfy this interface.
+pub async fn serve_forever_tls<L: TlsListener, R: PathRouter>(
+    listener: &mut L,
+    router: &Router<R>,
+) -> ! {
+    serve_forever_io(listener, router).await
 }
