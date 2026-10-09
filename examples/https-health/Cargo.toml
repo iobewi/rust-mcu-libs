@@ -18,6 +18,7 @@ esp32c3 = ["firmware", "esp-hal/esp32c3", "esp-rtos/esp32c3", "esp-radio/esp32c3
 esp32s3 = ["firmware", "esp-hal/esp32s3", "esp-rtos/esp32s3", "esp-radio/esp32s3", "esp-alloc/esp32s3", "esp-bootloader-esp-idf/esp32s3", "iobewi-esp-wifi/esp32s3", "iobewi-esp-console/esp32s3", "iobewi-esp-tls/esp32s3"]
 
 [dependencies]
+log = { version = "0.4", default-features = false }
 iobewi-log = { path = "../../common/log/core" }
 iobewi-esp-console = { path = "../../arch/esp32/log/console", default-features = false }
 iobewi-esp-wifi = { path = "../../arch/esp32/net/wifi" }
