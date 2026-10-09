@@ -45,6 +45,18 @@ The handle identifies the reused stack, not permanent link availability. Product
 
 For this migration, the access point is considered minimally useful when a WPA2 client can associate and obtain a lease from the built-in `edge-dhcp` server. Verify the assigned address belongs to `172.23.241.0/24`, the AP address is `172.23.241.1`, and clients receive no gateway or DNS. Verify lease service stops when AP stops, restarts cleanly, and station reconnection works across AP/STA mode changes. **An HTTP server or Web provisioning page is not required or part of this migration.**
 
+## mDNS support (edge-mdns)
+
+The Wi-Fi adapter enables the `multicast` feature of `edge-nal-embassy`, which in turn enables Embassy network multicast support. This is necessary for an mDNS responder to join the IPv4 multicast group `224.0.0.251` and listen on UDP port `5353`. Multicast is available on the Embassy stack returned by `network_handle()`, subject to radio support and physical qualification.
+
+**Use `edge-mdns` directly in the application or composition layer.** The Wi-Fi crate does not own host names, DNS-SD service definitions, announcements, TXT records, sockets, or the lifetime of an mDNS responder. Avoid adding an `iobewi-mdns` wrapper that simply forwards the `edge-mdns` API. This matches the direct `edge-dhcp` reuse approach, except DHCP is owned by the access-point implementation whereas mDNS is application-selected.
+
+A responder requires one UDP socket in the selected stack's `StackResources<N>` budget, a joined multicast group, a configured interface/IP address, and independent resource ownership for STA and AP when serving both networks. The product must manage re-announcements when an address changes, avoid using an AP stack after the AP stops, and check hostname collisions. The presence of the Cargo feature **does not automatically start an mDNS responder** or guarantee multicast reception.
+
+Dependencies for a future direct consumer: `edge-mdns = { version = "0.8", default-features = false }` and `edge-nal-embassy = { version = "0.9", default-features = false, features = ["medium-ethernet", "proto-ipv4", "udp", "multicast"] }`; ensure the application selects a compatible target/network stack and appropriate `edge-mdns` features as required by its chosen I/O model. Do not add these as unused dependencies of the Wi-Fi adapter.
+
+**Pending validation:** cross-build ESP32-C3 and ESP32-S3, then observe multicast group membership, mDNS response to queries from Avahi/Bonjour, AP/STA behavior and clean teardown/rejoin on real hardware. No stand-alone example is introduced in this increment.
+
 ## Validation
 
 - `BG-ESP-S3`
