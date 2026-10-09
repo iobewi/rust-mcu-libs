@@ -44,7 +44,9 @@ pub struct IoSocket<C> {
 
 impl<C> IoSocket<C> {
     pub fn new(connection: C) -> Self {
-        Self { connection: Mutex::new(connection) }
+        Self {
+            connection: Mutex::new(connection),
+        }
     }
 }
 
@@ -59,13 +61,23 @@ impl<C> ErrorType for IoHalf<'_, C> {
 
 impl<C: Read> Read for IoHalf<'_, C> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        self.connection.lock().await.read(buf).await.map_err(io_error)
+        self.connection
+            .lock()
+            .await
+            .read(buf)
+            .await
+            .map_err(io_error)
     }
 }
 
 impl<C: Write> Write for IoHalf<'_, C> {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        self.connection.lock().await.write(buf).await.map_err(io_error)
+        self.connection
+            .lock()
+            .await
+            .write(buf)
+            .await
+            .map_err(io_error)
     }
 
     async fn flush(&mut self) -> Result<(), Self::Error> {
@@ -81,7 +93,12 @@ impl<C: Write> picoserve::io::Write for IoHalf<'_, C> {
         let mut buffer = [0u8; 1024];
         let mut buffer = BorrowedBuffer::new(&mut buffer);
         let output = f(buffer.unfilled());
-        self.connection.lock().await.write_all(buffer.filled()).await.map_err(io_error)?;
+        self.connection
+            .lock()
+            .await
+            .write_all(buffer.filled())
+            .await
+            .map_err(io_error)?;
         Ok(output)
     }
 }
@@ -98,7 +115,14 @@ impl<C: Connection> picoserve::io::Socket<EmbassyRuntime> for IoSocket<C> {
         Self: 'b;
 
     fn split(&mut self) -> (Self::ReadHalf<'_>, Self::WriteHalf<'_>) {
-        (IoHalf { connection: &self.connection }, IoHalf { connection: &self.connection })
+        (
+            IoHalf {
+                connection: &self.connection,
+            },
+            IoHalf {
+                connection: &self.connection,
+            },
+        )
     }
 
     async fn abort<T: Timer<EmbassyRuntime>>(
@@ -115,7 +139,11 @@ impl<C: Connection> picoserve::io::Socket<EmbassyRuntime> for IoSocket<C> {
         _timeouts: &Timeouts,
         _timer: &T,
     ) -> Result<(), picoserve::Error<Self::Error>> {
-        self.connection.into_inner().close().await.map_err(|e| picoserve::Error::Write(io_error(e)))
+        self.connection
+            .into_inner()
+            .close()
+            .await
+            .map_err(|e| picoserve::Error::Write(io_error(e)))
     }
 }
 
@@ -131,9 +159,9 @@ mod tests {
     use core::future::Future;
     use core::task::{Context, Poll, Waker};
     use iobewi_net_io::Close;
+    use picoserve::Timeouts;
     use picoserve::io::Socket;
     use picoserve::time::EmbassyTimer;
-    use picoserve::Timeouts;
 
     /// Polls to completion; the in-memory connection below is always ready,
     /// so only the (never-firing) picoserve timers can yield `Pending`.
@@ -269,14 +297,19 @@ mod tests {
         let conn = Conn::default();
         let state = conn.0.clone();
         block_on(IoSocket::new(conn).abort(&Timeouts::const_default(), &EmbassyTimer)).unwrap();
-        assert_eq!(state.borrow().close_calls, 0, "abort must not attempt a clean close");
+        assert_eq!(
+            state.borrow().close_calls,
+            0,
+            "abort must not attempt a clean close"
+        );
     }
 
     #[test]
     fn a_failing_close_is_reported_as_a_write_error_of_the_same_kind() {
         let conn = Conn::default();
         conn.0.borrow_mut().fail_close = true;
-        let result = block_on(IoSocket::new(conn).shutdown(&Timeouts::const_default(), &EmbassyTimer));
+        let result =
+            block_on(IoSocket::new(conn).shutdown(&Timeouts::const_default(), &EmbassyTimer));
         match result {
             Err(picoserve::Error::Write(e)) => {
                 assert_eq!(e, IoError(embedded_io_async::ErrorKind::ConnectionReset))
@@ -294,13 +327,24 @@ mod tests {
         let config = crate::server_config();
         let conn = Conn::default();
         let state = conn.0.clone();
-        state.borrow_mut().input.extend(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n");
+        state
+            .borrow_mut()
+            .input
+            .extend(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n");
         let mut buffer = [0u8; crate::HTTP_BUFFER_LEN];
-        block_on(crate::serve_one(&router, &config, &mut buffer, IoSocket::new(conn)));
+        block_on(crate::serve_one(
+            &router,
+            &config,
+            &mut buffer,
+            IoSocket::new(conn),
+        ));
         let st = state.borrow();
         let text = alloc::string::String::from_utf8_lossy(&st.output).into_owned();
         assert!(text.starts_with("HTTP/1.1 200"), "got: {text}");
         assert!(text.ends_with("hi"), "got: {text}");
-        assert_eq!(st.close_calls, 1, "the connection is closed cleanly after the exchange");
+        assert_eq!(
+            st.close_calls, 1,
+            "the connection is closed cleanly after the exchange"
+        );
     }
 }
