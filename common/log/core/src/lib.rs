@@ -123,6 +123,21 @@ struct Logger {
     application_target: &'static str,
 }
 
+/// Update the log facade ceiling on both atomic and non-atomic MCUs.
+/// Called only while holding a critical section.
+#[inline]
+fn set_facade_max_level(level: LevelFilter) {
+    #[cfg(target_has_atomic = "ptr")]
+    log::set_max_level(level);
+
+    #[cfg(not(target_has_atomic = "ptr"))]
+    {
+        // SAFETY: callers hold a critical section; therefore no competing
+        // writes to the facade's non-atomic maximum-level cell can race.
+        unsafe { log::set_max_level_racy(level) };
+    }
+}
+
 /// Atomically replace the effective policy. Existing records are retained.
 /// Policy and facade ceiling are updated in the same critical section so
 /// concurrent writers cannot leave the ceiling inconsistent with the policy.
@@ -131,7 +146,7 @@ pub fn apply_policy(policy: LogPolicy) {
     critical_section::with(|cs| {
         let max = policy.max_level();
         *POLICY.borrow(cs).borrow_mut() = Some(policy);
-        log::set_max_level(max);
+        set_facade_max_level(max);
     });
 }
 
@@ -199,7 +214,7 @@ pub fn install(print: fn(&Record<'_>), application_target: &'static str) {
                 .borrow()
                 .as_ref()
                 .map_or(LevelFilter::Info, LogPolicy::max_level);
-            log::set_max_level(max);
+            set_facade_max_level(max);
         });
     }
 }

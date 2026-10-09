@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "common/log/core",
+  "arch/esp32/log/console",
   "common/log/config",
   "common/config/space",
   "common/fs/nvs",
