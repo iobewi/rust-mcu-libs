@@ -29,6 +29,7 @@ async fn wifi_task(
 
 pub fn boot(mode: crate::app::Mode) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
+    iobewi_log::install(iobewi_esp_console::console_print, "example_wifi_modes");
     esp_alloc::heap_allocator!(size: 96 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
