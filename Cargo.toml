@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "arch/esp32/crypto/mbedtls",
   "common/time/core",
   "common/crypto/core",
   "common/crypto/rng",
