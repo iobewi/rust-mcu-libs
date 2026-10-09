@@ -4,11 +4,13 @@
 use alloc::ffi::CString;
 use alloc::string::String;
 
+use crate::mbedtls_rs::{
+    Certificate, ClientSessionConfig, Session, SessionConfig, SessionError, TlsReference, X509,
+};
 use embassy_net::tcp::{ConnectError, TcpSocket};
 use embedded_io_async::{ErrorType, Read, Write};
 use iobewi_net_io::Close;
 use iobewi_net_tls_core::TlsDialer;
-use crate::mbedtls_rs::{Certificate, ClientSessionConfig, Session, SessionConfig, SessionError, TlsReference, X509};
 
 use crate::TlsReferenceStatic;
 
@@ -69,7 +71,10 @@ pub async fn connect_client<'buf>(
         .ok_or(ClientConnectError::Dns)?;
 
     let mut socket = TcpSocket::new(stack, rx_buffer, tx_buffer);
-    socket.connect((ip, port)).await.map_err(ClientConnectError::Tcp)?;
+    socket
+        .connect((ip, port))
+        .await
+        .map_err(ClientConnectError::Tcp)?;
 
     // No `server_name` here (unlike the config's other fields, that one
     // would force this function's returned `Session<'a, _>` down to the
@@ -85,8 +90,13 @@ pub async fn connect_client<'buf>(
     // to live for this one synchronous call, since MbedTLS copies the
     // hostname into its own allocation right away.
     let host_c = CString::new(host).map_err(|_| ClientConnectError::InvalidHost)?;
-    session.set_server_name(&host_c).map_err(ClientConnectError::Handshake)?;
-    session.connect().await.map_err(ClientConnectError::Handshake)?;
+    session
+        .set_server_name(&host_c)
+        .map_err(ClientConnectError::Handshake)?;
+    session
+        .connect()
+        .await
+        .map_err(ClientConnectError::Handshake)?;
     Ok(session)
 }
 
@@ -105,12 +115,20 @@ pub struct TlsStream<'tls, 'buf> {
 impl<'tls, 'buf> TlsStream<'tls, 'buf> {
     /// A client session: dropping it unclosed just releases the socket.
     pub fn client(session: Session<'tls, TcpSocket<'buf>>) -> Self {
-        Self { session, abort_on_drop: false, closed: false }
+        Self {
+            session,
+            abort_on_drop: false,
+            closed: false,
+        }
     }
 
     /// A server session: dropping it unclosed aborts the TCP connection.
     pub fn server(session: Session<'tls, TcpSocket<'buf>>) -> Self {
-        Self { session, abort_on_drop: true, closed: false }
+        Self {
+            session,
+            abort_on_drop: true,
+            closed: false,
+        }
     }
 }
 
@@ -174,10 +192,14 @@ impl TlsDialer for EspTlsDialer {
         rx: &'a mut [u8],
         tx: &'a mut [u8],
     ) -> Result<Self::Connection<'a>, Self::Error> {
-        connect_client(self.tls, self.stack, rx, tx, host, port, ca_pem).await.map(TlsStream::client)
+        connect_client(self.tls, self.stack, rx, tx, host, port, ca_pem)
+            .await
+            .map(TlsStream::client)
     }
 
     fn local_address(&self) -> Option<String> {
-        self.stack.config_v4().map(|c| alloc::format!("{}", c.address.address()))
+        self.stack
+            .config_v4()
+            .map(|c| alloc::format!("{}", c.address.address()))
     }
 }
