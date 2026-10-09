@@ -125,12 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - variant: pinned
-            version: '1.98.1.0'
-          - variant: latest
-            version: latest
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"variant":"pinned","version":"1.98.1.0"}]}' || '{"include":[{"variant":"pinned","version":"1.98.1.0"},{"variant":"latest","version":"latest"}]}') }}
     steps:
       - uses: actions/checkout@v4
       - uses: esp-rs/xtensa-toolchain@v1.7.0
