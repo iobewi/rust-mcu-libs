@@ -1,0 +1,37 @@
+[package]
+name = "iobewi-crypto-mbedtls"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "MbedTLS implementation of the TLS-material crypto contract: PEM/X.509 validation, identity generation, hooks"
+
+[features]
+default = []
+# ESP32-S3 needs mbedtls-rs-sys's GCC path (see iobewi-esp-tls for the
+# cmake-rs/Xtensa triple explanation).
+use-gcc = ["mbedtls-rs/use-gcc"]
+esp32c3 = []
+esp32s3 = ["use-gcc"]
+
+[dependencies]
+iobewi-crypto-core = { path = "../../../../common/crypto/core" }
+iobewi-entropy = { path = "../../../../common/crypto/rng" }
+iobewi-time = { path = "../../../../common/time/core" }
+log = { version = "0.4", default-features = false }
+embassy-time = { version = "0.5.0", default-features = false }
+static_cell = "2.1.1"
+mbedtls-rs = { version = "0.3.0", default-features = false, features = [
+  "tls-core", "tls-client", "tls-server",
+  "tls-proto-tls12", "tls-proto-tls13",
+  "x509-parse", "x509-write", "pk", "pem-parse", "pem-write", "base64",
+  "alg-sha256", "alg-sha512", "alg-hkdf",
+  "alg-ecp", "alg-ecdh", "alg-ecdsa", "curve-secp256r1",
+  "alg-gcm", "alg-chacha20", "alg-chachapoly", "alg-aes", "cipher-mode-cbc",
+  "kex-ecdhe-ecdsa",
+  "drbg-ctr", "entropy",
+  "tls-debug",
+  "hook-wall-clock",
+  "ssl-in-content-len-16384", "ssl-out-content-len-2048",
+] }
