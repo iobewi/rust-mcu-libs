@@ -6,7 +6,7 @@ The application supplies the stack (for ESP32, an `edge-nal-embassy::Udp` adapte
 
 The hostname is application-owned; no credentials, configuration storage or policy are embedded here. No `avahi` daemon is necessary on the device. A desktop Linux client may use Avahi or Bonjour to resolve the announced name.
 
-DNS-SD / TXT / SRV: `edge-mdns` provides custom handlers and host-answer compositions. Consumers needing service advertisement may use these upstream APIs directly; this function currently **only handles host address responses**. No collision-detection guarantee is made.
+DNS-SD / TXT / SRV: `respond_service` advertises one caller-defined `edge_mdns::host::Service` (PTR, SRV, TXT and host address records). `respond` only answers host address queries. More elaborate service sets can use `edge-mdns` upstream handlers directly. No collision-detection guarantee is made.
 
 ## Status
 
