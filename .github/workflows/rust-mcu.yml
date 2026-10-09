@@ -91,12 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - variant: pinned
-            version: '1.98.1.0'
-          - variant: latest
-            version: latest
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"variant":"pinned","version":"1.98.1.0"}]}' || '{"include":[{"variant":"pinned","version":"1.98.1.0"},{"variant":"latest","version":"latest"}]}') }}
     steps:
       - uses: esp-rs/xtensa-toolchain@v1.7.0
         with:
@@ -165,7 +160,7 @@ jobs:
   xtensa-latest:
     name: Xtensa latest / ${{ matrix.package }}
     needs: [discover, format, host-tests, prepare-xtensa]
-    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
+    if: always() && github.event_name != 'pull_request' && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_xtensa == 'true' && needs.prepare-xtensa.result == 'success'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -209,10 +204,12 @@ jobs:
           HAS_HOST: ${{ needs.discover.outputs.has_host }}
           HAS_MCU: ${{ needs.discover.outputs.has_mcu }}
           HAS_XTENSA: ${{ needs.discover.outputs.has_xtensa }}
+          EVENT: ${{ github.event_name }}
         run: |
           [[ "$DISCOVER" == success && "$FORMAT" == success ]] || exit 1
           if [[ "$HAS_HOST" == true ]]; then [[ "$HOST" == success ]] || exit 1; fi
           if [[ "$HAS_MCU" == true ]]; then [[ "$CRATE" == success ]] || exit 1; fi
           if [[ "$HAS_XTENSA" == true ]]; then
-            [[ "$PREPARE" == success && "$XTENSA" == success ]] || exit 1
+            [[ "$PREPARE" == success ]] || exit 1
+            if [[ "$EVENT" != pull_request ]]; then [[ "$XTENSA" == success ]] || exit 1; fi
           fi
