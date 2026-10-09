@@ -21,7 +21,8 @@ impl<'r, State> FromRequestParts<'r, State> for Bearer {
         _state: &'r State,
         request_parts: &RequestParts<'r>,
     ) -> Result<Self, Self::Rejection> {
-        let token = request_parts.headers()
+        let token = request_parts
+            .headers()
             .get("authorization")
             .and_then(|value| value.as_str().ok())
             .and_then(|value| value.strip_prefix("Bearer "))
