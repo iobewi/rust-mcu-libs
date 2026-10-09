@@ -1,0 +1,12 @@
+[package]
+name = "iobewi-time"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable Unix epoch clock state (no network dependency)"
+
+[dependencies]
+critical-section = "1.2"
+embassy-time = "0.5.0"
