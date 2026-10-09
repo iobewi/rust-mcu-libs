@@ -34,12 +34,16 @@ pub async fn stream_exact<R: Read, S: ChunkSink>(
     let mut remaining = length;
     while remaining > 0 {
         let to_read = remaining.min(buffer.len());
-        let n = reader.read(&mut buffer[..to_read]).await
+        let n = reader
+            .read(&mut buffer[..to_read])
+            .await
             .map_err(StreamError::Read)?;
         if n == 0 {
             return Err(StreamError::UnexpectedEof);
         }
-        sink.write_chunk(&buffer[..n]).await.map_err(StreamError::Write)?;
+        sink.write_chunk(&buffer[..n])
+            .await
+            .map_err(StreamError::Write)?;
         remaining -= n;
     }
     Ok(())
@@ -84,7 +88,11 @@ mod tests {
 
     #[test]
     fn reads_exact_length_without_consuming_next_body_and_reports_failures() {
-        let sink = Recorder { bytes: RefCell::new([0; 6]), written: Cell::new(0), fail_after: usize::MAX };
+        let sink = Recorder {
+            bytes: RefCell::new([0; 6]),
+            written: Cell::new(0),
+            fail_after: usize::MAX,
+        };
         let mut body: &[u8] = b"abcdefextra";
         let mut buffer = [0u8; 2];
         assert!(ready(stream_exact(&mut body, 6, &mut buffer, &sink)).is_ok());
@@ -92,12 +100,26 @@ mod tests {
         assert_eq!(body, b"extra");
 
         let mut short: &[u8] = b"ab";
-        let short_sink = Recorder { bytes: RefCell::new([0; 6]), written: Cell::new(0), fail_after: usize::MAX };
-        assert!(matches!(ready(stream_exact(&mut short, 3, &mut buffer, &short_sink)), Err(StreamError::UnexpectedEof)));
+        let short_sink = Recorder {
+            bytes: RefCell::new([0; 6]),
+            written: Cell::new(0),
+            fail_after: usize::MAX,
+        };
+        assert!(matches!(
+            ready(stream_exact(&mut short, 3, &mut buffer, &short_sink)),
+            Err(StreamError::UnexpectedEof)
+        ));
 
-        let rejecting = Recorder { bytes: RefCell::new([0; 6]), written: Cell::new(0), fail_after: 0 };
+        let rejecting = Recorder {
+            bytes: RefCell::new([0; 6]),
+            written: Cell::new(0),
+            fail_after: 0,
+        };
         let mut body: &[u8] = b"abcdef";
-        assert!(matches!(ready(stream_exact(&mut body, 6, &mut buffer, &rejecting)), Err(StreamError::Write(()))));
+        assert!(matches!(
+            ready(stream_exact(&mut body, 6, &mut buffer, &rejecting)),
+            Err(StreamError::Write(()))
+        ));
         assert_eq!(body, b"cdef");
     }
 }
