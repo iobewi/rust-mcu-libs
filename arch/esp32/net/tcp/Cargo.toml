@@ -7,6 +7,11 @@ license.workspace = true
 repository.workspace = true
 description = "ESP TCP transport: an embassy-net listener and accepted socket as net/io connections"
 
+[features]
+default = []
+esp32c3 = []
+esp32s3 = []
+
 [dependencies]
 iobewi-net-io = { path = "../../../../common/net/io" }
 embedded-io-async = "0.7.0"
