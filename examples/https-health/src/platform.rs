@@ -8,8 +8,8 @@ use iobewi_wifi_core::WifiTransport;
 use static_cell::StaticCell;
 
 const SOCKETS: usize = 3;
-const CERT: &str = env!("IOBEWI_TLS_CERT_PEM");
-const KEY: &str = env!("IOBEWI_TLS_KEY_PEM");
+const CERT: &str = match option_env!("IOBEWI_TLS_CERT_PEM") { Some(v) => v, None => "" };
+const KEY: &str = match option_env!("IOBEWI_TLS_KEY_PEM") { Some(v) => v, None => "" };
 
 fn now_unix() -> Option<u64> {
     None // No wall-clock source required for this server-only smoke test.
@@ -22,15 +22,17 @@ async fn load_identity() -> Option<iobewi_esp_tls::mbedtls_rs::SessionConfig<'st
 #[embassy_executor::task]
 async fn https_task(peripheral: esp_hal::peripherals::WIFI<'static>, spawner: Spawner) {
     static RESOURCES: StaticCell<StackResources<SOCKETS>> = StaticCell::new();
-    let mut wifi = WifiManager::<SOCKETS>::new(
-        peripheral,
-        spawner,
-        RESOURCES.init(StackResources::new()),
+    let mut wifi =
+        WifiManager::<SOCKETS>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
+    let ssid = option_env!("IOBEWI_STA_SSID").expect("Set IOBEWI_STA_SSID for device use");
+    let password = option_env!("IOBEWI_STA_PASSWORD").expect("Set IOBEWI_STA_PASSWORD for device use");
+    assert!(
+        wifi.connect(ssid, String::from(password)).await,
+        "STA join failed"
     );
-    let ssid = env!("IOBEWI_STA_SSID");
-    let password = env!("IOBEWI_STA_PASSWORD");
-    assert!(wifi.connect(ssid, String::from(password)).await, "STA join failed");
-    let stack = wifi.network_handle().expect("STA network stack unavailable");
+    let stack = wifi
+        .network_handle()
+        .expect("STA network stack unavailable");
     log::info!("HTTPS example: Wi-Fi ready; HTTPS :443 only");
 
     let tls = iobewi_esp_tls::init(now_unix);
@@ -38,8 +40,10 @@ async fn https_task(peripheral: esp_hal::peripherals::WIFI<'static>, spawner: Sp
     let mut tx = [0u8; 4096];
     let mut listener = EspTlsListener::new(stack, tls, load_identity, &mut rx, &mut tx);
 
-    let router = iobewi_http_server::HttpRouter::new()
-        .route("/health", iobewi_http_server::routing::get(|| async { "ok" }));
+    let router = iobewi_http_server::HttpRouter::new().route(
+        "/health",
+        iobewi_http_server::routing::get(|| async { "ok" }),
+    );
     iobewi_http_server::serve_forever_tls(&mut listener, &router).await;
 }
 
