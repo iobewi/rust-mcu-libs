@@ -40,6 +40,14 @@ The setup and latest checks are **not** `continue-on-error`; a Rust compatibilit
 
 Keep the pinned baseline version current by updating this workflow and documenting the new value. A green reference build alone does not establish latest compatibility.
 
+## Validation by GitHub event
+
+- **Pull request:** Gate 0, host tests/Clippy for affected crates, ESP32-C3 and pinned ESP32-S3 for affected MCU crates. Skip the latest Xtensa compiler download and job; the final gate explicitly accepts that intentional skip.
+- **Push to `main`:** validate affected crates, including pinned and latest Xtensa where ESP32-S3 is affected.
+- **Nightly schedule / manual dispatch:** validate every workspace crate, including pinned and latest Xtensa.
+
+Adding a crate to `workspace.members` or `default-members` does not alone trigger every MCU build: discovery compares workspace configuration across revisions and selects the changed members and their dependents. Other changes to the root workspace configuration still trigger full verification. Changes to CI files are globally impactful and deliberately run all *event-required* checks. A post-merge failure is detected but cannot prevent an already completed merge; MCU checks on affected code remain mandatory before merging.
+
 ## Fail-fast quality gates
 
 The workflow runs in ordered stages. **Gate 0:** workspace/CI metadata discovery, tracked lockfile policy and Rust formatting. **Gate 1:** host unit tests and strict Clippy for affected portable crates (`fail-fast: true`). **Gate 2:** only after successful earlier stages, install the Xtensa toolchains and cross-check affected MCU crates against C3, pinned S3 and latest S3. A host failure prevents expensive MCU jobs from being scheduled. If no host crate is affected, the skipped host stage is treated as a valid empty stage; missing required checks or actual failures still block the final `affected-gate`.
