@@ -23,8 +23,9 @@ const MAX_SLOT_LEN: usize = 8;
 const MAX_DIGEST_LEN: usize = 71;
 const MAX_DEPLOYMENT_ID_LEN: usize = 128;
 /// OTA specification: `staged.state` ∈ `none | written | activating`.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum Stage {
+    #[default]
     None,
     Written,
     Activating,
