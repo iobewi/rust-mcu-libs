@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod otm2_checks {
     use crate::compat::otm2::{
         DecodeError, RECORD_LEN, Record, RuntimeApi, Side, SlotMeta, State, newer,
     };
