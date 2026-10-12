@@ -32,7 +32,10 @@ impl ArtifactWriter {
     /// The platform must independently establish running-slot identity.
     pub fn new(target: InactiveWriteTarget) -> Self {
         let region = target.region();
-        let partition = PartitionRange { offset: region.offset, size: region.size };
+        let partition = PartitionRange {
+            offset: region.offset,
+            size: region.size,
+        };
         Self {
             partition,
             scratch: vec![0u8; erase_size()].into_boxed_slice(),
