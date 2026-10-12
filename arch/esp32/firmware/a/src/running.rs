@@ -45,7 +45,7 @@ pub fn authorize_inactive(
     metadata: [Raw; SECTOR_COUNT],
     boot_report: Option<RunningSlot>,
 ) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, AuthorizedSelectionError> {
-    use iobewi_firmware_layout::authorization::{authorize_a, AuthorizationError};
+    use iobewi_firmware_layout::authorization::{AuthorizationError, authorize_a};
     use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
     let chosen = select_inactive(layout, metadata, boot_report)
@@ -59,10 +59,12 @@ pub fn authorize_inactive(
     };
     let target = current.other();
     let validated = iobewi_firmware_layout::domain_a::Layout {
-        images: layout.images.map(|p| iobewi_firmware_layout::domain_a::Partition {
-            offset: p.offset,
-            size: p.size,
-        }),
+        images: layout
+            .images
+            .map(|p| iobewi_firmware_layout::domain_a::Partition {
+                offset: p.offset,
+                size: p.size,
+            }),
         otadata: iobewi_firmware_layout::domain_a::Partition {
             offset: layout.otadata.offset,
             size: layout.otadata.size,
@@ -74,8 +76,9 @@ pub fn authorize_inactive(
         FirmwareSlot::new(Domain::A, target),
     )
     .map_err(AuthorizedSelectionError::Authorization)?;
-    if permission.region().offset != chosen.offset ||
-        permission.region().size != chosen.size as usize {
+    if permission.region().offset != chosen.offset
+        || permission.region().size != chosen.size as usize
+    {
         return Err(AuthorizedSelectionError::Selection(
             selection::SelectionError::InvalidTarget,
         ));
@@ -98,10 +101,19 @@ mod tests {
     fn authorization_requires_observed_report_and_matching_metadata() {
         let layout = Layout {
             images: [
-                Partition { offset: 0x20000, size: 0x180000 },
-                Partition { offset: 0x1a0000, size: 0x180000 },
+                Partition {
+                    offset: 0x20000,
+                    size: 0x180000,
+                },
+                Partition {
+                    offset: 0x1a0000,
+                    size: 0x180000,
+                },
             ],
-            otadata: Partition { offset: 0xd000, size: 0x2000 },
+            otadata: Partition {
+                offset: 0xd000,
+                size: 0x2000,
+            },
         };
         let records = [Entry::new(1, state::VALID).encode(), BLANK];
         assert_eq!(
