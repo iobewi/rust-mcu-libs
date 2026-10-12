@@ -9,6 +9,7 @@ use alloc::vec;
 use embedded_storage::nor_flash::NorFlash;
 use iobewi_esp_flash::{EspFlash, SharedFlash};
 use iobewi_esp_partitions::PartitionRange;
+use iobewi_firmware_layout::authorization::InactiveWriteTarget;
 use iobewi_firmware_update::{Committed, Error, WriteSession};
 
 pub const fn erase_batch_size() -> u64 {
@@ -27,7 +28,11 @@ pub struct ArtifactWriter {
 }
 
 impl ArtifactWriter {
-    pub fn new(partition: PartitionRange) -> Self {
+    /// Requires the portable inactive-slot authorization proof.
+    /// The platform must independently establish running-slot identity.
+    pub fn new(target: InactiveWriteTarget) -> Self {
+        let region = target.region();
+        let partition = PartitionRange { offset: region.offset, size: region.size };
         Self {
             partition,
             scratch: vec![0u8; erase_size()].into_boxed_slice(),
