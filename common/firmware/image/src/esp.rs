@@ -43,7 +43,6 @@ impl MemoryMap {
     }
 }
 
-
 pub const MAX_SEGMENTS: usize = 16;
 const HEADER_LEN: u32 = 24;
 const SEGMENT_HEADER_LEN: u32 = 8;
@@ -140,7 +139,9 @@ pub fn validate(
     map: &MemoryMap,
     verify: Verify,
 ) -> Result<Image, ImageError> {
-    let part_end = part_offset.checked_add(part_size).ok_or(ImageError::Truncated)?;
+    let part_end = part_offset
+        .checked_add(part_size)
+        .ok_or(ImageError::Truncated)?;
 
     let mut header = [0u8; HEADER_LEN as usize];
     read_exact(reader, part_offset, &mut header)?;
@@ -167,11 +168,17 @@ pub fn validate(
         let load = u32::from_le_bytes([raw[0], raw[1], raw[2], raw[3]]);
         let len = u32::from_le_bytes([raw[4], raw[5], raw[6], raw[7]]);
         let data_offset = cursor + SEGMENT_HEADER_LEN;
-        let data_end = data_offset.checked_add(len).ok_or(ImageError::SegmentOutsidePartition(i))?;
+        let data_end = data_offset
+            .checked_add(len)
+            .ok_or(ImageError::SegmentOutsidePartition(i))?;
         if data_end > part_end {
             return Err(ImageError::SegmentOutsidePartition(i));
         }
-        let seg = Segment { load, len, data_offset };
+        let seg = Segment {
+            load,
+            len,
+            data_offset,
+        };
         // ESP image tooling may insert a non-empty segment with load_addr=0
         // purely as file-layout padding so a later flash-mapped segment lands
         // at the MMU-required page offset. These bytes remain part of the
@@ -197,7 +204,13 @@ pub fn validate(
     if end > part_end {
         return Err(ImageError::Truncated);
     }
-    let image = Image { entry, segments, count: usize::from(count), hash_appended, end };
+    let image = Image {
+        entry,
+        segments,
+        count: usize::from(count),
+        hash_appended,
+        end,
+    };
 
     if verify != Verify::Structure {
         let mut expected = [0u8; 1];
@@ -241,9 +254,16 @@ pub fn validate(
 }
 
 fn check_segment(seg: &Segment, i: usize, map: &MemoryMap) -> Result<(), ImageError> {
-    let end = seg.load.checked_add(seg.len).ok_or(ImageError::BadLoadRange(i))?;
+    let end = seg
+        .load
+        .checked_add(seg.len)
+        .ok_or(ImageError::BadLoadRange(i))?;
     if map.is_flash_mapped(seg.load) {
-        let region = if map.drom.contains(&seg.load) { &map.drom } else { &map.irom };
+        let region = if map.drom.contains(&seg.load) {
+            &map.drom
+        } else {
+            &map.irom
+        };
         if end > region.end {
             return Err(ImageError::BadLoadRange(i));
         }
@@ -266,7 +286,10 @@ fn check_segment(seg: &Segment, i: usize, map: &MemoryMap) -> Result<(), ImageEr
     }
     if let Some(target) = seg.ram_target(map) {
         // RTC memory is nowhere near the bootloader's window; SRAM aliases are compared as data-bus addresses.
-        if !map.rtc.contains(&seg.load) && target < map.boot_window.end && target + seg.len > map.boot_window.start {
+        if !map.rtc.contains(&seg.load)
+            && target < map.boot_window.end
+            && target + seg.len > map.boot_window.start
+        {
             return Err(ImageError::OverlapsBootloader(i));
         }
     }
