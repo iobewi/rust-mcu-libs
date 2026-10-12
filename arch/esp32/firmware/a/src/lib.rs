@@ -6,6 +6,8 @@
 
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod flash;
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+pub mod otadata_esp;
 
 pub mod otadata;
 pub mod selection;
