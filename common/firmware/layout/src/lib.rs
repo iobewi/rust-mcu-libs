@@ -2,9 +2,18 @@
 //! Host-testable layout validation shared by ESP adapters.
 //! No flash driver, boot decision, or partition-table parser.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Entry<'a> { pub label: &'a str, pub kind: u8, pub subtype: u8, pub offset: u32, pub size: u32 }
+pub struct Entry<'a> {
+    pub label: &'a str,
+    pub kind: u8,
+    pub subtype: u8,
+    pub offset: u32,
+    pub size: u32,
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Region { pub offset: u32, pub size: usize }
+pub struct Region {
+    pub offset: u32,
+    pub size: usize,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Requirement<'a> {
