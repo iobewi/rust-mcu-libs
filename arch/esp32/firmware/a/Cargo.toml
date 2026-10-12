@@ -9,4 +9,17 @@ description = "ESP32 legacy firmware A slot and otadata partition mapping"
 
 [dependencies]
 iobewi-firmware-slots = { path = "../../../../common/firmware/slots" }
-iobewi-firmware-boot = { path = "../../../..//common/firmware/boot" }
+iobewi-firmware-boot = { path = "../../../../common/firmware/boot" }
+
+[features]
+default = []
+esp32c3 = ["dep:iobewi-esp-flash", "iobewi-esp-flash/esp32c3", "dep:embedded-storage"]
+esp32s3 = ["dep:iobewi-esp-flash", "iobewi-esp-flash/esp32s3", "dep:embedded-storage"]
+
+[dependencies.iobewi-esp-flash]
+path = "../../flash"
+optional = true
+
+[dependencies.embedded-storage]
+version = "0.3.1"
+optional = true
