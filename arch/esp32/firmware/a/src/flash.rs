@@ -2,9 +2,9 @@
 //! Every operation acquires the process-wide SharedFlash lock exactly once.
 //! The caller is responsible for selecting an inactive OTA partition.
 use crate::Partition;
-use iobewi_firmware_layout::authorization::InactiveWriteTarget;
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use iobewi_esp_flash::SharedFlash;
+use iobewi_firmware_layout::authorization::InactiveWriteTarget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlashError {
