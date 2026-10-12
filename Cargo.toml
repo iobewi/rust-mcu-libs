@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "arch/esp32/firmware/a",
+  "arch/esp32/firmware/storage",
   "common/firmware/update",
   "common/firmware/boot",
   "common/firmware/image",
