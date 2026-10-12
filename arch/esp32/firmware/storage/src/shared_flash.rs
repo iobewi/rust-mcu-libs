@@ -3,16 +3,20 @@
 //! One mutex acquisition per append or finish, released before ConfigSpace.
 
 extern crate alloc;
+use crate::{EspArtifactStorage, FlashWriteError, erase_partition_range};
 use alloc::boxed::Box;
 use alloc::vec;
 use embedded_storage::nor_flash::NorFlash;
 use iobewi_esp_flash::{EspFlash, SharedFlash};
 use iobewi_esp_partitions::PartitionRange;
 use iobewi_firmware_update::{Committed, Error, WriteSession};
-use crate::{EspArtifactStorage, FlashWriteError, erase_partition_range};
 
-pub const fn erase_batch_size() -> u64 { 64 * 1024 }
-pub const fn erase_size() -> usize { <EspFlash as NorFlash>::ERASE_SIZE }
+pub const fn erase_batch_size() -> u64 {
+    64 * 1024
+}
+pub const fn erase_size() -> usize {
+    <EspFlash as NorFlash>::ERASE_SIZE
+}
 
 pub struct ArtifactWriter {
     partition: PartitionRange,
@@ -33,13 +37,24 @@ impl ArtifactWriter {
         }
     }
 
-    pub fn partition(&self) -> PartitionRange { self.partition }
-    pub fn sectors_flushed(&self) -> u32 { self.sectors_flushed }
-    pub fn erase_batches(&self) -> u32 { self.erase_batches }
+    pub fn partition(&self) -> PartitionRange {
+        self.partition
+    }
+    pub fn sectors_flushed(&self) -> u32 {
+        self.sectors_flushed
+    }
+    pub fn erase_batches(&self) -> u32 {
+        self.erase_batches
+    }
 
     /// Erase ahead in 64 KiB blocks while IOBEWI OTA's durable watermark still
     /// advances only after each sector has been programmed successfully.
-    pub async fn append(&mut self, flash: &SharedFlash, engine: &mut WriteSession, data: &[u8]) -> bool {
+    pub async fn append(
+        &mut self,
+        flash: &SharedFlash,
+        engine: &mut WriteSession,
+        data: &[u8],
+    ) -> bool {
         if !engine.can_append(data.len()) {
             return false;
         }
@@ -54,18 +69,33 @@ impl ArtifactWriter {
         let before = engine.durable();
         let raw_flash = &mut *flash_guard;
         let ok = if desired_erased > self.erased_through {
-            if erase_partition_range(raw_flash, self.partition, self.erased_through, desired_erased).is_err() {
+            if erase_partition_range(
+                raw_flash,
+                self.partition,
+                self.erased_through,
+                desired_erased,
+            )
+            .is_err()
+            {
                 false
             } else {
                 self.erase_batches += ((desired_erased - self.erased_through) / erase_batch) as u32;
                 self.erased_through = desired_erased;
-                match EspArtifactStorage::new_pre_erased(raw_flash, self.partition, self.scratch.as_mut()) {
+                match EspArtifactStorage::new_pre_erased(
+                    raw_flash,
+                    self.partition,
+                    self.scratch.as_mut(),
+                ) {
                     Ok(mut backend) => engine.append(&mut backend, data).is_ok(),
                     Err(_) => false,
                 }
             }
         } else {
-            match EspArtifactStorage::new_pre_erased(raw_flash, self.partition, self.scratch.as_mut()) {
+            match EspArtifactStorage::new_pre_erased(
+                raw_flash,
+                self.partition,
+                self.scratch.as_mut(),
+            ) {
                 Ok(mut backend) => engine.append(&mut backend, data).is_ok(),
                 Err(_) => false,
             }
@@ -82,13 +112,15 @@ impl ArtifactWriter {
         engine: WriteSession,
     ) -> Result<Committed, Error<FlashWriteError>> {
         if engine.received() > self.erased_through {
-            return Err(Error::Incomplete { durable: engine.durable() });
+            return Err(Error::Incomplete {
+                durable: engine.durable(),
+            });
         }
         let before = engine.durable();
         let mut guard = flash.lock().await;
-        let mut backend = EspArtifactStorage::new_pre_erased(
-            &mut *guard, self.partition, self.scratch.as_mut(),
-        ).map_err(Error::Backend)?;
+        let mut backend =
+            EspArtifactStorage::new_pre_erased(&mut *guard, self.partition, self.scratch.as_mut())
+                .map_err(Error::Backend)?;
         let committed = engine.finish(&mut backend)?;
         self.sectors_flushed += (committed.size - before).div_ceil(erase_size() as u64) as u32;
         Ok(committed)
