@@ -3,7 +3,7 @@
 //! Firmware artifact storage over an already selected ESP flash partition.
 //! Ported from iobewi_old/firmware/esp32/src/lib.rs, excluding A-specific
 //! partition selection and boot decisions. Safe for independent domains A/B.
-//! The caller must enforce inactive-slot selection before writing.
+//! Firmware writes are mediated by shared_flash::ArtifactWriter and its\n//! InactiveWriteTarget permit. Low-level NOR primitives remain internal to this crate.
 
 use embedded_storage::nor_flash::NorFlash;
 use iobewi_esp_partitions::{PartitionRange, erase_range as erase_raw_partition_range};
@@ -34,7 +34,7 @@ pub enum FlashWriteError {
 ///
 /// This has no staging semantics of its own: callers must only erase a target
 /// their transaction/boot policy has already declared safe.
-pub fn erase_partition_range<F>(
+pub(crate) fn erase_partition_range<F>(
     flash: &mut F,
     partition: PartitionRange,
     logical_from: u64,
@@ -68,7 +68,7 @@ impl<'a, F> EspArtifactStorage<'a, F>
 where
     F: NorFlash,
 {
-    pub fn new(
+    pub(crate) fn new(
         flash: &'a mut F,
         partition: PartitionRange,
         scratch: &'a mut [u8],
@@ -81,7 +81,7 @@ where
     /// This preserves sector-sized durability while skipping the per-sector
     /// erase. Pair it with `erase_partition_range` to erase large ESP flash
     /// blocks efficiently and still report durability every erase sector.
-    pub fn new_pre_erased(
+    pub(crate) fn new_pre_erased(
         flash: &'a mut F,
         partition: PartitionRange,
         scratch: &'a mut [u8],
