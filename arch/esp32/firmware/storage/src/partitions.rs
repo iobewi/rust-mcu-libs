@@ -53,7 +53,10 @@ pub fn validate<'a, const N: usize>(
             matches[i] = Some(PartitionRange { offset: entry.offset, size: entry.size as usize });
         }
     }
-    let result = core::array::try_from_fn(|i| matches[i].ok_or(DiscoveryError::Missing))?;
+    let mut result = [PartitionRange { offset: 0, size: 0 }; N];
+    for (i, value) in matches.iter().enumerate() {
+        result[i] = value.ok_or(DiscoveryError::Missing)?;
+    }
     for i in 0..N {
         let a = &result[i];
         let a_end = (a.offset as u64) + a.size as u64;
