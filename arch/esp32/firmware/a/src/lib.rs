@@ -2,7 +2,7 @@
 
 //! ESP32 legacy A-only firmware layout mapping.
 //! Pure validation, independent of flash access. The actual flash reader,
-//! writer and custom EWBT-compatible bootloader are separate integration gates.
+//! writer and custom transactional-boot-metadata-compatible bootloader are separate integration gates.
 
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod flash;
