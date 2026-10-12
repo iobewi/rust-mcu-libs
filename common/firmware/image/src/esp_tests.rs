@@ -92,10 +92,9 @@ impl Builder {
             out.extend_from_slice(&(data.len() as u32).to_le_bytes());
             // Flash-mapped segments need paddr % 64K == vaddr % 64K: pad the file so they line up.
             if MAP.drom.contains(load) || MAP.irom.contains(load) {
-                while (out.len() % 0x10000) != (*load as usize % 0x10000) {
+                if (out.len() % 0x10000) != (*load as usize % 0x10000) {
                     // Only possible by growing the previous data; keep the builder simple: fixed layout below.
                     out.push(0);
-                    break;
                 }
             }
             out.extend_from_slice(data);
@@ -111,10 +110,6 @@ impl Builder {
         }
         out
     }
-}
-
-fn ok_image() -> Vec<u8> {
-    Builder::c3().build()
 }
 
 /// Segment `load` and its flash offset must agree modulo the MMU page: relocate the test image's
@@ -373,13 +368,13 @@ fn accepted_images_never_overlap_the_bootloader_or_leave_the_map() {
                             || inside(&MAP.rtc),
                         "{seg:?} outside the memory map"
                     );
-                    if let Some(t) = seg.ram_target(&MAP) {
-                        if !MAP.rtc.contains(&seg.load) {
+                    if let Some(t) = seg.ram_target(&MAP)
+                        && !MAP.rtc.contains(&seg.load)
+                    {
                             assert!(
                                 t + seg.len <= MAP.boot_window.start || t >= MAP.boot_window.end,
                                 "{seg:?} overlaps the bootloader"
                             );
-                        }
                     }
                     assert!(seg.data_offset + seg.len <= PART_OFFSET + PART_SIZE);
                 }
