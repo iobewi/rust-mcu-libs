@@ -137,7 +137,7 @@ fn the_idf_entry_format_is_forgeable_and_ours_is_not() {
     let mut torn = target;
     torn[24..28].copy_from_slice(&2u32.to_le_bytes());
     assert_eq!(
-        2u32 & 0,
+        0,
         0,
         "2 is reachable from erased on the way to 0 (bits only get cleared)"
     );
@@ -499,14 +499,14 @@ fn partial_bytes(target: u8, thorough: bool) -> Vec<u8> {
         return vec![
             0xFF,
             target,
-            0xFF & !(clears & 0x0F),
-            0xFF & !(clears & 0xF0),
+            !(clears & 0x0F),
+            !(clears & 0xF0),
         ];
     }
     let mut out = Vec::new();
     let mut sub = clears;
     loop {
-        out.push(0xFF & !sub);
+        out.push(!sub);
         if sub == 0 {
             break;
         }
@@ -540,6 +540,7 @@ fn erase_variants(cur: &Flash, s: usize, model: Model, out: &mut HashSet<Flash>)
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Exhaustive adversarial flash models intentionally pass independent constraints.
 fn program_variants(
     cur: &Flash,
     s: usize,
@@ -628,7 +629,7 @@ fn program_variants(
                     for bit in 0..32 {
                         if tw & (1 << bit) == 0 {
                             vals.insert(tw | (1 << bit)); // one bit short of complete
-                            vals.insert(u32::MAX & !(1 << bit)); // one bit cleared
+                            vals.insert(!(1 << bit)); // one bit cleared
                         }
                     }
                     vals.insert(u32::MAX);
