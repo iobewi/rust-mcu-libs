@@ -1,0 +1,12 @@
+[package]
+name = "iobewi-esp-firmware-a"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "ESP32 legacy firmware A slot and otadata partition mapping"
+
+[dependencies]
+iobewi-firmware-slots = { path = "../../../../common/firmware/slots" }
+iobewi-firmware-boot = { path = "../../../..//common/firmware/boot" }
