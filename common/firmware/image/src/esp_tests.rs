@@ -1,7 +1,7 @@
 use super::esp::*;
 use alloc::{vec, vec::Vec};
-use std::eprintln;
 use sha2::{Digest, Sha256};
+use std::eprintln;
 
 const MAP: MemoryMap = MemoryMap {
     chip_id: 0x0005,
@@ -29,13 +29,20 @@ impl Mem {
         let mut bytes = vec![0xFF; PART_OFFSET as usize];
         bytes.extend_from_slice(image);
         bytes.resize((PART_OFFSET + PART_SIZE) as usize, 0xFF);
-        Mem { bytes, reads: 0, fail_at: None }
+        Mem {
+            bytes,
+            reads: 0,
+            fail_at: None,
+        }
     }
 }
 
 impl Read for Mem {
     fn read(&mut self, offset: u32, buf: &mut [u8]) -> Result<(), ()> {
-        if self.fail_at.is_some_and(|f| offset <= f && f < offset + buf.len() as u32) {
+        if self
+            .fail_at
+            .is_some_and(|f| offset <= f && f < offset + buf.len() as u32)
+        {
             return Err(());
         }
         let (start, end) = (offset as usize, offset as usize + buf.len());
@@ -157,18 +164,36 @@ fn structural_damage_is_refused_with_a_reason() {
         validate_bytes(&b.build(), Verify::Structure).unwrap_err()
     };
     assert_eq!(mutate(&|b| b.chip_id = 9), ImageError::BadChip(9));
-    assert_eq!(mutate(&|b| b.segments.clear()), ImageError::BadSegmentCount(0));
+    assert_eq!(
+        mutate(&|b| b.segments.clear()),
+        ImageError::BadSegmentCount(0)
+    );
     assert_eq!(mutate(&|b| b.entry = 0x1000_0000), ImageError::BadEntry);
     // entry inside a *data* segment is not executable
     assert_eq!(mutate(&|b| b.entry = 0x3FC8_9A30 + 4), ImageError::BadEntry);
-    assert_eq!(mutate(&|b| b.segments[1].0 = 0x6000_0000), ImageError::BadLoadRange(1));
+    assert_eq!(
+        mutate(&|b| b.segments[1].0 = 0x6000_0000),
+        ImageError::BadLoadRange(1)
+    );
     // a RAM segment running off the end of its region
-    assert_eq!(mutate(&|b| b.segments[1].0 = 0x3FCD_FFF0), ImageError::BadLoadRange(1));
+    assert_eq!(
+        mutate(&|b| b.segments[1].0 = 0x3FCD_FFF0),
+        ImageError::BadLoadRange(1)
+    );
     // ... or landing on the bootloader, through either alias
-    assert_eq!(mutate(&|b| b.segments[1].0 = 0x3FCC_B000), ImageError::OverlapsBootloader(1));
-    assert_eq!(mutate(&|b| b.segments[2].0 = 0x403C_B000), ImageError::OverlapsBootloader(2));
+    assert_eq!(
+        mutate(&|b| b.segments[1].0 = 0x3FCC_B000),
+        ImageError::OverlapsBootloader(1)
+    );
+    assert_eq!(
+        mutate(&|b| b.segments[2].0 = 0x403C_B000),
+        ImageError::OverlapsBootloader(2)
+    );
     // straddling the start of the window (64 bytes from 0x403CAFF0 reach 0x3FCCB030 in data-bus terms) ...
-    assert_eq!(mutate(&|b| b.segments[2].0 = 0x403C_AFF0), ImageError::OverlapsBootloader(2));
+    assert_eq!(
+        mutate(&|b| b.segments[2].0 = 0x403C_AFF0),
+        ImageError::OverlapsBootloader(2)
+    );
     // ... while ending exactly at it is fine, and is not refused
     let mut b = aligned_builder();
     b.segments[2].0 = 0x403C_AFC0; // 64 bytes -> ends at 0x3FCCB000
@@ -197,26 +222,54 @@ fn non_empty_zero_load_segment_is_alignment_padding() {
 fn magic_and_truncation_are_refused() {
     let mut image = aligned_builder().build();
     image[0] = 0x65;
-    assert_eq!(validate_bytes(&image, Verify::Structure).unwrap_err(), ImageError::BadMagic(0x65));
+    assert_eq!(
+        validate_bytes(&image, Verify::Structure).unwrap_err(),
+        ImageError::BadMagic(0x65)
+    );
 
     let image = aligned_builder().build();
     let mut mem = Mem::new(&image);
     // partition too small for the trailer
-    let err = validate(&mut mem, PART_OFFSET, image.len() as u32 - 1, &MAP, Verify::Structure).unwrap_err();
-    assert!(matches!(err, ImageError::Truncated | ImageError::SegmentOutsidePartition(_)), "{err:?}");
+    let err = validate(
+        &mut mem,
+        PART_OFFSET,
+        image.len() as u32 - 1,
+        &MAP,
+        Verify::Structure,
+    )
+    .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ImageError::Truncated | ImageError::SegmentOutsidePartition(_)
+        ),
+        "{err:?}"
+    );
     // a segment that claims more than the partition holds
     let mut image = aligned_builder().build();
     image[28..32].copy_from_slice(&0x00FF_FFFFu32.to_le_bytes());
-    assert_eq!(validate_bytes(&image, Verify::Structure).unwrap_err(), ImageError::SegmentOutsidePartition(0));
+    assert_eq!(
+        validate_bytes(&image, Verify::Structure).unwrap_err(),
+        ImageError::SegmentOutsidePartition(0)
+    );
 }
 
 #[test]
 fn data_corruption_needs_checksum_or_full() {
     let mut image = aligned_builder().build();
     image[200] ^= 0x55; // inside segment 0's data
-    assert!(validate_bytes(&image, Verify::Structure).is_ok(), "Structure doesn't read data");
-    assert_eq!(validate_bytes(&image, Verify::Checksum).unwrap_err(), ImageError::BadChecksum);
-    assert_eq!(validate_bytes(&image, Verify::Full).unwrap_err(), ImageError::BadChecksum);
+    assert!(
+        validate_bytes(&image, Verify::Structure).is_ok(),
+        "Structure doesn't read data"
+    );
+    assert_eq!(
+        validate_bytes(&image, Verify::Checksum).unwrap_err(),
+        ImageError::BadChecksum
+    );
+    assert_eq!(
+        validate_bytes(&image, Verify::Full).unwrap_err(),
+        ImageError::BadChecksum
+    );
 }
 
 #[test]
@@ -226,7 +279,10 @@ fn the_appended_hash_catches_what_the_checksum_misses() {
     image[200] ^= 0x33;
     image[201] ^= 0x33;
     assert!(validate_bytes(&image, Verify::Checksum).is_ok());
-    assert_eq!(validate_bytes(&image, Verify::Full).unwrap_err(), ImageError::BadHash);
+    assert_eq!(
+        validate_bytes(&image, Verify::Full).unwrap_err(),
+        ImageError::BadHash
+    );
 }
 
 #[test]
@@ -235,13 +291,25 @@ fn full_needs_a_hash_and_a_dead_flash_is_an_error_not_a_pass() {
     b.hash = false;
     let image = b.build();
     assert!(validate_bytes(&image, Verify::Checksum).is_ok());
-    assert_eq!(validate_bytes(&image, Verify::Full).unwrap_err(), ImageError::HashMissing);
+    assert_eq!(
+        validate_bytes(&image, Verify::Full).unwrap_err(),
+        ImageError::HashMissing
+    );
 
     let image = aligned_builder().build();
-    for at in [PART_OFFSET, PART_OFFSET + 26, PART_OFFSET + 200, PART_OFFSET + image.len() as u32 - 5] {
+    for at in [
+        PART_OFFSET,
+        PART_OFFSET + 26,
+        PART_OFFSET + 200,
+        PART_OFFSET + image.len() as u32 - 5,
+    ] {
         let mut mem = Mem::new(&image);
         mem.fail_at = Some(at);
-        assert_eq!(validate(&mut mem, PART_OFFSET, PART_SIZE, &MAP, Verify::Full).unwrap_err(), ImageError::Read, "at {at:#x}");
+        assert_eq!(
+            validate(&mut mem, PART_OFFSET, PART_SIZE, &MAP, Verify::Full).unwrap_err(),
+            ImageError::Read,
+            "at {at:#x}"
+        );
     }
 }
 
@@ -253,13 +321,19 @@ fn any_single_byte_flip_in_the_hashed_region_is_caught_by_full() {
     for i in 0..hashed {
         let mut bad = image.clone();
         bad[i] ^= 0x01;
-        assert!(validate_bytes(&bad, Verify::Full).is_err(), "flip at byte {i} was accepted");
+        assert!(
+            validate_bytes(&bad, Verify::Full).is_err(),
+            "flip at byte {i} was accepted"
+        );
     }
     // and in the stored hash itself
     for i in hashed..image.len() {
         let mut bad = image.clone();
         bad[i] ^= 0x80;
-        assert_eq!(validate_bytes(&bad, Verify::Full).unwrap_err(), ImageError::BadHash);
+        assert_eq!(
+            validate_bytes(&bad, Verify::Full).unwrap_err(),
+            ImageError::BadHash
+        );
     }
 }
 
@@ -291,10 +365,20 @@ fn accepted_images_never_overlap_the_bootloader_or_leave_the_map() {
                 for seg in info.segments().iter().filter(|s| s.len > 0) {
                     let end = seg.load + seg.len;
                     let inside = |r: &std::ops::Range<u32>| r.contains(&seg.load) && end <= r.end;
-                    assert!(inside(&MAP.drom) || inside(&MAP.irom) || inside(&MAP.iram) || inside(&MAP.dram) || inside(&MAP.rtc), "{seg:?} outside the memory map");
+                    assert!(
+                        inside(&MAP.drom)
+                            || inside(&MAP.irom)
+                            || inside(&MAP.iram)
+                            || inside(&MAP.dram)
+                            || inside(&MAP.rtc),
+                        "{seg:?} outside the memory map"
+                    );
                     if let Some(t) = seg.ram_target(&MAP) {
                         if !MAP.rtc.contains(&seg.load) {
-                            assert!(t + seg.len <= MAP.boot_window.start || t >= MAP.boot_window.end, "{seg:?} overlaps the bootloader");
+                            assert!(
+                                t + seg.len <= MAP.boot_window.start || t >= MAP.boot_window.end,
+                                "{seg:?} overlaps the bootloader"
+                            );
                         }
                     }
                     assert!(seg.data_offset + seg.len <= PART_OFFSET + PART_SIZE);
@@ -303,18 +387,25 @@ fn accepted_images_never_overlap_the_bootloader_or_leave_the_map() {
             }
         }
     }
-    assert!(rejected > 1000 && accepted > 100, "mutations too weak: {accepted} accepted / {rejected} rejected");
+    assert!(
+        rejected > 1000 && accepted > 100,
+        "mutations too weak: {accepted} accepted / {rejected} rejected"
+    );
 }
 
 /// The image the device actually runs, if it has been built (`web/firmware/esp32c3/app.bin`, git-ignored).
 #[test]
 fn the_real_agent_image_validates_and_a_flipped_byte_does_not() {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../web/firmware/esp32c3/app.bin");
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../web/firmware/esp32c3/app.bin"
+    );
     let Ok(image) = std::fs::read(path) else {
         eprintln!("skipped: {path} not built");
         return;
     };
-    let info = validate_bytes(&image, Verify::Full).expect("the agent image must pass the bootloader's own check");
+    let info = validate_bytes(&image, Verify::Full)
+        .expect("the agent image must pass the bootloader's own check");
     assert_eq!(info.count, 5);
     assert_eq!(info.entry, 0x4203_0072);
     assert_eq!(info.end, PART_OFFSET + image.len() as u32);
@@ -324,7 +415,10 @@ fn the_real_agent_image_validates_and_a_flipped_byte_does_not() {
     while at < hashed {
         let mut bad = image.clone();
         bad[at] ^= 0x04;
-        assert!(validate_bytes(&bad, Verify::Full).is_err(), "flip at {at} accepted");
+        assert!(
+            validate_bytes(&bad, Verify::Full).is_err(),
+            "flip at {at} accepted"
+        );
         at += if at < 200 { 1 } else { 60_013 };
     }
 }
