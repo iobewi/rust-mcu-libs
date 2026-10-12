@@ -59,7 +59,11 @@ impl<TxId: Clone, ArtifactId: Clone, Target: Clone> TransactionRecord<TxId, Arti
     /// only shape this crate's v1 orchestration ([`activate`]) accepts; a
     /// future multi-artifact caller builds `artifacts` directly instead.
     pub fn staged(id: TxId, artifact: ArtifactRecord<ArtifactId, Target>) -> Self {
-        TransactionRecord { id, state: TransactionState::Staged, artifacts: alloc::vec![artifact] }
+        TransactionRecord {
+            id,
+            state: TransactionState::Staged,
+            artifacts: alloc::vec![artifact],
+        }
     }
 
     /// The same transaction, with its state replaced -- e.g. for a caller
@@ -69,7 +73,11 @@ impl<TxId: Clone, ArtifactId: Clone, Target: Clone> TransactionRecord<TxId, Arti
     /// literal (`TransactionRecord { state: ..., ..record }`); it exists
     /// only for that call to read as intent rather than field-copying.
     pub fn with_state(&self, state: TransactionState) -> Self {
-        TransactionRecord { id: self.id.clone(), state, artifacts: self.artifacts.clone() }
+        TransactionRecord {
+            id: self.id.clone(),
+            state,
+            artifacts: self.artifacts.clone(),
+        }
     }
 }
 
@@ -83,11 +91,17 @@ impl<TxId: Clone, ArtifactId: Clone, Target: Clone> TransactionRecord<TxId, Arti
 /// `None` when that comparison itself couldn't be made (the running
 /// target couldn't be determined): nothing destructive is ever decided in
 /// that case, on purpose -- a flaky read must never roll back a good image.
-pub fn reconcile(staged: Option<TransactionState>, outcome: BackendOutcome, running_matches_staged: Option<bool>) -> Action {
+pub fn reconcile(
+    staged: Option<TransactionState>,
+    outcome: BackendOutcome,
+    running_matches_staged: Option<bool>,
+) -> Action {
     use Action::*;
     match (outcome, running_matches_staged) {
         (BackendOutcome::PendingConfirmation, None) => AwaitConfirmation,
-        (BackendOutcome::PendingConfirmation, Some(true)) if staged == Some(TransactionState::Activating) => {
+        (BackendOutcome::PendingConfirmation, Some(true))
+            if staged == Some(TransactionState::Activating) =>
+        {
             AwaitConfirmation
         }
         (BackendOutcome::PendingConfirmation, _) => RollbackUnaccounted,
@@ -132,7 +146,10 @@ where
     ArtifactId: Clone,
     Target: Clone,
 {
-    let record = metadata.load().map_err(Error::Backend)?.ok_or(Error::NotStaged)?;
+    let record = metadata
+        .load()
+        .map_err(Error::Backend)?
+        .ok_or(Error::NotStaged)?;
     if record.state != TransactionState::Staged {
         return Err(Error::NotStaged);
     }
@@ -185,7 +202,12 @@ mod tests {
     /// proving `activate`'s identity check is against `TransactionRecord::id`,
     /// never against an artifact's own id.
     fn firmware() -> ArtifactRecord<String, String> {
-        ArtifactRecord { id: "firmware".to_string(), size: 100, digest: digest(0xAB), target: "slot-b".to_string() }
+        ArtifactRecord {
+            id: "firmware".to_string(),
+            size: 100,
+            digest: digest(0xAB),
+            target: "slot-b".to_string(),
+        }
     }
 
     fn staged(tx_id: &str) -> TransactionRecord<String, String, String> {
@@ -216,41 +238,71 @@ mod tests {
 
     #[test]
     fn activate_refuses_with_nothing_staged() {
-        let mut meta = MockMetadata { record: None, fail_commit: false };
-        assert_eq!(activate(&mut meta, &"dep-1".to_string()), Err(Error::NotStaged));
+        let mut meta = MockMetadata {
+            record: None,
+            fail_commit: false,
+        };
+        assert_eq!(
+            activate(&mut meta, &"dep-1".to_string()),
+            Err(Error::NotStaged)
+        );
     }
 
     #[test]
     fn activate_refuses_a_mismatched_identity_and_leaves_the_record_untouched() {
         let record = staged("dep-1");
-        let mut meta = MockMetadata { record: Some(record.clone()), fail_commit: false };
-        assert_eq!(activate(&mut meta, &"dep-2".to_string()), Err(Error::IdentityMismatch));
+        let mut meta = MockMetadata {
+            record: Some(record.clone()),
+            fail_commit: false,
+        };
+        assert_eq!(
+            activate(&mut meta, &"dep-2".to_string()),
+            Err(Error::IdentityMismatch)
+        );
         // A refused activation must not have touched the record.
         assert_eq!(meta.load().unwrap(), Some(record));
     }
 
     #[test]
     fn activate_commits_the_transition_and_returns_it() {
-        let mut meta = MockMetadata { record: Some(staged("dep-1")), fail_commit: false };
+        let mut meta = MockMetadata {
+            record: Some(staged("dep-1")),
+            fail_commit: false,
+        };
         let activating = activate(&mut meta, &"dep-1".to_string()).unwrap();
         assert_eq!(activating.state, TransactionState::Activating);
         assert_eq!(activating.id, "dep-1");
-        assert_eq!(meta.load().unwrap().unwrap().state, TransactionState::Activating);
+        assert_eq!(
+            meta.load().unwrap().unwrap().state,
+            TransactionState::Activating
+        );
     }
 
     #[test]
     fn activate_refuses_an_already_activating_transaction() {
         let mut record = staged("dep-1");
         record.state = TransactionState::Activating;
-        let mut meta = MockMetadata { record: Some(record), fail_commit: false };
-        assert_eq!(activate(&mut meta, &"dep-1".to_string()), Err(Error::NotStaged));
+        let mut meta = MockMetadata {
+            record: Some(record),
+            fail_commit: false,
+        };
+        assert_eq!(
+            activate(&mut meta, &"dep-1".to_string()),
+            Err(Error::NotStaged)
+        );
     }
 
     #[test]
     fn activate_propagates_a_backend_commit_failure_without_changing_the_record() {
         let record = staged("dep-1");
-        let mut meta = MockMetadata { record: Some(record.clone()), fail_commit: true };
-        assert_eq!(activate(&mut meta, &"dep-1".to_string()), Err(Error::Backend("simulated backend failure")));
+        let mut meta = MockMetadata {
+            record: Some(record.clone()),
+            fail_commit: true,
+        };
+        assert_eq!(
+            activate(&mut meta, &"dep-1".to_string()),
+            Err(Error::Backend("simulated backend failure"))
+        );
         assert_eq!(meta.load().unwrap(), Some(record));
     }
 
@@ -262,9 +314,15 @@ mod tests {
         // stays possible -- this crate provides the building block, not the
         // policy of when to use it.
         let record = staged("dep-1");
-        let mut meta = MockMetadata { record: Some(record.clone()), fail_commit: false };
+        let mut meta = MockMetadata {
+            record: Some(record.clone()),
+            fail_commit: false,
+        };
         let activating = activate(&mut meta, &"dep-1".to_string()).unwrap();
-        assert_eq!(meta.load().unwrap().unwrap().state, TransactionState::Activating);
+        assert_eq!(
+            meta.load().unwrap().unwrap().state,
+            TransactionState::Activating
+        );
 
         let reverted = activating.with_state(TransactionState::Staged);
         meta.commit(Some(&reverted)).unwrap();
@@ -275,14 +333,20 @@ mod tests {
     fn finish_clears_the_record() {
         let mut record = staged("dep-1");
         record.state = TransactionState::Activating;
-        let mut meta = MockMetadata { record: Some(record), fail_commit: false };
+        let mut meta = MockMetadata {
+            record: Some(record),
+            fail_commit: false,
+        };
         finish(&mut meta).unwrap();
         assert_eq!(meta.load().unwrap(), None);
     }
 
     #[test]
     fn clear_stale_also_clears_the_record() {
-        let mut meta = MockMetadata { record: Some(staged("dep-1")), fail_commit: false };
+        let mut meta = MockMetadata {
+            record: Some(staged("dep-1")),
+            fail_commit: false,
+        };
         clear_stale(&mut meta).unwrap();
         assert_eq!(meta.load().unwrap(), None);
     }
@@ -293,44 +357,86 @@ mod tests {
 
     #[test]
     fn staged_survives_a_reboot_on_a_different_target() {
-        assert_eq!(reconcile(Some(S::Staged), O::Other, Some(false)), KeepStaged);
-        assert_eq!(reconcile(Some(S::Staged), O::Confirmed, Some(false)), KeepStaged);
+        assert_eq!(
+            reconcile(Some(S::Staged), O::Other, Some(false)),
+            KeepStaged
+        );
+        assert_eq!(
+            reconcile(Some(S::Staged), O::Confirmed, Some(false)),
+            KeepStaged
+        );
     }
 
     #[test]
     fn staged_on_the_now_running_target_is_stale() {
-        assert_eq!(reconcile(Some(S::Staged), O::Confirmed, Some(true)), ClearStale);
+        assert_eq!(
+            reconcile(Some(S::Staged), O::Confirmed, Some(true)),
+            ClearStale
+        );
     }
 
     #[test]
     fn activating_pending_on_the_same_target_awaits_confirmation() {
-        assert_eq!(reconcile(Some(S::Activating), O::PendingConfirmation, Some(true)), AwaitConfirmation);
+        assert_eq!(
+            reconcile(Some(S::Activating), O::PendingConfirmation, Some(true)),
+            AwaitConfirmation
+        );
     }
 
     #[test]
     fn activating_confirmed_on_the_same_target_finishes_the_interrupted_activation() {
-        assert_eq!(reconcile(Some(S::Activating), O::Confirmed, Some(true)), FinishInterruptedActivation);
+        assert_eq!(
+            reconcile(Some(S::Activating), O::Confirmed, Some(true)),
+            FinishInterruptedActivation
+        );
     }
 
     #[test]
     fn activating_on_another_target_is_an_aborted_activation() {
-        assert_eq!(reconcile(Some(S::Activating), O::Confirmed, Some(false)), ClearStale);
-        assert_eq!(reconcile(Some(S::Activating), O::Other, Some(false)), ClearStale);
-        assert_eq!(reconcile(Some(S::Activating), O::Other, Some(true)), ClearStale);
+        assert_eq!(
+            reconcile(Some(S::Activating), O::Confirmed, Some(false)),
+            ClearStale
+        );
+        assert_eq!(
+            reconcile(Some(S::Activating), O::Other, Some(false)),
+            ClearStale
+        );
+        assert_eq!(
+            reconcile(Some(S::Activating), O::Other, Some(true)),
+            ClearStale
+        );
     }
 
     #[test]
     fn a_pending_candidate_nothing_staged_explains_is_rolled_back() {
-        assert_eq!(reconcile(None, O::PendingConfirmation, Some(true)), RollbackUnaccounted);
-        assert_eq!(reconcile(None, O::PendingConfirmation, Some(false)), RollbackUnaccounted);
-        assert_eq!(reconcile(Some(S::Staged), O::PendingConfirmation, Some(true)), RollbackUnaccounted);
-        assert_eq!(reconcile(Some(S::Activating), O::PendingConfirmation, Some(false)), RollbackUnaccounted);
+        assert_eq!(
+            reconcile(None, O::PendingConfirmation, Some(true)),
+            RollbackUnaccounted
+        );
+        assert_eq!(
+            reconcile(None, O::PendingConfirmation, Some(false)),
+            RollbackUnaccounted
+        );
+        assert_eq!(
+            reconcile(Some(S::Staged), O::PendingConfirmation, Some(true)),
+            RollbackUnaccounted
+        );
+        assert_eq!(
+            reconcile(Some(S::Activating), O::PendingConfirmation, Some(false)),
+            RollbackUnaccounted
+        );
     }
 
     #[test]
     fn an_undetermined_running_target_never_decides_anything_destructive() {
-        assert_eq!(reconcile(Some(S::Activating), O::PendingConfirmation, None), AwaitConfirmation);
-        assert_eq!(reconcile(None, O::PendingConfirmation, None), AwaitConfirmation);
+        assert_eq!(
+            reconcile(Some(S::Activating), O::PendingConfirmation, None),
+            AwaitConfirmation
+        );
+        assert_eq!(
+            reconcile(None, O::PendingConfirmation, None),
+            AwaitConfirmation
+        );
         assert_eq!(reconcile(Some(S::Staged), O::Confirmed, None), Nothing);
         assert_eq!(reconcile(Some(S::Activating), O::Confirmed, None), Nothing);
     }
