@@ -1,4 +1,5 @@
 #![no_std]
+pub mod domain_b;
 //! Host-testable layout validation shared by ESP adapters.
 //! No flash driver, boot decision, or partition-table parser.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
