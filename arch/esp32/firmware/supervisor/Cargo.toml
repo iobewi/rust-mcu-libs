@@ -9,8 +9,8 @@ description = "Exclusive supervisor-owned workload slot authorization for ESP"
 
 [features]
 default = []
-esp32c3 = ["dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32c3"]
-esp32s3 = ["dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32s3"]
+esp32c3 = ["dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32c3", "dep:iobewi-esp-flash", "iobewi-esp-flash/esp32c3", "dep:iobewi-firmware-update"]
+esp32s3 = ["dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32s3", "dep:iobewi-esp-flash", "iobewi-esp-flash/esp32s3", "dep:iobewi-firmware-update"]
 
 [dependencies]
 iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
@@ -18,4 +18,12 @@ iobewi-firmware-slots = { path = "../../../../common/firmware/slots" }
 
 [dependencies.iobewi-esp-firmware-storage]
 path = "../storage"
+optional = true
+
+[dependencies.iobewi-esp-flash]
+path = "../../flash"
+optional = true
+
+[dependencies.iobewi-firmware-update]
+path = "../../../../common/firmware/update"
 optional = true
