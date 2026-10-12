@@ -5,11 +5,11 @@ use alloc::string::String;
 use embassy_futures::select::{Either, select};
 use embassy_time::{Duration, Timer};
 
-use crate::{Action, BackendOutcome};
 use crate::metadata::{
-    Metadata, MetadataStore, PendingCheckAction, boot_action, clear_staged,
-    finish_validation, load_metadata, pending_check_action,
+    Metadata, MetadataStore, PendingCheckAction, boot_action, clear_staged, finish_validation,
+    load_metadata, pending_check_action,
 };
+use crate::{Action, BackendOutcome};
 
 /// What the platform can tell and do about the boot chain. `BootOps` has
 /// always bundled three distinct capabilities; they are named separately so
@@ -48,7 +48,12 @@ pub trait BootOps: BootState + BootSelfCheck + BootWatchdog {}
 impl<T: BootState + BootSelfCheck + BootWatchdog> BootOps for T {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BootStatus { Stable, PendingVerify, Degraded, Rollback }
+pub enum BootStatus {
+    Stable,
+    PendingVerify,
+    Degraded,
+    Rollback,
+}
 
 pub struct BootResult {
     pub status: BootStatus,
@@ -61,7 +66,10 @@ pub struct BootResult {
 /// Reconcile the durable transaction with the image actually booted. A
 /// rollback request rejects the candidate before asking the caller to reset.
 pub async fn on_boot<S: MetadataStore, B: BootOps>(store: &S, boot: &B) -> BootResult {
-    let staged = load_metadata(store).await.unwrap_or_else(|_| Metadata::default()).staged;
+    let staged = load_metadata(store)
+        .await
+        .unwrap_or_else(|_| Metadata::default())
+        .staged;
     let image = boot.image_outcome().await;
     let slot = boot.booted_slot().await;
     let action = boot_action(&staged, image, (!slot.is_empty()).then_some(slot.as_str()));
@@ -82,7 +90,11 @@ pub async fn on_boot<S: MetadataStore, B: BootOps>(store: &S, boot: &B) -> BootR
         Action::FinishInterruptedActivation => {
             let outcome = finish_validation(store, &staged).await;
             boot.watchdog_disable();
-            if outcome.is_err() { BootStatus::Degraded } else { BootStatus::Stable }
+            if outcome.is_err() {
+                BootStatus::Degraded
+            } else {
+                BootStatus::Stable
+            }
         }
         _ => {
             boot.watchdog_disable();
@@ -93,8 +105,16 @@ pub async fn on_boot<S: MetadataStore, B: BootOps>(store: &S, boot: &B) -> BootR
     // boot. Do not claim full health or run another self-check in that case.
     let storage_healthy = if status == BootStatus::Stable {
         Some(boot.self_check().await)
-    } else { None };
-    BootResult { status, image, slot, action, storage_healthy }
+    } else {
+        None
+    };
+    BootResult {
+        status,
+        image,
+        slot,
+        action,
+        storage_healthy,
+    }
 }
 
 /// Race the storage check against a bounded deadline. A timeout leaves the
@@ -108,12 +128,19 @@ pub async fn pending_check<B: BootOps>(boot: &B, timeout: Duration) -> PendingCh
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Confirmation { Valid, Degraded, ResetRequired }
+pub enum Confirmation {
+    Valid,
+    Degraded,
+    ResetRequired,
+}
 
 /// Call only after `pending_check` returned `Confirm`. The watchdog remains
 /// armed until the boot entry has been durably confirmed by the adapter.
 pub async fn confirm_pending<S: MetadataStore, B: BootOps>(store: &S, boot: &B) -> Confirmation {
-    let staged = load_metadata(store).await.unwrap_or_else(|_| Metadata::default()).staged;
+    let staged = load_metadata(store)
+        .await
+        .unwrap_or_else(|_| Metadata::default())
+        .staged;
     if !boot.confirm().await {
         let _ = boot.reject().await;
         return Confirmation::ResetRequired;
@@ -154,7 +181,9 @@ mod tests {
 
     impl MetadataStore for MemoryStore {
         type Error = ();
-        async fn load_raw(&self) -> Result<Option<Vec<u8>>, ()> { Ok(self.0.borrow().clone()) }
+        async fn load_raw(&self) -> Result<Option<Vec<u8>>, ()> {
+            Ok(self.0.borrow().clone())
+        }
         async fn commit_raw(&self, bytes: &[u8]) -> Result<(), ()> {
             *self.0.borrow_mut() = Some(bytes.to_vec());
             Ok(())
@@ -179,18 +208,34 @@ mod tests {
     impl FakeBoot {
         fn new(outcome: BackendOutcome, slot: &'static str) -> Self {
             Self {
-                outcome, slot, confirm_ok: true, self_check: Some(true),
-                confirms: Cell::new(0), rejects: Cell::new(0), feeds: Cell::new(0),
-                disables: Cell::new(0), self_checks: Cell::new(0),
+                outcome,
+                slot,
+                confirm_ok: true,
+                self_check: Some(true),
+                confirms: Cell::new(0),
+                rejects: Cell::new(0),
+                feeds: Cell::new(0),
+                disables: Cell::new(0),
+                self_checks: Cell::new(0),
             }
         }
     }
 
     impl BootState for FakeBoot {
-        async fn image_outcome(&self) -> BackendOutcome { self.outcome }
-        async fn booted_slot(&self) -> String { String::from(self.slot) }
-        async fn confirm(&self) -> bool { self.confirms.set(self.confirms.get() + 1); self.confirm_ok }
-        async fn reject(&self) -> bool { self.rejects.set(self.rejects.get() + 1); true }
+        async fn image_outcome(&self) -> BackendOutcome {
+            self.outcome
+        }
+        async fn booted_slot(&self) -> String {
+            String::from(self.slot)
+        }
+        async fn confirm(&self) -> bool {
+            self.confirms.set(self.confirms.get() + 1);
+            self.confirm_ok
+        }
+        async fn reject(&self) -> bool {
+            self.rejects.set(self.rejects.get() + 1);
+            true
+        }
     }
 
     impl BootSelfCheck for FakeBoot {
@@ -204,15 +249,23 @@ mod tests {
     }
 
     impl BootWatchdog for FakeBoot {
-        fn watchdog_feed(&self) { self.feeds.set(self.feeds.get() + 1); }
-        fn watchdog_disable(&self) { self.disables.set(self.disables.get() + 1); }
+        fn watchdog_feed(&self) {
+            self.feeds.set(self.feeds.get() + 1);
+        }
+        fn watchdog_disable(&self) {
+            self.disables.set(self.disables.get() + 1);
+        }
     }
 
     fn store_with(stage: Stage, slot: &str) -> MemoryStore {
         let store = MemoryStore(RefCell::new(None));
         let mut metadata = Metadata::default();
         metadata.set_staged(Staged {
-            stage, slot: String::from(slot), digest: String::from("sha256:aa"), deployment_id: String::from("d1"), size: 1,
+            stage,
+            slot: String::from(slot),
+            digest: String::from("sha256:aa"),
+            deployment_id: String::from("d1"),
+            size: 1,
         });
         block_on(save_metadata(&store, &metadata)).unwrap();
         store
@@ -223,19 +276,40 @@ mod tests {
         let store = MemoryStore(RefCell::new(None));
         let boot = FakeBoot::new(BackendOutcome::Confirmed, "ota_0");
         let result = block_on(on_boot(&store, &boot));
-        assert_eq!((result.status, result.action), (BootStatus::Stable, Action::Nothing));
+        assert_eq!(
+            (result.status, result.action),
+            (BootStatus::Stable, Action::Nothing)
+        );
         assert_eq!(result.storage_healthy, Some(true));
-        assert_eq!((boot.disables.get(), boot.feeds.get(), boot.rejects.get()), (1, 0, 0));
+        assert_eq!(
+            (boot.disables.get(), boot.feeds.get(), boot.rejects.get()),
+            (1, 0, 0)
+        );
     }
 
     #[test]
-    fn pending_candidate_named_by_the_activating_record_awaits_confirmation_with_the_watchdog_fed() {
+    fn pending_candidate_named_by_the_activating_record_awaits_confirmation_with_the_watchdog_fed()
+    {
         let store = store_with(Stage::Activating, "ota_1");
         let boot = FakeBoot::new(BackendOutcome::PendingConfirmation, "ota_1");
         let result = block_on(on_boot(&store, &boot));
-        assert_eq!((result.status, result.action), (BootStatus::PendingVerify, Action::AwaitConfirmation));
-        assert_eq!(result.storage_healthy, None, "no self-check before the candidate is confirmed");
-        assert_eq!((boot.feeds.get(), boot.disables.get(), boot.rejects.get(), boot.self_checks.get()), (1, 0, 0, 0));
+        assert_eq!(
+            (result.status, result.action),
+            (BootStatus::PendingVerify, Action::AwaitConfirmation)
+        );
+        assert_eq!(
+            result.storage_healthy, None,
+            "no self-check before the candidate is confirmed"
+        );
+        assert_eq!(
+            (
+                boot.feeds.get(),
+                boot.disables.get(),
+                boot.rejects.get(),
+                boot.self_checks.get()
+            ),
+            (1, 0, 0, 0)
+        );
     }
 
     #[test]
@@ -244,9 +318,16 @@ mod tests {
         let store = store_with(Stage::Activating, "ota_0");
         let boot = FakeBoot::new(BackendOutcome::PendingConfirmation, "ota_1");
         let result = block_on(on_boot(&store, &boot));
-        assert_eq!((result.status, result.action), (BootStatus::Rollback, Action::RollbackUnaccounted));
+        assert_eq!(
+            (result.status, result.action),
+            (BootStatus::Rollback, Action::RollbackUnaccounted)
+        );
         assert_eq!(boot.rejects.get(), 1);
-        assert_eq!(boot.confirms.get(), 0, "an unexplained candidate is never confirmed");
+        assert_eq!(
+            boot.confirms.get(),
+            0,
+            "an unexplained candidate is never confirmed"
+        );
 
         let none = MemoryStore(RefCell::new(None));
         let boot = FakeBoot::new(BackendOutcome::PendingConfirmation, "ota_0");
@@ -258,7 +339,10 @@ mod tests {
         let store = store_with(Stage::Activating, "ota_1");
         let boot = FakeBoot::new(BackendOutcome::Confirmed, "ota_1");
         let result = block_on(on_boot(&store, &boot));
-        assert_eq!((result.status, result.action), (BootStatus::Stable, Action::FinishInterruptedActivation));
+        assert_eq!(
+            (result.status, result.action),
+            (BootStatus::Stable, Action::FinishInterruptedActivation)
+        );
         // The staged record is cleared and the staged identity became active.
         let metadata = block_on(load_metadata(&store)).unwrap();
         assert_eq!(metadata.staged.stage.as_str(), "none");
@@ -273,12 +357,26 @@ mod tests {
         let store = store_with(Stage::Written, "ota_1");
         let boot = FakeBoot::new(BackendOutcome::Confirmed, "ota_1");
         assert_eq!(block_on(on_boot(&store, &boot)).action, Action::ClearStale);
-        assert_eq!(block_on(load_metadata(&store)).unwrap().staged.stage.as_str(), "none");
+        assert_eq!(
+            block_on(load_metadata(&store))
+                .unwrap()
+                .staged
+                .stage
+                .as_str(),
+            "none"
+        );
 
         let store = store_with(Stage::Written, "ota_1");
         let boot = FakeBoot::new(BackendOutcome::Confirmed, "ota_0");
         assert_eq!(block_on(on_boot(&store, &boot)).action, Action::KeepStaged);
-        assert_eq!(block_on(load_metadata(&store)).unwrap().staged.stage.as_str(), "written");
+        assert_eq!(
+            block_on(load_metadata(&store))
+                .unwrap()
+                .staged
+                .stage
+                .as_str(),
+            "written"
+        );
     }
 
     #[test]
@@ -288,35 +386,83 @@ mod tests {
         let result = block_on(on_boot(&store, &boot));
         assert_eq!(result.action, Action::Nothing);
         assert_eq!(boot.rejects.get(), 0);
-        assert_eq!(block_on(load_metadata(&store)).unwrap().staged.stage.as_str(), "activating");
+        assert_eq!(
+            block_on(load_metadata(&store))
+                .unwrap()
+                .staged
+                .stage
+                .as_str(),
+            "activating"
+        );
     }
 
     #[test]
     fn pending_check_confirms_rejects_or_times_out_into_a_reset() {
         let mut boot = FakeBoot::new(BackendOutcome::PendingConfirmation, "ota_1");
-        assert_eq!(block_on(pending_check(&boot, Duration::from_millis(500))), PendingCheckAction::Confirm);
+        assert_eq!(
+            block_on(pending_check(&boot, Duration::from_millis(500))),
+            PendingCheckAction::Confirm
+        );
         boot.self_check = Some(false);
-        assert_eq!(block_on(pending_check(&boot, Duration::from_millis(500))), PendingCheckAction::Reject);
+        assert_eq!(
+            block_on(pending_check(&boot, Duration::from_millis(500))),
+            PendingCheckAction::Reject
+        );
         boot.self_check = None; // a hung check must not hold the candidate forever
-        assert_eq!(block_on(pending_check(&boot, Duration::from_millis(50))), PendingCheckAction::Reset);
-        assert_eq!(boot.confirms.get() + boot.rejects.get(), 0, "the check itself never writes boot state");
+        assert_eq!(
+            block_on(pending_check(&boot, Duration::from_millis(50))),
+            PendingCheckAction::Reset
+        );
+        assert_eq!(
+            boot.confirms.get() + boot.rejects.get(),
+            0,
+            "the check itself never writes boot state"
+        );
     }
 
     #[test]
     fn confirmation_commits_the_candidate_or_demands_a_reset_after_rejecting() {
         let store = store_with(Stage::Activating, "ota_1");
         let boot = FakeBoot::new(BackendOutcome::PendingConfirmation, "ota_1");
-        assert_eq!(block_on(confirm_pending(&store, &boot)), Confirmation::Valid);
+        assert_eq!(
+            block_on(confirm_pending(&store, &boot)),
+            Confirmation::Valid
+        );
         assert_eq!(boot.confirms.get(), 1);
-        assert_eq!(block_on(load_metadata(&store)).unwrap().staged.stage.as_str(), "none");
-        assert_eq!(boot.disables.get(), 1, "the watchdog is released only after the durable confirm");
+        assert_eq!(
+            block_on(load_metadata(&store))
+                .unwrap()
+                .staged
+                .stage
+                .as_str(),
+            "none"
+        );
+        assert_eq!(
+            boot.disables.get(),
+            1,
+            "the watchdog is released only after the durable confirm"
+        );
 
         let store = store_with(Stage::Activating, "ota_1");
         let mut boot = FakeBoot::new(BackendOutcome::PendingConfirmation, "ota_1");
         boot.confirm_ok = false;
-        assert_eq!(block_on(confirm_pending(&store, &boot)), Confirmation::ResetRequired);
-        assert_eq!((boot.confirms.get(), boot.rejects.get(), boot.disables.get()), (1, 1, 0));
-        assert_eq!(block_on(load_metadata(&store)).unwrap().staged.stage.as_str(), "activating", "metadata untouched when the confirm failed");
+        assert_eq!(
+            block_on(confirm_pending(&store, &boot)),
+            Confirmation::ResetRequired
+        );
+        assert_eq!(
+            (boot.confirms.get(), boot.rejects.get(), boot.disables.get()),
+            (1, 1, 0)
+        );
+        assert_eq!(
+            block_on(load_metadata(&store))
+                .unwrap()
+                .staged
+                .stage
+                .as_str(),
+            "activating",
+            "metadata untouched when the confirm failed"
+        );
     }
 
     #[test]
