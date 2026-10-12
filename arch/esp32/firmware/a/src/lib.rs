@@ -7,8 +7,8 @@
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod flash;
 
-pub mod selection;
 pub mod otadata;
+pub mod selection;
 
 use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
