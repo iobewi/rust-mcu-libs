@@ -1,5 +1,3 @@
-#![no_std]
-
 //! ESP32 legacy A-only firmware layout mapping.
 //! Pure validation, independent of flash access. The actual flash reader,
 //! writer and custom transactional-boot-metadata-compatible bootloader are separate integration gates.
