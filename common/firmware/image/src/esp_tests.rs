@@ -91,11 +91,11 @@ impl Builder {
             out.extend_from_slice(&load.to_le_bytes());
             out.extend_from_slice(&(data.len() as u32).to_le_bytes());
             // Flash-mapped segments need paddr % 64K == vaddr % 64K: pad the file so they line up.
-            if MAP.drom.contains(load) || MAP.irom.contains(load) {
-                if (out.len() % 0x10000) != (*load as usize % 0x10000) {
-                    // Only possible by growing the previous data; keep the builder simple: fixed layout below.
-                    out.push(0);
-                }
+            if (MAP.drom.contains(load) || MAP.irom.contains(load))
+                && (out.len() % 0x10000) != (*load as usize % 0x10000)
+            {
+                // Only possible by growing the previous data; keep the builder simple: fixed layout below.
+                out.push(0);
             }
             out.extend_from_slice(data);
             xor = data.iter().fold(xor, |a, b| a ^ b);
