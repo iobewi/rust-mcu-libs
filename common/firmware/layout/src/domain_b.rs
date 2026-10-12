@@ -8,7 +8,10 @@
 
 /// Physical side of the historical B-domain layout.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Side { A, B }
+pub enum Side {
+    A,
+    B,
+}
 
 pub const LABEL_META: &str = "wl_meta";
 pub const LABEL_SLOT_A: &str = "workload_a";
@@ -91,7 +94,11 @@ pub fn assemble(
     if meta.overlaps(&a) || meta.overlaps(&b) || a.overlaps(&b) {
         return Err(Unsupported::Overlap);
     }
-    Ok(WorkloadLayout { meta, slots: [a, b], erase_size })
+    Ok(WorkloadLayout {
+        meta,
+        slots: [a, b],
+        erase_size,
+    })
 }
 
 impl WorkloadLayout {
@@ -100,7 +107,10 @@ impl WorkloadLayout {
     }
 
     pub fn slot(&self, side: Side) -> Region {
-        self.slots[match side { Side::A => 0, Side::B => 1 }]
+        self.slots[match side {
+            Side::A => 0,
+            Side::B => 1,
+        }]
     }
 
     pub fn erase_size(&self) -> u32 {
@@ -145,7 +155,10 @@ pub struct PartitionSpec {
 
 impl PartitionSpec {
     pub const fn region(&self) -> Region {
-        Region { offset: self.offset, size: self.size }
+        Region {
+            offset: self.offset,
+            size: self.size,
+        }
     }
 }
 
@@ -166,12 +179,20 @@ pub const FIRST_PARTITION_OFFSET: u32 = 0x9000;
 pub const APP_ALIGN: u32 = 0x1_0000;
 pub const DATA_ALIGN: u32 = 0x1000;
 
-pub fn check_table(table: &[PartitionSpec], flash_size: u32, agent_reference: &[PartitionSpec]) -> Result<(), TableError> {
+pub fn check_table(
+    table: &[PartitionSpec],
+    flash_size: u32,
+    agent_reference: &[PartitionSpec],
+) -> Result<(), TableError> {
     for (i, p) in table.iter().enumerate() {
         if p.offset < FIRST_PARTITION_OFFSET {
             return Err(TableError::BelowFirstPartition(i));
         }
-        let align = if p.kind == Kind::App { APP_ALIGN } else { DATA_ALIGN };
+        let align = if p.kind == Kind::App {
+            APP_ALIGN
+        } else {
+            DATA_ALIGN
+        };
         if p.offset % align != 0 || p.size % DATA_ALIGN != 0 {
             return Err(TableError::Misaligned(i));
         }
@@ -195,25 +216,79 @@ pub fn check_table(table: &[PartitionSpec], flash_size: u32, agent_reference: &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn r(offset: u32, size: u32) -> Option<Region> { Some(Region::new(offset, size)) }
+    fn r(offset: u32, size: u32) -> Option<Region> {
+        Some(Region::new(offset, size))
+    }
     #[test]
     fn accepts_historical_three_partition_layout_and_separate_metadata_copies() {
-        let l = assemble(r(0x9000,0x2000),r(0x20000,0x40000),r(0x60000,0x40000),0x1000).unwrap();
-        assert_eq!(l.meta_copy_offset(0),0);
-        assert_eq!(l.meta_copy_offset(1),0x1000);
-        assert_eq!(l.slot(Side::B).offset,0x60000);
+        let l = assemble(
+            r(0x9000, 0x2000),
+            r(0x20000, 0x40000),
+            r(0x60000, 0x40000),
+            0x1000,
+        )
+        .unwrap();
+        assert_eq!(l.meta_copy_offset(0), 0);
+        assert_eq!(l.meta_copy_offset(1), 0x1000);
+        assert_eq!(l.slot(Side::B).offset, 0x60000);
     }
     #[test]
     fn fails_closed_on_missing_metadata_slots_and_too_small_regions() {
-        assert_eq!(assemble(None,r(0x20000,0x40000),r(0x60000,0x40000),0x1000),Err(Unsupported::MissingMeta));
-        assert_eq!(assemble(r(0x9000,0x2000),None,r(0x60000,0x40000),0x1000),Err(Unsupported::MissingSlot(Side::A)));
-        assert_eq!(assemble(r(0x9000,0x1000),r(0x20000,0x40000),r(0x60000,0x40000),0x1000),Err(Unsupported::MetaTooSmall));
-        assert_eq!(assemble(r(0x9000,0x2000),r(0x20000,0x10000),r(0x60000,0x10000),0x1000),Err(Unsupported::SlotTooSmall));
+        assert_eq!(
+            assemble(None, r(0x20000, 0x40000), r(0x60000, 0x40000), 0x1000),
+            Err(Unsupported::MissingMeta)
+        );
+        assert_eq!(
+            assemble(r(0x9000, 0x2000), None, r(0x60000, 0x40000), 0x1000),
+            Err(Unsupported::MissingSlot(Side::A))
+        );
+        assert_eq!(
+            assemble(
+                r(0x9000, 0x1000),
+                r(0x20000, 0x40000),
+                r(0x60000, 0x40000),
+                0x1000
+            ),
+            Err(Unsupported::MetaTooSmall)
+        );
+        assert_eq!(
+            assemble(
+                r(0x9000, 0x2000),
+                r(0x20000, 0x10000),
+                r(0x60000, 0x10000),
+                0x1000
+            ),
+            Err(Unsupported::SlotTooSmall)
+        );
     }
     #[test]
     fn rejects_overlap_size_mismatch_and_alignment() {
-        assert_eq!(assemble(r(0x9000,0x2000),r(0x20000,0x40000),r(0x50000,0x40000),0x1000),Err(Unsupported::Overlap));
-        assert_eq!(assemble(r(0x9000,0x2000),r(0x20000,0x40000),r(0x60000,0x50000),0x1000),Err(Unsupported::SlotsDiffer));
-        assert_eq!(assemble(r(0x9001,0x2000),r(0x20000,0x40000),r(0x60000,0x40000),0x1000),Err(Unsupported::Misaligned));
+        assert_eq!(
+            assemble(
+                r(0x9000, 0x2000),
+                r(0x20000, 0x40000),
+                r(0x50000, 0x40000),
+                0x1000
+            ),
+            Err(Unsupported::Overlap)
+        );
+        assert_eq!(
+            assemble(
+                r(0x9000, 0x2000),
+                r(0x20000, 0x40000),
+                r(0x60000, 0x50000),
+                0x1000
+            ),
+            Err(Unsupported::SlotsDiffer)
+        );
+        assert_eq!(
+            assemble(
+                r(0x9001, 0x2000),
+                r(0x20000, 0x40000),
+                r(0x60000, 0x40000),
+                0x1000
+            ),
+            Err(Unsupported::Misaligned)
+        );
     }
 }
