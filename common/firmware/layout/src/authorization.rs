@@ -14,8 +14,10 @@ pub enum AuthorizationError {
     InvalidLayout,
 }
 
-/// The only target accepted by the ESP artifact writer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Single-use write permit for the ESP artifact writer. Deliberately !Copy and !Clone.
+/// Consuming this token prevents accidentally constructing two writers from one check.
+/// This is NOT a runtime hardware lock or a substitute for supervisor ownership.
+#[derive(Debug, PartialEq, Eq)]
 pub struct InactiveWriteTarget {
     slot: FirmwareSlot,
     region: Region,
@@ -179,6 +181,22 @@ mod tests {
         )
         .unwrap();
         assert_eq!(b_permit.region().offset, 0x60000);
+    }
+    #[test]
+    fn b_rejects_unobserved_or_active_workload() {
+        let target = id(Domain::B, Slot::One);
+        assert_eq!(
+            authorize_b(&b(), None, target),
+            Err(AuthorizationError::UnknownRunning)
+        );
+        assert_eq!(
+            authorize_b(&b(), Some(target), target),
+            Err(AuthorizationError::ActiveTarget)
+        );
+        assert_eq!(
+            authorize_b(&b(), Some(id(Domain::A, Slot::Zero)), target),
+            Err(AuthorizationError::WrongDomain)
+        );
     }
     #[test]
     fn rejects_bad_a_metadata_overlap_and_alignment() {
