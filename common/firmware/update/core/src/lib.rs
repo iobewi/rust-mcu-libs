@@ -11,7 +11,6 @@ extern crate std;
 pub mod artifact;
 pub mod bootstrap;
 pub mod error;
-pub mod metadata;
 pub mod state;
 pub mod storage;
 pub mod transaction;
