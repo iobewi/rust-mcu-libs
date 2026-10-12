@@ -7,6 +7,8 @@
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod flash;
 
+pub mod selection;
+
 use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
 pub const PARTITION_LAYOUT: &str = "embewi-ab-v1";
