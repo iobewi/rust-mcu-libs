@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::compat::otm2::{DecodeError, RECORD_LEN, Record, RuntimeApi, Side, SlotMeta, State, newer};
+    use crate::compat::otm2::{
+        DecodeError, RECORD_LEN, Record, RuntimeApi, Side, SlotMeta, State, newer,
+    };
     use crate::compat::otm2_store::{Loaded, MetadataBackend, MetadataStore};
 
     #[test]
