@@ -120,7 +120,7 @@ impl WorkloadWriteSession<'_> {
     /// Only successful digest verification yields Committed. Activation is
     /// deliberately a distinct supervisor decision, not a side effect here.
     pub async fn finish(
-        self,
+        mut self,
         flash: &iobewi_esp_flash::SharedFlash,
     ) -> Result<
         iobewi_firmware_update::Committed,
