@@ -23,8 +23,9 @@ const MAX_SLOT_LEN: usize = 8;
 const MAX_DIGEST_LEN: usize = 71;
 const MAX_DEPLOYMENT_ID_LEN: usize = 128;
 /// OTA specification: `staged.state` ∈ `none | written | activating`.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum Stage {
+    #[default]
     None,
     Written,
     Activating,
@@ -57,12 +58,6 @@ pub struct Staged {
     pub digest: String,
     pub deployment_id: String,
     pub size: u32,
-}
-
-impl Default for Stage {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 #[derive(Clone, Default)]
@@ -454,8 +449,7 @@ mod tests {
     use super::*;
     use std::cell::RefCell;
     use std::future::Future;
-    use std::sync::Arc;
-    use std::task::{Context, Poll, Wake, Waker};
+        use std::task::{Context, Poll, Waker};
 
     struct MemoryStore(RefCell<Option<Vec<u8>>>);
 
@@ -471,13 +465,9 @@ mod tests {
     }
 
     fn ready<F: Future>(future: F) -> F::Output {
-        struct Noop;
-        impl Wake for Noop {
-            fn wake(self: Arc<Self>) {}
-        }
-        let waker = Waker::from(Arc::new(Noop));
+        let waker = Waker::noop();
         let mut future = std::pin::pin!(future);
-        match future.as_mut().poll(&mut Context::from_waker(&waker)) {
+        match future.as_mut().poll(&mut Context::from_waker(waker)) {
             Poll::Ready(value) => value,
             Poll::Pending => panic!("in-memory store must be immediately ready"),
         }
