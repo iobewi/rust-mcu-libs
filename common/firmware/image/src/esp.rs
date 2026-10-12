@@ -124,6 +124,7 @@ impl Image {
 
 /// Where the bytes come from: the flash reader (ROM) in the bootloader, a buffer in tests.
 pub trait Read {
+    #[allow(clippy::result_unit_err)] // Stable bootloader reader contract from the proven v1 image validator.
     fn read(&mut self, offset: u32, buf: &mut [u8]) -> Result<(), ()>;
 }
 
@@ -162,7 +163,7 @@ pub fn validate(
     let mut segments = [Segment::default(); MAX_SEGMENTS];
     let mut cursor = part_offset + HEADER_LEN;
     let mut entry_ok = false;
-    for i in 0..usize::from(count) {
+    for (i, slot) in segments.iter_mut().enumerate().take(usize::from(count)) {
         let mut raw = [0u8; SEGMENT_HEADER_LEN as usize];
         read_exact(reader, cursor, &mut raw)?;
         let load = u32::from_le_bytes([raw[0], raw[1], raw[2], raw[3]]);
@@ -190,7 +191,7 @@ pub fn validate(
                 entry_ok = true;
             }
         }
-        segments[i] = seg;
+        *slot = seg;
         cursor = data_end;
     }
     if !entry_ok {
