@@ -26,7 +26,12 @@ fn plan(f: &Flash, images: [bool; 2]) -> Plan {
 fn apply_op(f: &mut Flash, op: Op) {
     match op {
         Op::Erase { sector } => f[sector as usize] = BLANK,
-        Op::Program { sector, offset, len, data } => {
+        Op::Program {
+            sector,
+            offset,
+            len,
+            data,
+        } => {
             for i in 0..len as usize {
                 f[sector as usize][offset as usize + i] &= data[i];
             }
@@ -59,12 +64,23 @@ fn crc_matches_the_rom_and_esp_bootloader_esp_idf_test_vector() {
 
 #[test]
 fn entries_roundtrip_and_body_lacks_only_the_commit_word() {
-    for (seq, st) in [(1, state::VALID), (2, state::NEW), (7, state::PENDING_VERIFY), (u32::MAX - 1, state::ABORTED)] {
+    for (seq, st) in [
+        (1, state::VALID),
+        (2, state::NEW),
+        (7, state::PENDING_VERIFY),
+        (u32::MAX - 1, state::ABORTED),
+    ] {
         let entry = e(seq, st);
         assert_eq!(decode(&entry.encode()), Decoded::Ok(entry));
         let body = entry.body();
-        assert_eq!(decode(&body), Decoded::Corrupt, "a body without its commit word must not be accepted");
-        let diff: Vec<usize> = (0..ENTRY_SIZE).filter(|&i| body[i] != entry.encode()[i]).collect();
+        assert_eq!(
+            decode(&body),
+            Decoded::Corrupt,
+            "a body without its commit word must not be accepted"
+        );
+        let diff: Vec<usize> = (0..ENTRY_SIZE)
+            .filter(|&i| body[i] != entry.encode()[i])
+            .collect();
         assert_eq!(diff, (OFF_COMMIT..OFF_COMMIT + 4).collect::<Vec<_>>());
     }
 }
@@ -77,7 +93,11 @@ fn every_single_bit_flip_of_a_committed_entry_is_rejected() {
         for bit in 0..8 {
             let mut bad = good;
             bad[byte] ^= 1 << bit;
-            assert_eq!(decode(&bad), Decoded::Corrupt, "flip of byte {byte} bit {bit}");
+            assert_eq!(
+                decode(&bad),
+                Decoded::Corrupt,
+                "flip of byte {byte} bit {bit}"
+            );
         }
     }
 }
@@ -87,7 +107,10 @@ fn only_known_states_and_sane_sequences_are_accepted() {
     assert_eq!(decode(&e(1, 7).encode()), Decoded::Corrupt);
     assert_eq!(decode(&e(1, u32::MAX).encode()), Decoded::Corrupt);
     assert_eq!(decode(&e(0, state::VALID).encode()), Decoded::Corrupt);
-    assert_eq!(decode(&e(u32::MAX, state::VALID).encode()), Decoded::Corrupt);
+    assert_eq!(
+        decode(&e(u32::MAX, state::VALID).encode()),
+        Decoded::Corrupt
+    );
     assert_eq!(decode(&BLANK), Decoded::Blank);
 }
 
@@ -113,15 +136,27 @@ fn the_idf_entry_format_is_forgeable_and_ours_is_not() {
     let target = idf_entry(2, state::NEW);
     let mut torn = target;
     torn[24..28].copy_from_slice(&2u32.to_le_bytes());
-    assert_eq!(2u32 & 0, 0, "2 is reachable from erased on the way to 0 (bits only get cleared)");
-    assert_eq!(idf_reads(&torn), Some((2, state::VALID)), "ESP-IDF reads a torn `New` as `Valid`");
+    assert_eq!(
+        2u32 & 0,
+        0,
+        "2 is reachable from erased on the way to 0 (bits only get cleared)"
+    );
+    assert_eq!(
+        idf_reads(&torn),
+        Some((2, state::VALID)),
+        "ESP-IDF reads a torn `New` as `Valid`"
+    );
     // Ours: the same tear can't be accepted -- state is under ext_crc and the commit word is missing.
     let mut ours = e(2, state::NEW).body();
     ours[24..28].copy_from_slice(&2u32.to_le_bytes());
     assert_eq!(decode(&ours), Decoded::Corrupt);
     let mut committed = e(2, state::NEW).encode();
     committed[24..28].copy_from_slice(&2u32.to_le_bytes());
-    assert_eq!(decode(&committed), Decoded::Corrupt, "even with the commit word, a wrong state fails ext_crc");
+    assert_eq!(
+        decode(&committed),
+        Decoded::Corrupt,
+        "even with the commit word, a wrong state fails ext_crc"
+    );
 }
 
 #[test]
@@ -132,27 +167,70 @@ fn entries_written_the_idf_way_are_ignored_by_design() {
     let stale_valid = idf_entry(4, state::VALID); // seq set, state left from an earlier cycle
     let f: Flash = [raw(3, state::VALID), stale_valid];
     let p = plan(&f, [true, true]);
-    assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 3 }, "the stale entry is not a candidate");
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 3
+        },
+        "the stale entry is not a candidate"
+    );
     assert_eq!(p.writes().count(), 0);
     // A device that still has an ESP-IDF `otadata` is re-seeded on ota_0: the migration path.
     let p = plan(&[idf_entry(1, state::VALID), BLANK], [true, true]);
-    assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
-    assert_eq!(p.writes().collect::<Vec<_>>(), [Write { sector: 0, entry: e(1, state::VALID) }]);
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 1
+        }
+    );
+    assert_eq!(
+        p.writes().collect::<Vec<_>>(),
+        [Write {
+            sector: 0,
+            entry: e(1, state::VALID)
+        }]
+    );
 }
 
 #[test]
 fn slot_mapping_follows_esp_idf() {
-    assert_eq!([slot_of(1, 2), slot_of(2, 2), slot_of(3, 2), slot_of(4, 2)], [0, 1, 0, 1]);
-    assert_eq!([slot_of(1, 3), slot_of(2, 3), slot_of(3, 3), slot_of(4, 3)], [0, 1, 2, 0]);
+    assert_eq!(
+        [slot_of(1, 2), slot_of(2, 2), slot_of(3, 2), slot_of(4, 2)],
+        [0, 1, 0, 1]
+    );
+    assert_eq!(
+        [slot_of(1, 3), slot_of(2, 3), slot_of(3, 3), slot_of(4, 3)],
+        [0, 1, 2, 0]
+    );
 }
 
 #[test]
 fn a_write_is_erase_then_body_then_a_separate_commit() {
-    let w = Write { sector: 1, entry: e(2, state::NEW) };
+    let w = Write {
+        sector: 1,
+        entry: e(2, state::NEW),
+    };
     let [erase, body, commit] = w.ops();
     assert_eq!(erase, Op::Erase { sector: 1 });
-    assert_eq!(body, Op::Program { sector: 1, offset: 0, len: 32, data: e(2, state::NEW).body() });
-    let Op::Program { offset, len, data, .. } = commit else { panic!() };
+    assert_eq!(
+        body,
+        Op::Program {
+            sector: 1,
+            offset: 0,
+            len: 32,
+            data: e(2, state::NEW).body()
+        }
+    );
+    let Op::Program {
+        offset, len, data, ..
+    } = commit
+    else {
+        panic!()
+    };
     assert_eq!((offset as usize, len), (OFF_COMMIT, 4));
     assert_eq!(&data[..4], &COMMIT.to_le_bytes());
     // replaying them on an erased sector yields exactly the committed entry
@@ -165,8 +243,21 @@ fn a_write_is_erase_then_body_then_a_separate_commit() {
 #[test]
 fn blank_otadata_is_a_normal_first_boot_that_seeds_slot_0() {
     let p = plan(&[BLANK, BLANK], [true, true]);
-    assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
-    assert_eq!(p.writes().collect::<Vec<_>>(), [Write { sector: 0, entry: e(1, state::VALID) }]);
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 1
+        }
+    );
+    assert_eq!(
+        p.writes().collect::<Vec<_>>(),
+        [Write {
+            sector: 0,
+            entry: e(1, state::VALID)
+        }]
+    );
 }
 
 #[test]
@@ -184,41 +275,100 @@ fn a_torn_seed_is_retried_like_a_first_boot() {
         r
     }] {
         let p = plan(&[torn, BLANK], [true, true]);
-        assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
+        assert_eq!(
+            p.boot,
+            Boot::Slot {
+                slot: 0,
+                sector: 0,
+                seq: 1
+            }
+        );
     }
 }
 
 #[test]
 fn a_valid_entry_boots_without_any_write() {
     let p = plan(&[raw(1, state::VALID), BLANK], [true, true]);
-    assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 1
+        }
+    );
     assert_eq!(p.writes().count(), 0);
 }
 
 #[test]
 fn a_new_entry_is_marked_pending_before_it_boots() {
     let p = plan(&[raw(1, state::VALID), raw(2, state::NEW)], [true, true]);
-    assert_eq!(p.boot, Boot::Slot { slot: 1, sector: 1, seq: 2 });
-    assert_eq!(p.writes().collect::<Vec<_>>(), [Write { sector: 1, entry: e(2, state::PENDING_VERIFY) }]);
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 1,
+            sector: 1,
+            seq: 2
+        }
+    );
+    assert_eq!(
+        p.writes().collect::<Vec<_>>(),
+        [Write {
+            sector: 1,
+            entry: e(2, state::PENDING_VERIFY)
+        }]
+    );
 }
 
 #[test]
 fn a_pending_entry_that_rebooted_is_aborted_and_the_previous_slot_boots() {
-    let p = plan(&[raw(1, state::VALID), raw(2, state::PENDING_VERIFY)], [true, true]);
-    assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
-    assert_eq!(p.writes().collect::<Vec<_>>(), [Write { sector: 1, entry: e(2, state::ABORTED) }]);
+    let p = plan(
+        &[raw(1, state::VALID), raw(2, state::PENDING_VERIFY)],
+        [true, true],
+    );
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 1
+        }
+    );
+    assert_eq!(
+        p.writes().collect::<Vec<_>>(),
+        [Write {
+            sector: 1,
+            entry: e(2, state::ABORTED)
+        }]
+    );
 }
 
 #[test]
 fn an_unbootable_candidate_is_marked_invalid_and_the_next_one_boots() {
     let p = plan(&[raw(1, state::VALID), raw(2, state::NEW)], [true, false]);
-    assert_eq!(p.boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
-    assert_eq!(p.writes().collect::<Vec<_>>(), [Write { sector: 1, entry: e(2, state::INVALID) }]);
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 1
+        }
+    );
+    assert_eq!(
+        p.writes().collect::<Vec<_>>(),
+        [Write {
+            sector: 1,
+            entry: e(2, state::INVALID)
+        }]
+    );
 }
 
 #[test]
 fn nothing_usable_halts_explicitly_and_never_reseeds() {
-    let p = plan(&[raw(1, state::INVALID), raw(2, state::ABORTED)], [true, true]);
+    let p = plan(
+        &[raw(1, state::INVALID), raw(2, state::ABORTED)],
+        [true, true],
+    );
     assert_eq!(p.boot, Boot::Halt(Halt::NoUsableEntry));
     let p = plan(&[raw(1, state::VALID), raw(2, state::NEW)], [false, false]);
     assert_eq!(p.boot, Boot::Halt(Halt::NoUsableEntry));
@@ -228,14 +378,31 @@ fn nothing_usable_halts_explicitly_and_never_reseeds() {
 
 #[test]
 fn activate_refuses_without_a_known_good_image() {
-    assert_eq!(activate([BLANK, BLANK], 2, 1), Err(ActivateError::NoValidBase));
-    assert_eq!(activate([raw(1, state::NEW), BLANK], 2, 1), Err(ActivateError::NoValidBase));
+    assert_eq!(
+        activate([BLANK, BLANK], 2, 1),
+        Err(ActivateError::NoValidBase)
+    );
+    assert_eq!(
+        activate([raw(1, state::NEW), BLANK], 2, 1),
+        Err(ActivateError::NoValidBase)
+    );
 }
 
 #[test]
 fn activate_writes_one_complete_new_entry_beside_the_valid_one() {
-    assert_eq!(activate([raw(1, state::VALID), BLANK], 2, 1), Ok(Write { sector: 1, entry: e(2, state::NEW) }));
-    assert_eq!(activate([BLANK, raw(1, state::VALID)], 2, 1).unwrap().sector, 0);
+    assert_eq!(
+        activate([raw(1, state::VALID), BLANK], 2, 1),
+        Ok(Write {
+            sector: 1,
+            entry: e(2, state::NEW)
+        })
+    );
+    assert_eq!(
+        activate([BLANK, raw(1, state::VALID)], 2, 1)
+            .unwrap()
+            .sector,
+        0
+    );
 }
 
 #[test]
@@ -263,8 +430,20 @@ fn activate_alternates_slots_across_cycles() {
 #[test]
 fn confirm_and_reject_act_on_the_pending_entry_only() {
     let f: Flash = [raw(1, state::VALID), raw(2, state::PENDING_VERIFY)];
-    assert_eq!(confirm(f), Some(Write { sector: 1, entry: e(2, state::VALID) }));
-    assert_eq!(reject(f), Some(Write { sector: 1, entry: e(2, state::INVALID) }));
+    assert_eq!(
+        confirm(f),
+        Some(Write {
+            sector: 1,
+            entry: e(2, state::VALID)
+        })
+    );
+    assert_eq!(
+        reject(f),
+        Some(Write {
+            sector: 1,
+            entry: e(2, state::INVALID)
+        })
+    );
     // Still `New`: the bootloader did not mark it -- a chain anomaly, reported by None.
     assert_eq!(confirm([raw(1, state::VALID), raw(2, state::NEW)]), None);
     assert_eq!(confirm([raw(1, state::VALID), BLANK]), None);
@@ -291,7 +470,16 @@ enum Model {
 }
 
 /// Field boundaries of an entry.
-const GROUPS: [(usize, usize); 8] = [(0, 4), (4, 8), (8, 12), (12, 16), (16, 20), (20, 24), (24, 28), (28, 32)];
+const GROUPS: [(usize, usize); 8] = [
+    (0, 4),
+    (4, 8),
+    (8, 12),
+    (12, 16),
+    (16, 20),
+    (20, 24),
+    (24, 28),
+    (28, 32),
+];
 
 struct Rng(u64);
 impl Rng {
@@ -308,7 +496,12 @@ impl Rng {
 fn partial_bytes(target: u8, thorough: bool) -> Vec<u8> {
     let clears = !target;
     if !thorough {
-        return vec![0xFF, target, 0xFF & !(clears & 0x0F), 0xFF & !(clears & 0xF0)];
+        return vec![
+            0xFF,
+            target,
+            0xFF & !(clears & 0x0F),
+            0xFF & !(clears & 0xF0),
+        ];
     }
     let mut out = Vec::new();
     let mut sub = clears;
@@ -347,9 +540,20 @@ fn erase_variants(cur: &Flash, s: usize, model: Model, out: &mut HashSet<Flash>)
     }
 }
 
-fn program_variants(cur: &Flash, s: usize, offset: usize, len: usize, data: &[u8], model: Model, thorough: bool, out: &mut HashSet<Flash>) {
+fn program_variants(
+    cur: &Flash,
+    s: usize,
+    offset: usize,
+    len: usize,
+    data: &[u8],
+    model: Model,
+    thorough: bool,
+    out: &mut HashSet<Flash>,
+) {
     let target: Vec<u8> = (0..len).map(|i| cur[s][offset + i] & data[i]).collect();
-    let with = |f: &mut Flash, at: usize, bytes: &[u8]| f[s][offset + at..offset + at + bytes.len()].copy_from_slice(bytes);
+    let with = |f: &mut Flash, at: usize, bytes: &[u8]| {
+        f[s][offset + at..offset + at + bytes.len()].copy_from_slice(bytes)
+    };
     match model {
         Model::Sequential => {
             for k in 0..len {
@@ -365,11 +569,19 @@ fn program_variants(cur: &Flash, s: usize, offset: usize, len: usize, data: &[u8
             // Groups this command programs (relative to the command).
             let groups: Vec<(usize, usize)> = GROUPS
                 .iter()
-                .filter(|&&(a, b)| a >= offset && b <= offset + len && target[a - offset..b - offset] != cur[s][a..b])
+                .filter(|&&(a, b)| {
+                    a >= offset
+                        && b <= offset + len
+                        && target[a - offset..b - offset] != cur[s][a..b]
+                })
                 .copied()
                 .collect();
             let combos = |skip: Option<usize>| -> Vec<Flash> {
-                let others: Vec<(usize, usize)> = groups.iter().copied().filter(|g| Some(g.0) != skip).collect();
+                let others: Vec<(usize, usize)> = groups
+                    .iter()
+                    .copied()
+                    .filter(|g| Some(g.0) != skip)
+                    .collect();
                 (0u32..(1 << others.len()))
                     .map(|mask| {
                         let mut f = *cur;
@@ -448,9 +660,21 @@ fn states_after_cuts(before: &Flash, writes: &[Write], model: Model, thorough: b
             out.insert(cur); // before this command
             match op {
                 Op::Erase { sector } => erase_variants(&cur, sector as usize, model, &mut out),
-                Op::Program { sector, offset, len, data } => {
-                    program_variants(&cur, sector as usize, offset as usize, len as usize, &data, model, thorough, &mut out)
-                }
+                Op::Program {
+                    sector,
+                    offset,
+                    len,
+                    data,
+                } => program_variants(
+                    &cur,
+                    sector as usize,
+                    offset as usize,
+                    len as usize,
+                    &data,
+                    model,
+                    thorough,
+                    &mut out,
+                ),
             }
             apply_op(&mut cur, op);
             out.insert(cur); // after it
@@ -482,7 +706,9 @@ fn check(f: &Flash, ctx: &Ctx) -> Result<Plan, String> {
         }
     }
     if ctx.keep_valid && !valid_present {
-        return Err("no Valid entry left although one existed and its replacement was not committed".into());
+        return Err(
+            "no Valid entry left although one existed and its replacement was not committed".into(),
+        );
     }
     let p = plan_boot(*f, 2, &mut boots(ctx.images));
     match p.boot {
@@ -494,25 +720,37 @@ fn check(f: &Flash, ctx: &Ctx) -> Result<Plan, String> {
                 Decoded::Ok(entry) => match Trust::of(entry.state) {
                     Trust::Valid => {}
                     Trust::Unproven => {
-                        let marked = p
-                            .writes()
-                            .any(|w| w.sector == sector && w.entry == e(entry.seq, state::PENDING_VERIFY));
+                        let marked = p.writes().any(|w| {
+                            w.sector == sector && w.entry == e(entry.seq, state::PENDING_VERIFY)
+                        });
                         if !marked {
-                            return Err(format!("boots unproven entry {entry:?} without marking it Pending"));
+                            return Err(format!(
+                                "boots unproven entry {entry:?} without marking it Pending"
+                            ));
                         }
                     }
                     other => return Err(format!("boots an entry whose trust is {other:?}")),
                 },
                 _ => {
-                    let seeded = sector == 0 && seq == 1 && p.writes().any(|w| w.sector == 0 && w.entry == e(1, state::VALID));
+                    let seeded = sector == 0
+                        && seq == 1
+                        && p.writes()
+                            .any(|w| w.sector == 0 && w.entry == e(1, state::VALID));
                     if !seeded {
-                        return Err("boots from a sector with no accepted entry and no seed write".into());
+                        return Err(
+                            "boots from a sector with no accepted entry and no seed write".into(),
+                        );
                     }
                 }
             }
         }
         Boot::Halt(h) => {
-            if ctx.keep_valid || ctx.images[0] && dec.iter().all(|d| matches!(d, Decoded::Blank | Decoded::Corrupt)) {
+            if ctx.keep_valid
+                || ctx.images[0]
+                    && dec
+                        .iter()
+                        .all(|d| matches!(d, Decoded::Blank | Decoded::Corrupt))
+            {
                 return Err(format!("halts ({h:?}) although a boot was possible"));
             }
         }
@@ -522,7 +760,14 @@ fn check(f: &Flash, ctx: &Ctx) -> Result<Plan, String> {
 
 /// `check` every state reachable by cutting inside `writes`; then, `depth` more times, do the same for the
 /// bootloader's own writes on the next boot (a crash loop).
-fn verify(before: &Flash, writes: &[Write], ctx: &Ctx, model: Model, depth: u8, what: &str) -> Result<usize, String> {
+fn verify(
+    before: &Flash,
+    writes: &[Write],
+    ctx: &Ctx,
+    model: Model,
+    depth: u8,
+    what: &str,
+) -> Result<usize, String> {
     let mut seen = HashSet::new();
     verify_level(before, writes, ctx, model, depth, true, &mut seen, what)?;
     Ok(seen.len())
@@ -543,16 +788,30 @@ fn verify_level(
         if !seen.insert((state, depth, ctx.allowed_valid.len())) {
             continue; // the same flash state is reached through many cut points
         }
-        let p = check(&state, ctx).map_err(|err| format!("{what}: {err}\n  flash: {:?}", decoded(&state)))?;
+        let p = check(&state, ctx)
+            .map_err(|err| format!("{what}: {err}\n  flash: {:?}", decoded(&state)))?;
         if depth > 0 {
             let next: Vec<Write> = p.writes().collect();
-            let mut ctx2 = Ctx { allowed_valid: ctx.allowed_valid.clone(), keep_valid: ctx.keep_valid, images: ctx.images };
+            let mut ctx2 = Ctx {
+                allowed_valid: ctx.allowed_valid.clone(),
+                keep_valid: ctx.keep_valid,
+                images: ctx.images,
+            };
             for w in &next {
                 if w.entry.state == state::VALID && !ctx2.allowed_valid.contains(&w.entry) {
                     ctx2.allowed_valid.push(w.entry);
                 }
             }
-            verify_level(&state, &next, &ctx2, model, depth - 1, false, seen, &format!("{what} -> next boot"))?;
+            verify_level(
+                &state,
+                &next,
+                &ctx2,
+                model,
+                depth - 1,
+                false,
+                seen,
+                &format!("{what} -> next boot"),
+            )?;
         }
     }
     Ok(())
@@ -561,7 +820,11 @@ fn verify_level(
 const REFERENCE: Model = Model::AnyOrder;
 
 fn ctx(valid: &[Entry], keep_valid: bool) -> Ctx {
-    Ctx { allowed_valid: valid.to_vec(), keep_valid, images: [true, true] }
+    Ctx {
+        allowed_valid: valid.to_vec(),
+        keep_valid,
+        images: [true, true],
+    }
 }
 
 #[test]
@@ -570,7 +833,15 @@ fn power_cut_first_boot_seed() {
     let blank: Flash = [BLANK, BLANK];
     let seed: Vec<Write> = plan(&blank, [true, true]).writes().collect();
     for model in [REFERENCE, Model::Sequential] {
-        verify(&blank, &seed, &ctx(&[e(1, state::VALID)], false), model, 2, "seed").unwrap();
+        verify(
+            &blank,
+            &seed,
+            &ctx(&[e(1, state::VALID)], false),
+            model,
+            2,
+            "seed",
+        )
+        .unwrap();
     }
 }
 
@@ -614,12 +885,27 @@ fn power_cut_rollback_then_new_attempt() {
         let rollback: Vec<Write> = plan(&f, [true, true]).writes().collect();
         verify(&f, &rollback, &ctx(&[a], true), model, 2, "rollback").unwrap();
         let f = full(f, &rollback);
-        assert_eq!(plan(&f, [true, true]).boot, Boot::Slot { slot: 0, sector: 0, seq: 1 });
+        assert_eq!(
+            plan(&f, [true, true]).boot,
+            Boot::Slot {
+                slot: 0,
+                sector: 0,
+                seq: 1
+            }
+        );
 
         // the agent tries again: it must reuse the Aborted sector, never the Valid one
         let act = activate(f, 2, 1).unwrap();
         assert_eq!(act.sector, 1);
-        verify(&f, &[act], &ctx(&[a], true), model, 2, "activate after rollback").unwrap();
+        verify(
+            &f,
+            &[act],
+            &ctx(&[a], true),
+            model,
+            2,
+            "activate after rollback",
+        )
+        .unwrap();
     }
 }
 
@@ -655,7 +941,15 @@ fn power_cut_second_cycle_after_a_confirmed_update() {
     let f: Flash = [a.encode(), b.encode()];
     let act = activate(f, 2, 0).unwrap();
     assert_eq!((act.sector, act.entry), (0, e(3, state::NEW)));
-    verify(&f, &[act], &ctx(&[a, b], true), REFERENCE, 2, "activate over an older Valid").unwrap();
+    verify(
+        &f,
+        &[act],
+        &ctx(&[a, b], true),
+        REFERENCE,
+        2,
+        "activate over an older Valid",
+    )
+    .unwrap();
 }
 
 // --- the simulator itself --------------------------------------------------
@@ -674,12 +968,18 @@ fn the_reference_model_really_enumerates_torn_states() {
         match decode(&f[1]) {
             Decoded::Ok(entry) => {
                 // The property the whole design rests on: whatever the cut left, an accepted entry is exact.
-                assert!(entry == target || entry == e(1, state::VALID), "accepted a wrong entry: {entry:?}");
+                assert!(
+                    entry == target || entry == e(1, state::VALID),
+                    "accepted a wrong entry: {entry:?}"
+                );
                 commit_done += 1;
             }
             Decoded::Corrupt => {
                 let r = f[1];
-                if r[..OFF_COMMIT] == target.body()[..OFF_COMMIT] && r[24..] == target.body()[24..] && r[OFF_COMMIT..24] != [0xFF; 4] {
+                if r[..OFF_COMMIT] == target.body()[..OFF_COMMIT]
+                    && r[24..] == target.body()[24..]
+                    && r[OFF_COMMIT..24] != [0xFF; 4]
+                {
                     commit_partial += 1;
                 }
                 if r == target.body() {
@@ -689,7 +989,10 @@ fn the_reference_model_really_enumerates_torn_states() {
             Decoded::Blank => {}
         }
     }
-    assert!(commit_done > 0 && commit_partial > 10 && body_no_commit > 0, "{commit_partial} {commit_done} {body_no_commit}");
+    assert!(
+        commit_done > 0 && commit_partial > 10 && body_no_commit > 0,
+        "{commit_partial} {commit_done} {body_no_commit}"
+    );
 }
 
 #[test]
@@ -700,7 +1003,11 @@ fn the_checker_catches_what_it_claims_to() {
     assert!(check(&forged, &c).unwrap_err().contains("forged Valid"));
     // The last Valid entry gone.
     let gone: Flash = [BLANK, raw(2, state::NEW)];
-    assert!(check(&gone, &c).unwrap_err().contains("no Valid entry left"));
+    assert!(
+        check(&gone, &c)
+            .unwrap_err()
+            .contains("no Valid entry left")
+    );
     // Halting although a validated image is intact.
     let mut only_images_bad = ctx(&[e(1, state::VALID)], true);
     only_images_bad.images = [false, false];
@@ -725,12 +1032,17 @@ fn a_torn_body_is_rejected_even_if_a_faulty_executor_commits_it_anyway() {
         apply_op(&mut f, commit);
         match decode(&f[1]) {
             Decoded::Corrupt => {}
-            Decoded::Ok(entry) => assert_eq!(entry, target, "a torn body became a different valid entry"),
+            Decoded::Ok(entry) => {
+                assert_eq!(entry, target, "a torn body became a different valid entry")
+            }
             Decoded::Blank => panic!("commit cannot leave a blank entry"),
         }
         checked += 1;
     }
-    assert!(checked > 10_000, "only {checked} torn bodies were exercised");
+    assert!(
+        checked > 10_000,
+        "only {checked} torn bodies were exercised"
+    );
 }
 
 #[test]
@@ -738,8 +1050,14 @@ fn the_entry_format_is_frozen_by_golden_vectors() {
     // Cross-checked against scripts/ewbt-otadata.py (an independent implementation): if these change,
     // every device already flashed loses its otadata -- bump FORMAT_VERSION instead.
     let hex = |raw: Raw| raw.iter().map(|b| format!("{b:02x}")).collect::<String>();
-    assert_eq!(hex(e(1, state::VALID).encode()), "010000004557425401000000484e1c0dffffffff3ca5c35a020000009a984347");
-    assert_eq!(hex(e(2, state::NEW).encode()), "0200000045574254010000002564efc8ffffffff3ca5c35a000000007437f655");
+    assert_eq!(
+        hex(e(1, state::VALID).encode()),
+        "010000004557425401000000484e1c0dffffffff3ca5c35a020000009a984347"
+    );
+    assert_eq!(
+        hex(e(2, state::NEW).encode()),
+        "0200000045574254010000002564efc8ffffffff3ca5c35a000000007437f655"
+    );
 }
 
 // ---- update target / newest entry / outcome helpers (used by the ESP adapter) ----
@@ -756,12 +1074,21 @@ mod update_target_tests {
         // seq 1 (slot 0) valid -> write slot 1.
         assert_eq!(update_target([e(1, state::VALID), BLANK], 2), Some(1));
         // seq 2 (slot 1) valid -> write slot 0.
-        assert_eq!(update_target([e(1, state::VALID), e(2, state::VALID)], 2), Some(0));
+        assert_eq!(
+            update_target([e(1, state::VALID), e(2, state::VALID)], 2),
+            Some(0)
+        );
         // A pending entry is trusted too.
-        assert_eq!(update_target([e(3, state::PENDING_VERIFY), e(2, state::VALID)], 2), Some(1));
+        assert_eq!(
+            update_target([e(3, state::PENDING_VERIFY), e(2, state::VALID)], 2),
+            Some(1)
+        );
         // Nothing trusted: no target.
         assert_eq!(update_target([BLANK, BLANK], 2), None);
-        assert_eq!(update_target([e(1, state::INVALID), e(2, state::ABORTED)], 2), None);
+        assert_eq!(
+            update_target([e(1, state::INVALID), e(2, state::ABORTED)], 2),
+            None
+        );
     }
 
     #[test]
@@ -771,17 +1098,30 @@ mod update_target_tests {
         // so the "other" slot is slot 1 -- the one that is running.
         let otadata = [e(1, state::VALID), e(2, state::NEW)];
         assert_eq!(update_target(otadata, 2), Some(1));
-        assert_eq!(newest_entry(otadata).map(|x| (x.seq, slot_of(x.seq, 2))), Some((2, 1)));
+        assert_eq!(
+            newest_entry(otadata).map(|x| (x.seq, slot_of(x.seq, 2))),
+            Some((2, 1))
+        );
         // Once the custom bootloader has promoted and the agent confirmed it (Valid),
         // the same layout targets the other slot.
-        assert_eq!(update_target([e(1, state::VALID), e(2, state::VALID)], 2), Some(0));
+        assert_eq!(
+            update_target([e(1, state::VALID), e(2, state::VALID)], 2),
+            Some(0)
+        );
     }
 
     #[test]
     fn rollback_leaves_a_valid_base_and_an_aborted_newest_entry() {
         let otadata = [e(3, state::VALID), e(4, state::ABORTED)];
-        assert_eq!(update_target(otadata, 2), Some(1), "the next candidate goes opposite the valid base");
-        assert_eq!(newest_entry(otadata).map(|x| (x.seq, x.state)), Some((4, state::ABORTED)));
+        assert_eq!(
+            update_target(otadata, 2),
+            Some(1),
+            "the next candidate goes opposite the valid base"
+        );
+        assert_eq!(
+            newest_entry(otadata).map(|x| (x.seq, x.state)),
+            Some((4, state::ABORTED))
+        );
     }
 
     #[test]
@@ -791,7 +1131,10 @@ mod update_target_tests {
         let otadata = [corrupt, e(2, state::PENDING_VERIFY)];
         assert_eq!(newest_entry(otadata).map(|x| x.seq), Some(2));
         assert!(has_entry_in_state(otadata, state::PENDING_VERIFY));
-        assert!(!has_entry_in_state(otadata, state::VALID), "a corrupt entry is not a Valid one");
+        assert!(
+            !has_entry_in_state(otadata, state::VALID),
+            "a corrupt entry is not a Valid one"
+        );
         assert_eq!(newest_entry([BLANK, BLANK]), None);
     }
 }
