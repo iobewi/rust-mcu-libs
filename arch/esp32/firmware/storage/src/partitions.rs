@@ -32,25 +32,40 @@ pub fn validate<'a, const N: usize>(
     flash_size: u32,
     erase_size: u32,
 ) -> Result<[PartitionRange; N], DiscoveryError> {
-    if erase_size == 0 || required.iter().enumerate().any(|(i, r)|
-        required[..i].iter().any(|other| other.label == r.label)
-    ) {
+    if erase_size == 0
+        || required
+            .iter()
+            .enumerate()
+            .any(|(i, r)| required[..i].iter().any(|other| other.label == r.label))
+    {
         return Err(DiscoveryError::Duplicate);
     }
     let mut matches: [Option<PartitionRange>; N] = [None; N];
     for entry in entries {
         for (i, req) in required.iter().enumerate() {
-            if entry.label != req.label { continue; }
-            if matches[i].is_some() { return Err(DiscoveryError::Duplicate); }
+            if entry.label != req.label {
+                continue;
+            }
+            if matches[i].is_some() {
+                return Err(DiscoveryError::Duplicate);
+            }
             if entry.kind != req.kind || entry.subtype != req.subtype {
                 return Err(DiscoveryError::Missing);
             }
             if entry.size == 0 || entry.offset % erase_size != 0 || entry.size % erase_size != 0 {
                 return Err(DiscoveryError::Misaligned);
             }
-            let end = entry.offset.checked_add(entry.size).ok_or(DiscoveryError::Overflow)?;
-            if end > flash_size { return Err(DiscoveryError::OutOfFlash); }
-            matches[i] = Some(PartitionRange { offset: entry.offset, size: entry.size as usize });
+            let end = entry
+                .offset
+                .checked_add(entry.size)
+                .ok_or(DiscoveryError::Overflow)?;
+            if end > flash_size {
+                return Err(DiscoveryError::OutOfFlash);
+            }
+            matches[i] = Some(PartitionRange {
+                offset: entry.offset,
+                size: entry.size as usize,
+            });
         }
     }
     let mut result = [PartitionRange { offset: 0, size: 0 }; N];
@@ -60,7 +75,7 @@ pub fn validate<'a, const N: usize>(
     for i in 0..N {
         let a = &result[i];
         let a_end = (a.offset as u64) + a.size as u64;
-        for b in &result[i+1..] {
+        for b in &result[i + 1..] {
             let b_end = (b.offset as u64) + b.size as u64;
             if (a.offset as u64) < b_end && (b.offset as u64) < a_end {
                 return Err(DiscoveryError::Overlap);
@@ -85,20 +100,32 @@ pub fn discover<const N: usize>(
     let mut error = None;
     partitions::for_each_entry(flash, scratch, |entry| {
         for (i, req) in required.iter().enumerate() {
-            if entry.label != req.label { continue; }
-            if found[i].is_some() { error = Some(DiscoveryError::Duplicate); }
-            else if entry.kind != req.kind || entry.subtype != req.subtype {
+            if entry.label != req.label {
+                continue;
+            }
+            if found[i].is_some() {
+                error = Some(DiscoveryError::Duplicate);
+            } else if entry.kind != req.kind || entry.subtype != req.subtype {
                 error = Some(DiscoveryError::Missing);
             } else {
-                found[i] = Some(PartitionRange { offset: entry.offset, size: entry.size as usize });
+                found[i] = Some(PartitionRange {
+                    offset: entry.offset,
+                    size: entry.size as usize,
+                });
             }
         }
-    }).map_err(|_| DiscoveryError::TableUnreadable)?;
-    if let Some(error) = error { return Err(error); }
+    })
+    .map_err(|_| DiscoveryError::TableUnreadable)?;
+    if let Some(error) = error {
+        return Err(error);
+    }
     let entries = required.iter().enumerate().filter_map(|(i, req)| {
         found[i].map(|r| RawEntry {
-            label: req.label, kind: req.kind, subtype: req.subtype,
-            offset: r.offset, size: r.size as u32,
+            label: req.label,
+            kind: req.kind,
+            subtype: req.subtype,
+            offset: r.offset,
+            size: r.size as u32,
         })
     });
     validate(entries, required, flash_size, erase_size)
@@ -108,28 +135,125 @@ pub fn discover<const N: usize>(
 mod tests {
     use super::*;
     const A: [Requirement<'static>; 2] = [
-        Requirement { label: "ota_0", kind: 0, subtype: 0x10 },
-        Requirement { label: "ota_1", kind: 0, subtype: 0x11 },
+        Requirement {
+            label: "ota_0",
+            kind: 0,
+            subtype: 0x10,
+        },
+        Requirement {
+            label: "ota_1",
+            kind: 0,
+            subtype: 0x11,
+        },
     ];
     fn entry(label: &'static str, subtype: u8, offset: u32, size: u32) -> RawEntry<'static> {
-        RawEntry { label, kind: 0, subtype, offset, size }
+        RawEntry {
+            label,
+            kind: 0,
+            subtype,
+            offset,
+            size,
+        }
     }
     #[test]
     fn accepts_two_distinct_aligned_slots() {
-        let out = validate([entry("ota_0",0x10,0x20000,0x10000),entry("ota_1",0x11,0x30000,0x10000)], &A, 0x100000, 0x1000).unwrap();
+        let out = validate(
+            [
+                entry("ota_0", 0x10, 0x20000, 0x10000),
+                entry("ota_1", 0x11, 0x30000, 0x10000),
+            ],
+            &A,
+            0x100000,
+            0x1000,
+        )
+        .unwrap();
         assert_eq!(out[1].offset, 0x30000);
     }
     #[test]
     fn rejects_missing_duplicate_wrong_type_and_overlap() {
-        assert_eq!(validate([entry("ota_0",0x10,0x20000,0x10000)],&A,0x100000,0x1000),Err(DiscoveryError::Missing));
-        assert_eq!(validate([entry("ota_0",0x10,0x20000,0x10000),entry("ota_0",0x10,0x30000,0x10000)],&A,0x100000,0x1000),Err(DiscoveryError::Duplicate));
-        assert_eq!(validate([entry("ota_0",0x11,0x20000,0x10000),entry("ota_1",0x11,0x30000,0x10000)],&A,0x100000,0x1000),Err(DiscoveryError::Missing));
-        assert_eq!(validate([entry("ota_0",0x10,0x20000,0x20000),entry("ota_1",0x11,0x30000,0x10000)],&A,0x100000,0x1000),Err(DiscoveryError::Overlap));
+        assert_eq!(
+            validate(
+                [entry("ota_0", 0x10, 0x20000, 0x10000)],
+                &A,
+                0x100000,
+                0x1000
+            ),
+            Err(DiscoveryError::Missing)
+        );
+        assert_eq!(
+            validate(
+                [
+                    entry("ota_0", 0x10, 0x20000, 0x10000),
+                    entry("ota_0", 0x10, 0x30000, 0x10000)
+                ],
+                &A,
+                0x100000,
+                0x1000
+            ),
+            Err(DiscoveryError::Duplicate)
+        );
+        assert_eq!(
+            validate(
+                [
+                    entry("ota_0", 0x11, 0x20000, 0x10000),
+                    entry("ota_1", 0x11, 0x30000, 0x10000)
+                ],
+                &A,
+                0x100000,
+                0x1000
+            ),
+            Err(DiscoveryError::Missing)
+        );
+        assert_eq!(
+            validate(
+                [
+                    entry("ota_0", 0x10, 0x20000, 0x20000),
+                    entry("ota_1", 0x11, 0x30000, 0x10000)
+                ],
+                &A,
+                0x100000,
+                0x1000
+            ),
+            Err(DiscoveryError::Overlap)
+        );
     }
     #[test]
     fn rejects_unaligned_out_of_flash_and_overflow() {
-        assert_eq!(validate([entry("ota_0",0x10,0x20001,0x10000),entry("ota_1",0x11,0x30000,0x10000)],&A,0x100000,0x1000),Err(DiscoveryError::Misaligned));
-        assert_eq!(validate([entry("ota_0",0x10,0x20000,0x10000),entry("ota_1",0x11,0xf0000,0x20000)],&A,0x100000,0x1000),Err(DiscoveryError::OutOfFlash));
-        assert_eq!(validate([entry("ota_0",0x10,0xfffff000,0x2000),entry("ota_1",0x11,0x30000,0x10000)],&A,u32::MAX,0x1000),Err(DiscoveryError::Overflow));
+        assert_eq!(
+            validate(
+                [
+                    entry("ota_0", 0x10, 0x20001, 0x10000),
+                    entry("ota_1", 0x11, 0x30000, 0x10000)
+                ],
+                &A,
+                0x100000,
+                0x1000
+            ),
+            Err(DiscoveryError::Misaligned)
+        );
+        assert_eq!(
+            validate(
+                [
+                    entry("ota_0", 0x10, 0x20000, 0x10000),
+                    entry("ota_1", 0x11, 0xf0000, 0x20000)
+                ],
+                &A,
+                0x100000,
+                0x1000
+            ),
+            Err(DiscoveryError::OutOfFlash)
+        );
+        assert_eq!(
+            validate(
+                [
+                    entry("ota_0", 0x10, 0xfffff000, 0x2000),
+                    entry("ota_1", 0x11, 0x30000, 0x10000)
+                ],
+                &A,
+                u32::MAX,
+                0x1000
+            ),
+            Err(DiscoveryError::Overflow)
+        );
     }
 }
