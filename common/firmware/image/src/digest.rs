@@ -58,14 +58,23 @@ mod tests {
         let text = format_digest(&digest);
         assert_eq!(text, alloc::format!("sha256:{}", "ab".repeat(32)));
         assert_eq!(parse_digest(&text), Some(digest));
-        assert_eq!(parse_digest(&text.to_uppercase().replace("SHA256", "sha256")), Some(digest));
+        assert_eq!(
+            parse_digest(&text.to_uppercase().replace("SHA256", "sha256")),
+            Some(digest)
+        );
     }
 
     #[test]
     fn malformed_digests_are_rejected() {
         assert_eq!(parse_digest("abab"), None);
         assert_eq!(parse_digest("sha256:abc"), None);
-        assert_eq!(parse_digest(&alloc::format!("sha256:{}", "zz".repeat(32))), None);
-        assert_eq!(parse_digest(&alloc::format!("sha1:{}", "ab".repeat(32))), None);
+        assert_eq!(
+            parse_digest(&alloc::format!("sha256:{}", "zz".repeat(32))),
+            None
+        );
+        assert_eq!(
+            parse_digest(&alloc::format!("sha1:{}", "ab".repeat(32))),
+            None
+        );
     }
 }
