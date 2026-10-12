@@ -1,0 +1,18 @@
+[package]
+name = "iobewi-esp-firmware-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "ESP NOR artifact storage adapter shared by firmware domains"
+
+[features]
+default = []
+esp32c3 = ["iobewi-esp-partitions/esp32c3"]
+esp32s3 = ["iobewi-esp-partitions/esp32s3"]
+
+[dependencies]
+iobewi-firmware-update = { path = "../../../../common/firmware/update" }
+iobewi-esp-partitions = { path = "../../flash/partitions", default-features = false }
+embedded-storage = "0.3.1"
