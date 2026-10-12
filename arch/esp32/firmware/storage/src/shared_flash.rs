@@ -19,7 +19,8 @@ pub const fn erase_size() -> usize {
     <EspFlash as NorFlash>::ERASE_SIZE
 }
 
-pub struct ArtifactWriter {
+pub struct ArtifactWriter<'a> {
+    _permit: &'a InactiveWriteTarget,
     partition: PartitionRange,
     scratch: Box<[u8]>,
     erased_through: u64,
@@ -27,16 +28,17 @@ pub struct ArtifactWriter {
     erase_batches: u32,
 }
 
-impl ArtifactWriter {
+impl<'a> ArtifactWriter<'a> {
     /// Requires the portable inactive-slot authorization proof.
     /// The platform must independently establish running-slot identity.
-    pub fn new(target: InactiveWriteTarget) -> Self {
+    pub fn new(target: &'a InactiveWriteTarget) -> Self {
         let region = target.region();
         let partition = PartitionRange {
             offset: region.offset,
             size: region.size,
         };
         Self {
+            _permit: target,
             partition,
             scratch: vec![0u8; erase_size()].into_boxed_slice(),
             erased_through: 0,
