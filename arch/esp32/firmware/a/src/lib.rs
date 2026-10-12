@@ -11,6 +11,7 @@ pub mod otadata_esp;
 
 pub mod otadata;
 pub mod selection;
+pub mod running;
 
 use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
