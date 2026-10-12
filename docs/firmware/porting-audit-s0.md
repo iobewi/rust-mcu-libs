@@ -90,3 +90,41 @@ The current `docs/firmware/dual-ota.md` still shows proposed `update/core`, `upd
 - **S5**: A-only and A+B examples, real hardware interruption qualification.
 
 **S0 state:** inventory prepared, but detailed function-by-function and test-by-test equivalence remains to be established before claiming S0 PASS.
+
+## Functional API and test-parity audit — S0 continuation
+
+The following public interfaces and historical tests were observed directly in the frozen source repo. They are **migration acceptance criteria**, not new designs.
+
+### A: portable OTA service (historical `firmware/update/src/service*`)
+
+| Historical contract | Required behavior / regression test | Target status |
+| --- | --- | --- |
+| `TargetSelection::write_target`, `prepare`, `begin`, `publish` | Reject incompatible layout/chip/oversized artifacts before state mutation; stage after verified finish | Missing service integration |
+| `BootActivation`, `activate_staged` | Persist intent before activating; restore staged state after activation failure | Missing service integration |
+| `UploadWriter`, `UploadManager` | Manage one session, reject conflicting concurrent activity; verify stream size/digest and handle supersession | Missing service integration |
+| `BootState`, `BootSelfCheck`, `BootWatchdog` | Distinguish confirmed, pending, degraded and rollback; handle timeout and reboot conditions | Missing service integration |
+| `on_boot`, `pending_check`, `confirm_pending`, `reject_pending` | Unknown boot slot cannot cause destructive decision; pending verification is watchdog protected; interrupt after activation reconciles once | Missing service integration |
+| `ConfigSpaceMetadataStore`, `ConfigSpaceBootstrapStore` | Preserve persistent metadata publication and shared flash lock ordering | Missing adapters |
+
+**Historical test names to recover** from `firmware/update/src/service/boot.rs`: `unaccounted_pending_candidate_is_rejected_for_rollback`, `an_unknown_booted_slot_never_triggers_a_destructive_decision`, `pending_check_confirms_rejects_or_times_out_into_a_reset`, `confirmation_commits_the_candidate_or_demands_a_reset_after_rejecting`. From `service/upload.rs`: `prepare_write_activate_publishes_in_order_and_activation_is_by_deployment_id`, `a_new_upload_supersedes_a_staged_one_but_never_an_activating_one`, `prepare_never_holds_the_shared_flash_lock_while_it_reads_metadata`, `upload_begin_and_finish_take_the_shared_lock_only_one_operation_at_a_time`.
+
+### ESP adapter (historical `firmware/esp32/src/shared_flash.rs`)
+
+The old bridge provides `write_target`, `confirm`, `reject`, `activate`, `active_slot`, `image_outcome`, `boot_info`, `hash_preloaded` and a streaming `ArtifactWriter` with `append`, `finish`, `sectors_flushed`, and `erase_batches`. The current `arch/esp32/firmware/a` has individual NOR operations, metadata execution and a *caller-supplied* running-slot report but **not this whole contract**. Specifically do **not** treat `RunningSlot::from_boot_report` as a physical boot-slot detector. Port the legacy adapter and verify its selection and activation semantics instead of inventing replacements.
+
+### B: historically named Workload update
+
+The historical `workload/update/src/machine.rs` provides `WorkloadUpdater::{recover,prepare,begin_overwrite,commit_staged,preflight_activate,begin_activation,complete_activation,activate,confirm,begin_rollback,complete_rollback,rollback}` and `WorkloadActivator`. `store.rs` implements two-copy `MetadataBackend` and `MetadataStore::{load,commit}`. The service layer handles prepare/stream/stage/activation with capability gating; the supervisor reconciles persistent state with actual running state.
+
+**Migration rule:** A and B are generic firmware domains; these historical Workload APIs are behavioral references, **not** a mandate to rename generic B as Workload or to duplicate the update engine. Preserve B's separate activation and rollback behavior as policy/composition.
+
+### Target correction ordering
+
+1. Restore portable A service interfaces and original host tests before moving ESP bindings.
+2. Restore and compare ESP adapter `ArtifactWriter` (sector flushing, hash, partition bounds), plus lock boundaries.
+3. Port the legacy bootloader binary and adapter operations, preserving on-flash bytes and failure ordering.
+4. Port B machine, store, service and supervisor with their regression and fault-injection tests.
+5. Replace `firmware/a` only after the responsibility-based crates cover its API/tests.
+
+**New S0 evidence:** Direct interface and test-name comparison completed for A service, ESP shared flash writer, B machine/store. Remaining S0 work: complete all-file / test-by-test coverage and establish parity verdicts. No functional parity asserted.
+
