@@ -5,9 +5,9 @@
 //! partition selection and boot decisions. Safe for independent domains A/B.
 //! The caller must enforce inactive-slot selection before writing.
 
-use iobewi_firmware_update::ArtifactStorage;
 use embedded_storage::nor_flash::NorFlash;
 use iobewi_esp_partitions::{PartitionRange, erase_range as erase_raw_partition_range};
+use iobewi_firmware_update::ArtifactStorage;
 
 /// Failure while committing artifact bytes to ESP NOR flash.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,13 +40,7 @@ pub fn erase_partition_range<F>(
 where
     F: NorFlash,
 {
-    erase_raw_partition_range(
-        flash,
-        partition,
-        logical_from,
-        logical_to,
-    )
-    .map_err(|e| match e {
+    erase_raw_partition_range(flash, partition, logical_from, logical_to).map_err(|e| match e {
         iobewi_esp_partitions::PartitionError::AddressOverflow => FlashWriteError::AddressOverflow,
         iobewi_esp_partitions::PartitionError::Unaligned => FlashWriteError::Unaligned,
         _ => FlashWriteError::Flash,
@@ -119,7 +113,8 @@ where
             return Err(FlashWriteError::Flash);
         }
 
-        let logical_offset = usize::try_from(logical_offset).map_err(|_| FlashWriteError::AddressOverflow)?;
+        let logical_offset =
+            usize::try_from(logical_offset).map_err(|_| FlashWriteError::AddressOverflow)?;
         if logical_offset % F::ERASE_SIZE != 0 {
             return Err(FlashWriteError::Unaligned);
         }
@@ -149,7 +144,9 @@ where
         let erase_end = u32::try_from(erase_end).map_err(|_| FlashWriteError::AddressOverflow)?;
 
         if self.erase_before_write {
-            self.flash.erase(absolute, erase_end).map_err(|_| FlashWriteError::Flash)?;
+            self.flash
+                .erase(absolute, erase_end)
+                .map_err(|_| FlashWriteError::Flash)?;
         }
         self.flash
             .write(absolute, &self.scratch[..padded])
