@@ -1,1 +1,3 @@
-{"profile":"host"}
+{
+  "profile": "esp32"
+}
