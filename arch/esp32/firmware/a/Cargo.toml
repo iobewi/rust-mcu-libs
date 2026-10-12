@@ -10,6 +10,7 @@ description = "ESP32 legacy firmware A slot and otadata partition mapping"
 [dependencies]
 iobewi-firmware-slots = { path = "../../../../common/firmware/slots" }
 iobewi-firmware-boot = { path = "../../../../common/firmware/boot" }
+iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
 
 [features]
 default = []
