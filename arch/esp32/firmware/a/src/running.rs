@@ -50,6 +50,18 @@ pub fn select_inactive(
     selection::inactive(layout, metadata, boot_report.map(RunningSlot::index))
 }
 
+/// Authorize using a partition reported independently by the execution
+/// platform. The adapter MUST obtain this from the actual running image,
+/// never by reading the desired OTA slot or transactional metadata.
+pub fn authorize_observed_partition(
+    layout: &Layout,
+    metadata: [Raw; SECTOR_COUNT],
+    observed: Option<Partition>,
+) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, AuthorizedSelectionError> {
+    let running = observed.and_then(|p| from_running_partition(layout, p));
+    authorize_inactive(layout, metadata, running)
+}
+
 /// Combine A's historical transactional selection with the common write gate.
 /// The boot report MUST be independently obtained; this adapter does not
 /// observe running hardware. Until such an observer exists, callers must fail
