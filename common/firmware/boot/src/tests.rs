@@ -697,13 +697,13 @@ fn check(f: &Flash, ctx: &Ctx) -> Result<Plan, String> {
     let dec = decoded(f);
     let mut valid_present = false;
     for d in &dec {
-        if let Decoded::Ok(entry) = d {
-            if entry.state == state::VALID {
-                if !ctx.allowed_valid.contains(entry) {
-                    return Err(format!("forged Valid entry {entry:?}"));
-                }
-                valid_present = true;
+        if let Decoded::Ok(entry) = d
+            && entry.state == state::VALID
+        {
+            if !ctx.allowed_valid.contains(entry) {
+                return Err(format!("forged Valid entry {entry:?}"));
             }
+            valid_present = true;
         }
     }
     if ctx.keep_valid && !valid_present {
