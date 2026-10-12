@@ -4,8 +4,6 @@
 //! Pure validation, independent of flash access. The actual flash reader,
 //! writer and custom transactional-boot-metadata-compatible bootloader are separate integration gates.
 
-
-
 use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
 pub const PARTITION_LAYOUT: &str = "embewi-ab-v1";
