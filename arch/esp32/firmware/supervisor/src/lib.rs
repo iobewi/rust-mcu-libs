@@ -60,20 +60,20 @@ impl SupervisorState {
         self.writing = true;
         Ok(WriteGuard {
             owner: self,
-            permit: Some(permit),
+            permit,
         })
     }
 }
 
 pub struct WriteGuard<'a> {
     owner: &'a mut SupervisorState,
-    permit: Option<InactiveWriteTarget>,
+    permit: InactiveWriteTarget,
 }
 
 impl WriteGuard<'_> {
-    /// Consume the permit once. Keep this guard alive while writing.
-    pub fn take_permit(&mut self) -> Option<InactiveWriteTarget> {
-        self.permit.take()
+    /// Borrow the permit; a writer constructed from it cannot outlive this guard.
+    pub fn permit(&self) -> &InactiveWriteTarget {
+        &self.permit
     }
 }
 
@@ -112,10 +112,8 @@ mod tests {
                 AuthorizationError::ActiveTarget
             ))
         ));
-        let mut guard = s.authorize_inactive(&layout(), Slot::One).unwrap();
-        let permit = guard.take_permit().unwrap();
-        assert_eq!(permit.region().offset, 0x60000);
-        assert!(guard.take_permit().is_none());
+        let guard = s.authorize_inactive(&layout(), Slot::One).unwrap();
+        assert_eq!(guard.permit().region().offset, 0x60000);
         drop(guard);
         s.set_running(Some(Slot::One)).unwrap();
     }
