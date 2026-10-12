@@ -32,7 +32,7 @@ pub trait Flash {
 
 fn sector_at<E>(part: Partition, sector: usize) -> Result<u32, Error<E>> {
     if part.size < SECTOR_SIZE * SECTOR_COUNT as u32
-        || part.offset % SECTOR_SIZE != 0
+        || !part.offset.is_multiple_of(SECTOR_SIZE)
         || sector >= SECTOR_COUNT
     {
         return Err(Error::BadPartition);
