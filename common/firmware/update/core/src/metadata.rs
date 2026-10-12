@@ -3,12 +3,19 @@
 //! The serialized `OTM1` record must remain readable by deployed firmware.
 //! Targets are opaque names; the platform adapter translates them to slots.
 
+use crate::{
+    Action, ArtifactRecord, BackendOutcome, Digest, TransactionMetadata, TransactionRecord,
+    TransactionState, reconcile,
+};
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::{Action, ArtifactRecord, BackendOutcome, Digest, TransactionMetadata, TransactionRecord, TransactionState, reconcile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MetadataError { Persistence, Corrupt, TooLarge }
+pub enum MetadataError {
+    Persistence,
+    Corrupt,
+    TooLarge,
+}
 
 const METADATA_MAGIC: &[u8; 4] = b"OTM1";
 const METADATA_HEADER_LEN: usize = 19;
@@ -75,15 +82,25 @@ pub trait MetadataStore {
 }
 
 pub async fn load_metadata<S: MetadataStore>(store: &S) -> Result<Metadata, MetadataError> {
-    match store.load_raw().await.map_err(|_| MetadataError::Persistence)? {
+    match store
+        .load_raw()
+        .await
+        .map_err(|_| MetadataError::Persistence)?
+    {
         Some(raw) => Metadata::decode(&raw),
         None => Ok(Metadata::default()),
     }
 }
 
-pub async fn save_metadata<S: MetadataStore>(store: &S, metadata: &Metadata) -> Result<(), MetadataError> {
+pub async fn save_metadata<S: MetadataStore>(
+    store: &S,
+    metadata: &Metadata,
+) -> Result<(), MetadataError> {
     let bytes = metadata.encode()?;
-    store.commit_raw(&bytes).await.map_err(|_| MetadataError::Persistence)
+    store
+        .commit_raw(&bytes)
+        .await
+        .map_err(|_| MetadataError::Persistence)
 }
 
 pub async fn clear_staged<S: MetadataStore>(store: &S) -> Result<(), MetadataError> {
@@ -92,18 +109,26 @@ pub async fn clear_staged<S: MetadataStore>(store: &S) -> Result<(), MetadataErr
     save_metadata(store, &metadata).await
 }
 
-pub async fn load_transaction<S: MetadataStore>(store: &S) -> Result<Option<Transaction>, MetadataError> {
+pub async fn load_transaction<S: MetadataStore>(
+    store: &S,
+) -> Result<Option<Transaction>, MetadataError> {
     let metadata = load_metadata(store).await?;
     Ok(transaction_from_staged(&metadata.staged))
 }
 
-pub async fn commit_transaction<S: MetadataStore>(store: &S, record: Option<&Transaction>) -> Result<(), MetadataError> {
+pub async fn commit_transaction<S: MetadataStore>(
+    store: &S,
+    record: Option<&Transaction>,
+) -> Result<(), MetadataError> {
     let mut metadata = load_metadata(store).await?;
     metadata.set_staged(staged_from_transaction(record)?);
     save_metadata(store, &metadata).await
 }
 
-pub async fn promote_staged<S: MetadataStore>(store: &S, staged: &Staged) -> Result<(), MetadataError> {
+pub async fn promote_staged<S: MetadataStore>(
+    store: &S,
+    staged: &Staged,
+) -> Result<(), MetadataError> {
     let mut metadata = load_metadata(store).await?;
     metadata.promote_staged(staged);
     save_metadata(store, &metadata).await
@@ -122,8 +147,12 @@ pub async fn finish_validation<S: MetadataStore>(
     store: &S,
     staged: &Staged,
 ) -> Result<(), FinishValidationError> {
-    promote_staged(store, staged).await.map_err(FinishValidationError::Promote)?;
-    clear_staged(store).await.map_err(FinishValidationError::Clear)
+    promote_staged(store, staged)
+        .await
+        .map_err(FinishValidationError::Promote)?;
+    clear_staged(store)
+        .await
+        .map_err(FinishValidationError::Clear)
 }
 
 /// The pending image has this long to pass the application self-check.
@@ -176,8 +205,7 @@ impl Metadata {
             return Err(MetadataError::TooLarge);
         }
 
-        let total = METADATA_HEADER_LEN
-            + fields.iter().map(|field| field.len()).sum::<usize>();
+        let total = METADATA_HEADER_LEN + fields.iter().map(|field| field.len()).sum::<usize>();
         if total > Self::MAX_BYTES {
             return Err(MetadataError::TooLarge);
         }
@@ -238,7 +266,13 @@ impl Metadata {
         }
 
         Ok(Self {
-            staged: Staged { stage, slot, digest, deployment_id, size },
+            staged: Staged {
+                stage,
+                slot,
+                digest,
+                deployment_id,
+                size,
+            },
             active_digest,
             active_deployment_id,
         })
@@ -269,10 +303,20 @@ impl TransactionMetadata for MemoryTransactionMetadata {
 
 /// Publish one verified firmware artifact as an IOBEWI transaction. The
 /// platform provides only the target name; the OTA service owns the record shape.
-pub fn firmware_record(deployment_id: String, size: u64, digest: Digest, target: String) -> Transaction {
+pub fn firmware_record(
+    deployment_id: String,
+    size: u64,
+    digest: Digest,
+    target: String,
+) -> Transaction {
     Transaction::staged(
         deployment_id,
-        ArtifactRecord { id: String::from("firmware"), size, digest, target },
+        ArtifactRecord {
+            id: String::from("firmware"),
+            size,
+            digest,
+            target,
+        },
     )
 }
 
@@ -364,7 +408,12 @@ impl PrepareRefusal {
 }
 
 /// Check compatibility before examining any flash or metadata.
-pub fn check_compatibility(chip: &str, layout: &str, platform_chip: &str, platform_layout: &str) -> Result<(), PrepareRefusal> {
+pub fn check_compatibility(
+    chip: &str,
+    layout: &str,
+    platform_chip: &str,
+    platform_layout: &str,
+) -> Result<(), PrepareRefusal> {
     if chip != platform_chip {
         return Err(PrepareRefusal::ChipMismatch);
     }
@@ -385,7 +434,11 @@ pub fn check_target(size: u64, capacity: Option<u64>) -> Result<(), PrepareRefus
 }
 
 pub fn check_staged(record: Option<&Transaction>) -> Result<(), PrepareRefusal> {
-    if can_supersede(record) { Ok(()) } else { Err(PrepareRefusal::Busy) }
+    if can_supersede(record) {
+        Ok(())
+    } else {
+        Err(PrepareRefusal::Busy)
+    }
 }
 
 /// Reconcile the persisted OTA record against the platform's boot report.
@@ -419,7 +472,9 @@ mod tests {
 
     fn ready<F: Future>(future: F) -> F::Output {
         struct Noop;
-        impl Wake for Noop { fn wake(self: Arc<Self>) {} }
+        impl Wake for Noop {
+            fn wake(self: Arc<Self>) {}
+        }
         let waker = Waker::from(Arc::new(Noop));
         let mut future = std::pin::pin!(future);
         match future.as_mut().poll(&mut Context::from_waker(&waker)) {
@@ -432,7 +487,8 @@ mod tests {
     fn reads_existing_otm1_record_and_keeps_its_layout() {
         // Existing NVS layout: magic, state, u32 size, five u16 lengths,
         // then slot, staged digest, deployment, active digest and deployment.
-        let legacy = b"OTM1\x01\x00\x04\x00\x00\x05\x00\x00\x00\x08\x00\x00\x00\x00\x00ota_1deploy-1";
+        let legacy =
+            b"OTM1\x01\x00\x04\x00\x00\x05\x00\x00\x00\x08\x00\x00\x00\x00\x00ota_1deploy-1";
         let stored = Metadata::decode(legacy).unwrap();
         assert_eq!(stored.staged.stage.as_str(), "written");
         assert_eq!(stored.staged.size, 1024);
@@ -444,7 +500,13 @@ mod tests {
     #[test]
     fn rejects_trailing_data() {
         let metadata = Metadata {
-            staged: Staged { stage: Stage::Written, slot: String::from("ota_1"), digest: format_digest(&Digest([0x42; 32])), deployment_id: String::from("deploy-1"), size: 1024 },
+            staged: Staged {
+                stage: Stage::Written,
+                slot: String::from("ota_1"),
+                digest: format_digest(&Digest([0x42; 32])),
+                deployment_id: String::from("deploy-1"),
+                size: 1024,
+            },
             active_digest: String::from("old"),
             active_deployment_id: String::from("deploy-0"),
         };
@@ -456,38 +518,71 @@ mod tests {
         assert_eq!(restored.active_deployment_id, "deploy-0");
         let mut corrupted = bytes;
         corrupted.push(0);
-        assert!(matches!(Metadata::decode(&corrupted), Err(MetadataError::Corrupt)));
+        assert!(matches!(
+            Metadata::decode(&corrupted),
+            Err(MetadataError::Corrupt)
+        ));
     }
 
     #[test]
     fn transaction_keeps_an_opaque_platform_target() {
         let record = Transaction::staged(
             String::from("deploy"),
-            ArtifactRecord { id: String::from("firmware"), size: 10, digest: Digest([0x13; 32]), target: String::from("bank-b") },
+            ArtifactRecord {
+                id: String::from("firmware"),
+                size: 10,
+                digest: Digest([0x13; 32]),
+                target: String::from("bank-b"),
+            },
         );
         let staged = staged_from_transaction(Some(&record)).unwrap();
         assert_eq!(staged.slot, "bank-b");
-        assert_eq!(transaction_from_staged(&staged).unwrap().artifacts[0].target, "bank-b");
+        assert_eq!(
+            transaction_from_staged(&staged).unwrap().artifacts[0].target,
+            "bank-b"
+        );
         assert!(can_supersede(Some(&record)));
-        assert!(!can_supersede(Some(&record.with_state(TransactionState::Activating))));
+        assert!(!can_supersede(Some(
+            &record.with_state(TransactionState::Activating)
+        )));
     }
 
     #[test]
     fn prepare_refuses_an_activating_transaction_without_erasing_it() {
         let record = Transaction::staged(
             String::from("deploy"),
-            ArtifactRecord { id: String::from("firmware"), size: 10, digest: Digest([0x13; 32]), target: String::from("bank-b") },
-        ).with_state(TransactionState::Activating);
+            ArtifactRecord {
+                id: String::from("firmware"),
+                size: 10,
+                digest: Digest([0x13; 32]),
+                target: String::from("bank-b"),
+            },
+        )
+        .with_state(TransactionState::Activating);
         assert_eq!(check_staged(Some(&record)), Err(PrepareRefusal::Busy));
-        assert_eq!(check_target(11, Some(10)), Err(PrepareRefusal::SizeTooLarge));
-        assert_eq!(check_compatibility("RP2350", "v1", "ESP32-S3", "v1"), Err(PrepareRefusal::ChipMismatch));
+        assert_eq!(
+            check_target(11, Some(10)),
+            Err(PrepareRefusal::SizeTooLarge)
+        );
+        assert_eq!(
+            check_compatibility("RP2350", "v1", "ESP32-S3", "v1"),
+            Err(PrepareRefusal::ChipMismatch)
+        );
         assert_eq!(record.state, TransactionState::Activating);
     }
 
     #[test]
     fn continuing_upload_keeps_identity_and_accepts_uppercase_digest() {
-        let session = SessionParams { deployment_id: String::from("deploy"), digest: String::from("sha256:abc"), total: 10 };
-        let next = SessionParams { deployment_id: String::from("deploy"), digest: String::from("sha256:ABC"), total: 10 };
+        let session = SessionParams {
+            deployment_id: String::from("deploy"),
+            digest: String::from("sha256:abc"),
+            total: 10,
+        };
+        let next = SessionParams {
+            deployment_id: String::from("deploy"),
+            digest: String::from("sha256:ABC"),
+            total: 10,
+        };
         assert!(session.matches(&next));
         assert!(!session.matches(&SessionParams { total: 11, ..next }));
     }
@@ -499,8 +594,14 @@ mod tests {
             slot: String::from("bank-b"),
             ..Staged::default()
         };
-        assert_eq!(boot_action(&staged, BackendOutcome::PendingConfirmation, None), Action::AwaitConfirmation);
-        assert_eq!(boot_action(&staged, BackendOutcome::PendingConfirmation, Some("bank-a")), Action::RollbackUnaccounted);
+        assert_eq!(
+            boot_action(&staged, BackendOutcome::PendingConfirmation, None),
+            Action::AwaitConfirmation
+        );
+        assert_eq!(
+            boot_action(&staged, BackendOutcome::PendingConfirmation, Some("bank-a")),
+            Action::RollbackUnaccounted
+        );
     }
 
     #[test]
@@ -565,7 +666,10 @@ mod tests {
             raw: RefCell::new(Some(initial.encode().unwrap())),
             commits: RefCell::new(0),
         };
-        assert_eq!(ready(finish_validation(&store, &staged)), Err(FinishValidationError::Clear(MetadataError::Persistence)));
+        assert_eq!(
+            ready(finish_validation(&store, &staged)),
+            Err(FinishValidationError::Clear(MetadataError::Persistence))
+        );
         let interrupted = ready(load_metadata(&store)).unwrap();
         assert!(interrupted.staged.stage == Stage::Activating);
         assert_eq!(interrupted.active_deployment_id, "new");
@@ -579,8 +683,14 @@ mod tests {
 
     #[test]
     fn pending_check_only_confirms_after_success() {
-        assert_eq!(pending_check_action(Some(true)), PendingCheckAction::Confirm);
-        assert_eq!(pending_check_action(Some(false)), PendingCheckAction::Reject);
+        assert_eq!(
+            pending_check_action(Some(true)),
+            PendingCheckAction::Confirm
+        );
+        assert_eq!(
+            pending_check_action(Some(false)),
+            PendingCheckAction::Reject
+        );
         assert_eq!(pending_check_action(None), PendingCheckAction::Reset);
     }
 }
