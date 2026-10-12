@@ -91,6 +91,8 @@ jobs:
         run: |
           cargo test -p iobewi-firmware-update --features runtime
           cargo clippy -p iobewi-firmware-update --features runtime --all-targets -- -D warnings
+          cargo test -p iobewi-firmware-update --features 'runtime config-space'
+          cargo clippy -p iobewi-firmware-update --features 'runtime config-space' --all-targets -- -D warnings
       - name: Optional WebSocket feature tests and Clippy
         if: matrix.package == 'iobewi-http-client'
         run: |
