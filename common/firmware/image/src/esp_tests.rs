@@ -371,10 +371,10 @@ fn accepted_images_never_overlap_the_bootloader_or_leave_the_map() {
                     if let Some(t) = seg.ram_target(&MAP)
                         && !MAP.rtc.contains(&seg.load)
                     {
-                            assert!(
-                                t + seg.len <= MAP.boot_window.start || t >= MAP.boot_window.end,
-                                "{seg:?} overlaps the bootloader"
-                            );
+                        assert!(
+                            t + seg.len <= MAP.boot_window.start || t >= MAP.boot_window.end,
+                            "{seg:?} overlaps the bootloader"
+                        );
                     }
                     assert!(seg.data_offset + seg.len <= PART_OFFSET + PART_SIZE);
                 }
