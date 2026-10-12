@@ -41,25 +41,58 @@ mod tests {
     use iobewi_firmware_boot::{Entry, state};
     fn layout() -> Layout {
         Layout {
-            images: [Partition { offset: 0x20000, size: 0x180000 }, Partition { offset: 0x1a0000, size: 0x180000 }],
-            otadata: Partition { offset: 0xd000, size: 0x2000 },
+            images: [
+                Partition {
+                    offset: 0x20000,
+                    size: 0x180000,
+                },
+                Partition {
+                    offset: 0x1a0000,
+                    size: 0x180000,
+                },
+            ],
+            otadata: Partition {
+                offset: 0xd000,
+                size: 0x2000,
+            },
         }
     }
 
     #[test]
     fn never_return_running_slot() {
-        let data = [Entry::new(1, state::VALID).encode(), iobewi_firmware_boot::BLANK];
+        let data = [
+            Entry::new(1, state::VALID).encode(),
+            iobewi_firmware_boot::BLANK,
+        ];
         assert_eq!(inactive(&layout(), data, Some(0)), Ok(layout().images[1]));
-        assert_eq!(inactive(&layout(), data, Some(1)), Err(SelectionError::RunningSlotMismatch));
-        assert_eq!(inactive(&layout(), data, None), Err(SelectionError::UnknownRunningSlot));
-        assert_eq!(inactive(&layout(), data, Some(2)), Err(SelectionError::InvalidRunningSlot));
+        assert_eq!(
+            inactive(&layout(), data, Some(1)),
+            Err(SelectionError::RunningSlotMismatch)
+        );
+        assert_eq!(
+            inactive(&layout(), data, None),
+            Err(SelectionError::UnknownRunningSlot)
+        );
+        assert_eq!(
+            inactive(&layout(), data, Some(2)),
+            Err(SelectionError::InvalidRunningSlot)
+        );
     }
 
     #[test]
     fn reject_untrusted_or_stale_metadata() {
         let blank = [iobewi_firmware_boot::BLANK; SECTOR_COUNT];
-        assert_eq!(inactive(&layout(), blank, Some(0)), Err(SelectionError::NoTrustedImage));
-        let new_only = [Entry::new(2, state::NEW).encode(), iobewi_firmware_boot::BLANK];
-        assert_eq!(inactive(&layout(), new_only, Some(1)), Err(SelectionError::NoTrustedImage));
+        assert_eq!(
+            inactive(&layout(), blank, Some(0)),
+            Err(SelectionError::NoTrustedImage)
+        );
+        let new_only = [
+            Entry::new(2, state::NEW).encode(),
+            iobewi_firmware_boot::BLANK,
+        ];
+        assert_eq!(
+            inactive(&layout(), new_only, Some(1)),
+            Err(SelectionError::NoTrustedImage)
+        );
     }
 }
