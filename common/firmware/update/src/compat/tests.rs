@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::otm2::{DecodeError, Record, RuntimeApi, Side, SlotMeta, State, RECORD_LEN, newer};
+    use super::otm2::{DecodeError, RECORD_LEN, Record, RuntimeApi, Side, SlotMeta, State, newer};
     use super::otm2_store::{Loaded, MetadataBackend, MetadataStore};
 
     #[test]
@@ -8,7 +8,14 @@ mod tests {
         let mut record = Record::empty(7);
         record.state = State::Valid;
         record.active = Some(Side::A);
-        record.meta[0] = SlotMeta::new("firmware-b", "1.2.3", [0xA5; 32], 4096, RuntimeApi::new(1, 2)).unwrap();
+        record.meta[0] = SlotMeta::new(
+            "firmware-b",
+            "1.2.3",
+            [0xA5; 32],
+            4096,
+            RuntimeApi::new(1, 2),
+        )
+        .unwrap();
         let bytes = record.encode();
         assert_eq!(&bytes[..4], b"OTM2");
         assert_eq!(bytes.len(), RECORD_LEN);
@@ -36,7 +43,9 @@ mod tests {
 
     #[test]
     fn double_copy_keeps_last_valid_when_newest_is_torn() {
-        let mut store = MetadataStore::new(Memory { copies: [[0xFF; RECORD_LEN]; 2] });
+        let mut store = MetadataStore::new(Memory {
+            copies: [[0xFF; RECORD_LEN]; 2],
+        });
         assert_eq!(store.load(), Ok(Loaded::Blank));
         let old = Record::empty(u32::MAX);
         let new = Record::empty(0);
@@ -44,7 +53,9 @@ mod tests {
         store.commit(&new).unwrap();
         assert!(matches!(store.load(), Ok(Loaded::Record {record, ..}) if record.sequence == 0));
         store.backend_mut().copies[1][40] ^= 0x20;
-        assert!(matches!(store.load(), Ok(Loaded::Record {record, degraded: true, ..}) if record.sequence == u32::MAX));
+        assert!(
+            matches!(store.load(), Ok(Loaded::Record {record, degraded: true, ..}) if record.sequence == u32::MAX)
+        );
         assert!(newer(0, u32::MAX));
     }
 }
