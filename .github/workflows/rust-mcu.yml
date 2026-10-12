@@ -86,6 +86,11 @@ jobs:
         env:
           PKG: ${{ matrix.package }}
         run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+      - name: Firmware OTA runtime feature tests and Clippy
+        if: matrix.package == 'iobewi-firmware-update'
+        run: |
+          cargo test -p iobewi-firmware-update --features runtime
+          cargo clippy -p iobewi-firmware-update --features runtime --all-targets -- -D warnings
       - name: Optional WebSocket feature tests and Clippy
         if: matrix.package == 'iobewi-http-client'
         run: |
