@@ -20,4 +20,6 @@ pub use artifact::{Committed, Digest, ResumePlan, WriteSession, is_complete, res
 pub use error::Error;
 pub use state::{Action, BackendOutcome, TransactionState};
 pub use storage::{ArtifactStorage, TransactionMetadata};
-pub use transaction::{ArtifactRecord, TransactionRecord, activate, clear_stale, finish, reconcile};
+pub use transaction::{
+    ArtifactRecord, TransactionRecord, activate, clear_stale, finish, reconcile,
+};
