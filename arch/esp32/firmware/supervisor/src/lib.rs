@@ -3,9 +3,7 @@
 //! Domain B: supervisor-owned workload state and inactive write authorization.
 //! This is NOT a bootloader and never uses otadata.
 //! The supervisor must own this value exclusively for the full write transaction.
-use iobewi_firmware_layout::authorization::{
-    AuthorizationError, InactiveWriteTarget, authorize_b,
-};
+use iobewi_firmware_layout::authorization::{AuthorizationError, InactiveWriteTarget, authorize_b};
 use iobewi_firmware_layout::domain_b::WorkloadLayout;
 use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
@@ -110,7 +108,9 @@ mod tests {
         s.set_running(Some(Slot::Zero)).unwrap();
         assert!(matches!(
             s.authorize_inactive(&layout(), Slot::Zero),
-            Err(SupervisorError::Authorization(AuthorizationError::ActiveTarget))
+            Err(SupervisorError::Authorization(
+                AuthorizationError::ActiveTarget
+            ))
         ));
         let mut guard = s.authorize_inactive(&layout(), Slot::One).unwrap();
         let permit = guard.take_permit().unwrap();
