@@ -1,0 +1,12 @@
+[package]
+name = "iobewi-firmware-update-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable firmware artifact streaming and update transaction engine"
+
+[dependencies]
+iobewi-firmware-image = { path = "../../image", features = ["alloc"] }
+sha2 = { version = "0.10", default-features = false }
