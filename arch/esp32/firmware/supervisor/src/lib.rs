@@ -88,6 +88,48 @@ impl WriteGuard<'_> {
     }
 }
 
+/// An ESP OTA write session whose writer cannot outlive the supervisor guard.
+/// Dropping an incomplete session never changes the active workload.
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+pub struct WorkloadWriteSession<'a> {
+    writer: iobewi_esp_firmware_storage::shared_flash::ArtifactWriter<'a>,
+    engine: iobewi_firmware_update::WriteSession,
+}
+
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+impl WriteGuard<'_> {
+    /// Begin a streaming update of this guard's authorized inactive slot.
+    pub fn begin_update(
+        &self,
+        total: u64,
+        digest: iobewi_firmware_update::Digest,
+    ) -> WorkloadWriteSession<'_> {
+        WorkloadWriteSession {
+            writer: self.writer(),
+            engine: iobewi_firmware_update::WriteSession::begin(total, digest),
+        }
+    }
+}
+
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+impl WorkloadWriteSession<'_> {
+    pub async fn append(&mut self, flash: &iobewi_esp_flash::SharedFlash, data: &[u8]) -> bool {
+        self.writer.append(flash, &mut self.engine, data).await
+    }
+
+    /// Only successful digest verification yields Committed. Activation is
+    /// deliberately a distinct supervisor decision, not a side effect here.
+    pub async fn finish(
+        self,
+        flash: &iobewi_esp_flash::SharedFlash,
+    ) -> Result<
+        iobewi_firmware_update::Committed,
+        iobewi_firmware_update::Error<iobewi_esp_firmware_storage::FlashWriteError>,
+    > {
+        self.writer.finish(flash, self.engine).await
+    }
+}
+
 impl Drop for WriteGuard<'_> {
     fn drop(&mut self) {
         self.owner.writing = false;
