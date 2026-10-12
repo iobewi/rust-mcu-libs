@@ -6,7 +6,7 @@
 
 use crate::Partition;
 use iobewi_firmware_boot::{
-    BLANK, COMMIT, Decoded, ENTRY_SIZE, Entry, OFF_COMMIT, Raw, SECTOR_COUNT, Write, decode,
+    BLANK, COMMIT, Decoded, ENTRY_SIZE, OFF_COMMIT, Raw, SECTOR_COUNT, Write, decode,
 };
 
 const SECTOR_SIZE: u32 = 4096;
