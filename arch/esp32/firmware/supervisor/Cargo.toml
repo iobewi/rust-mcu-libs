@@ -7,6 +7,15 @@ license.workspace = true
 repository.workspace = true
 description = "Exclusive supervisor-owned workload slot authorization for ESP"
 
+[features]
+default = []
+esp32c3 = ["dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32c3"]
+esp32s3 = ["dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32s3"]
+
 [dependencies]
 iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
 iobewi-firmware-slots = { path = "../../../../common/firmware/slots" }
+
+[dependencies.iobewi-esp-firmware-storage]
+path = "../storage"
+optional = true
