@@ -46,6 +46,23 @@ Status terminology: **present** = source-equivalent file or component exists, NO
 | `workload/update/src/{tests,tests_nor,tests_service,tests_supervisor,testing}.rs` | Only some codec tests ported | Partial | S4 restore behavioral, fault-injection and service coverage |
 | `net/http/ota/` | Not included in this firmware-core comparison | Not assessed | Later transport boundary check; do not conflate HTTP with engine |
 
+## Initial byte-level source comparison (frozen commits)
+
+This comparison is of UTF-8 source text, **not** encoded firmware records and **not** a behavioral-equivalence test.
+
+| Old → current file | Exact source text? |
+| --- | --- |
+| `firmware/update/src/storage.rs` → `common/firmware/update/src/storage.rs` | Yes |
+| `firmware/update/src/state.rs` → `common/firmware/update/src/state.rs` | Yes |
+| `firmware/update/src/artifact.rs` → `common/firmware/update/src/artifact.rs` | No |
+| `firmware/update/src/transaction.rs` → `common/firmware/update/src/transaction.rs` | No |
+| `firmware/boot/src/lib.rs` → `common/firmware/boot/src/lib.rs` | No |
+| `firmware/image/src/lib.rs` → `common/firmware/image/src/lib.rs` | No |
+| `firmware/image/src/esp.rs` → `common/firmware/image/src/esp.rs` | No |
+| `workload/update/src/otm2.rs` → `common/firmware/update/src/compat/otm2.rs` | No |
+
+Differences may be intentional improvements or regressions. Each non-identical pair needs API and test-level comparison before acceptance.
+
 ## Current implementation requiring correction
 
 `arch/esp32/firmware/a` was incrementally built in PRs #46–#52. It contains preflight partition layout, raw bounded flash operations, metadata executor, locking adapter, and selection-report boundary, but **does not demonstrate equivalence** with historical `firmware/esp32`, nor implement the actual bootloader. It must be split by responsibility into `storage/` and `boot/`, retaining only proven logic, after tests have been carried over.
