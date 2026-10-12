@@ -137,8 +137,7 @@ fn the_idf_entry_format_is_forgeable_and_ours_is_not() {
     let mut torn = target;
     torn[24..28].copy_from_slice(&2u32.to_le_bytes());
     assert_eq!(
-        0,
-        0,
+        0, 0,
         "2 is reachable from erased on the way to 0 (bits only get cleared)"
     );
     assert_eq!(
@@ -496,12 +495,7 @@ impl Rng {
 fn partial_bytes(target: u8, thorough: bool) -> Vec<u8> {
     let clears = !target;
     if !thorough {
-        return vec![
-            0xFF,
-            target,
-            !(clears & 0x0F),
-            !(clears & 0xF0),
-        ];
+        return vec![0xFF, target, !(clears & 0x0F), !(clears & 0xF0)];
     }
     let mut out = Vec::new();
     let mut sub = clears;
