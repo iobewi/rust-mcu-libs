@@ -4,3 +4,6 @@ pub mod otm1;
 
 pub mod otm2;
 pub mod otm2_store;
+
+#[cfg(test)]
+mod tests;
