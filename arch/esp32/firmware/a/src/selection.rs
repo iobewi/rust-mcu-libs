@@ -14,7 +14,7 @@ pub enum SelectionError {
 
 /// The selected target is always different from the **observed running slot**.
 /// The observer must come from the execution/boot platform (not untrusted OTA
-/// metadata). If it disagrees with EWBT's newest trusted entry, refuse.
+/// metadata). If it disagrees with the transactional boot metadata's newest trusted entry, refuse.
 pub fn inactive(
     layout: &Layout,
     otadata: [Raw; SECTOR_COUNT],
