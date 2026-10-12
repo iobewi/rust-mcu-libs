@@ -70,7 +70,8 @@ pub fn discover(entries: &[Entry<'_>], flash_size: u32) -> Result<Layout, Layout
             (APP_TYPE, OTA1_SUBTYPE, OTA1) => Some(1),
             _ => None,
         };
-        let is_metadata = (entry.kind, entry.subtype, entry.label) == (DATA_TYPE, OTADATA_SUBTYPE, OTADATA);
+        let is_metadata =
+            (entry.kind, entry.subtype, entry.label) == (DATA_TYPE, OTADATA_SUBTYPE, OTADATA);
         if index.is_none() && !is_metadata {
             continue;
         }
@@ -102,7 +103,10 @@ pub fn discover(entries: &[Entry<'_>], flash_size: u32) -> Result<Layout, Layout
             return Err(LayoutError::Overlapping);
         }
     }
-    Ok(Layout { images: [a0, a1], otadata: meta })
+    Ok(Layout {
+        images: [a0, a1],
+        otadata: meta,
+    })
 }
 
 #[cfg(test)]
@@ -110,12 +114,19 @@ mod tests {
     use super::*;
 
     fn entry(label: &'static str, kind: u8, subtype: u8, offset: u32, size: u32) -> Entry<'static> {
-        Entry { label, kind, subtype, partition: Partition { offset, size } }
+        Entry {
+            label,
+            kind,
+            subtype,
+            partition: Partition { offset, size },
+        }
     }
     fn standard() -> [Entry<'static>; 3] {
-        [entry(OTA0, APP_TYPE, OTA0_SUBTYPE, 0x20000, 0x180000),
-         entry(OTA1, APP_TYPE, OTA1_SUBTYPE, 0x1a0000, 0x180000),
-         entry(OTADATA, DATA_TYPE, OTADATA_SUBTYPE, 0xd000, 0x2000)]
+        [
+            entry(OTA0, APP_TYPE, OTA0_SUBTYPE, 0x20000, 0x180000),
+            entry(OTA1, APP_TYPE, OTA1_SUBTYPE, 0x1a0000, 0x180000),
+            entry(OTADATA, DATA_TYPE, OTADATA_SUBTYPE, 0xd000, 0x2000),
+        ]
     }
 
     #[test]
@@ -123,13 +134,19 @@ mod tests {
         let map = discover(&standard(), 0x400000).unwrap();
         assert_eq!(map.images[0].offset, 0x20000);
         assert_eq!(label(FirmwareSlot::new(Domain::A, Slot::One)), Ok(OTA1));
-        assert_eq!(label(FirmwareSlot::new(Domain::B, Slot::Zero)), Err(LayoutError::UnsupportedDomain));
+        assert_eq!(
+            label(FirmwareSlot::new(Domain::B, Slot::Zero)),
+            Err(LayoutError::UnsupportedDomain)
+        );
         assert_eq!(PARTITION_LAYOUT, "embewi-ab-v1");
     }
     #[test]
     fn reject_missing_duplicate_overlapping_and_out_of_bounds() {
         let e = standard();
-        assert_eq!(discover(&e[..2], 0x400000), Err(LayoutError::MissingMetadata));
+        assert_eq!(
+            discover(&e[..2], 0x400000),
+            Err(LayoutError::MissingMetadata)
+        );
         let mut e = standard();
         e[1] = e[0];
         assert_eq!(discover(&e, 0x400000), Err(LayoutError::Duplicate));
