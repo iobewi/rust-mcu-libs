@@ -11,6 +11,8 @@ extern crate std;
 pub mod artifact;
 pub mod bootstrap;
 pub mod compat;
+#[cfg(feature = "config-space")]
+pub mod config_space;
 pub mod error;
 /// Historical OTA metadata API; reuse the sole OTM1 implementation.
 pub mod metadata {
