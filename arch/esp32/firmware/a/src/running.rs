@@ -26,6 +26,26 @@ impl RunningSlot {
     }
 }
 
+/// Resolve a bootloader-reported image partition against the validated layout.
+/// The observation itself must originate from the running platform, not
+/// from otadata or the proposed update target.
+pub fn from_running_partition(
+    layout: &Layout,
+    observed: Partition,
+) -> Option<RunningSlot> {
+    if layout.images[0] == layout.images[1] {
+        return None;
+    }
+    match (
+        observed == layout.images[0],
+        observed == layout.images[1],
+    ) {
+        (true, false) => Some(RunningSlot::Zero),
+        (false, true) => Some(RunningSlot::One),
+        _ => None,
+    }
+}
+
 /// The boot report must be independently verified by the platform adapter.
 /// Missing, invalid, or contradicting observations fail closed.
 pub fn select_inactive(
@@ -96,6 +116,50 @@ pub enum AuthorizedSelectionError {
 mod tests {
     use super::*;
     use iobewi_firmware_boot::{BLANK, Entry, state};
+
+    #[test]
+    fn reported_partition_must_match_exactly_one_slot() {
+        let layout = Layout {
+            images: [
+                Partition {
+                    offset: 0x20000,
+                    size: 0x180000,
+                },
+                Partition {
+                    offset: 0x1a0000,
+                    size: 0x180000,
+                },
+            ],
+            otadata: Partition {
+                offset: 0xd000,
+                size: 0x2000,
+            },
+        };
+        assert_eq!(
+            from_running_partition(&layout, layout.images[0]),
+            Some(RunningSlot::Zero)
+        );
+        assert_eq!(
+            from_running_partition(&layout, layout.images[1]),
+            Some(RunningSlot::One)
+        );
+        assert_eq!(
+            from_running_partition(
+                &layout,
+                Partition {
+                    offset: 0x20000,
+                    size: 0x1000,
+                },
+            ),
+            None
+        );
+        let mut ambiguous = layout;
+        ambiguous.images[1] = ambiguous.images[0];
+        assert_eq!(
+            from_running_partition(&ambiguous, ambiguous.images[0]),
+            None
+        );
+    }
 
     #[test]
     fn authorization_requires_observed_report_and_matching_metadata() {
