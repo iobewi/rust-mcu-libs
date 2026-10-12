@@ -29,17 +29,11 @@ impl RunningSlot {
 /// Resolve a bootloader-reported image partition against the validated layout.
 /// The observation itself must originate from the running platform, not
 /// from otadata or the proposed update target.
-pub fn from_running_partition(
-    layout: &Layout,
-    observed: Partition,
-) -> Option<RunningSlot> {
+pub fn from_running_partition(layout: &Layout, observed: Partition) -> Option<RunningSlot> {
     if layout.images[0] == layout.images[1] {
         return None;
     }
-    match (
-        observed == layout.images[0],
-        observed == layout.images[1],
-    ) {
+    match (observed == layout.images[0], observed == layout.images[1]) {
         (true, false) => Some(RunningSlot::Zero),
         (false, true) => Some(RunningSlot::One),
         _ => None,
