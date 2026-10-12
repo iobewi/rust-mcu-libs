@@ -77,6 +77,17 @@ impl WriteGuard<'_> {
     }
 }
 
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+impl WriteGuard<'_> {
+    /// Create the ESP writer while retaining the supervisor's exclusive
+    /// authorization. Rust prevents dropping this guard before the writer.
+    /// The caller holds both until verification completes; activation then
+    /// remains a separate supervisor decision.
+    pub fn writer(&self) -> iobewi_esp_firmware_storage::shared_flash::ArtifactWriter<'_> {
+        iobewi_esp_firmware_storage::shared_flash::ArtifactWriter::new(self.permit())
+    }
+}
+
 impl Drop for WriteGuard<'_> {
     fn drop(&mut self) {
         self.owner.writing = false;
