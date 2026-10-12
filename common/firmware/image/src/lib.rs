@@ -17,7 +17,7 @@ pub mod esp;
 
 #[cfg(feature = "alloc")]
 pub use digest::format_digest;
-pub use digest::{parse_digest, Digest};
+pub use digest::{Digest, parse_digest};
 
 #[cfg(test)]
 extern crate alloc;
