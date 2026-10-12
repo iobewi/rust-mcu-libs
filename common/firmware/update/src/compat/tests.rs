@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::otm2::{DecodeError, RECORD_LEN, Record, RuntimeApi, Side, SlotMeta, State, newer};
-    use super::otm2_store::{Loaded, MetadataBackend, MetadataStore};
+    use crate::compat::otm2::{DecodeError, RECORD_LEN, Record, RuntimeApi, Side, SlotMeta, State, newer};
+    use crate::compat::otm2_store::{Loaded, MetadataBackend, MetadataStore};
 
     #[test]
     fn codec_roundtrip_and_corruption() {
