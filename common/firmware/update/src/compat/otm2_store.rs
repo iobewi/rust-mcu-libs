@@ -25,7 +25,11 @@ pub enum Loaded {
     Blank,
     /// The newest valid record, and which copy holds it. `degraded` is true
     /// when the other copy was present but invalid (torn/corrupt).
-    Record { record: Record, copy: usize, degraded: bool },
+    Record {
+        record: Record,
+        copy: usize,
+        degraded: bool,
+    },
     /// No valid copy although at least one is not blank: never replaced by an
     /// invented state.
     Corrupted,
@@ -54,13 +58,21 @@ impl<B: MetadataBackend> MetadataStore<B> {
             *slot = Record::decode(&self.backend.read(copy)?);
         }
         let best = match (decoded[0], decoded[1]) {
-            (Ok(a), Ok(b)) => Some(if newer(b.sequence, a.sequence) { (b, 1) } else { (a, 0) }),
+            (Ok(a), Ok(b)) => Some(if newer(b.sequence, a.sequence) {
+                (b, 1)
+            } else {
+                (a, 0)
+            }),
             (Ok(a), Err(_)) => Some((a, 0)),
             (Err(_), Ok(b)) => Some((b, 1)),
             (Err(_), Err(_)) => None,
         };
         Ok(match best {
-            Some((record, copy)) => Loaded::Record { record, copy, degraded: decoded[1 - copy].is_err() },
+            Some((record, copy)) => Loaded::Record {
+                record,
+                copy,
+                degraded: decoded[1 - copy].is_err(),
+            },
             None if decoded.iter().all(|d| matches!(d, Err(DecodeError::Blank))) => Loaded::Blank,
             None => Loaded::Corrupted,
         })
