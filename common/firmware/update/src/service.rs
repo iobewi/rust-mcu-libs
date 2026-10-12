@@ -5,6 +5,11 @@
 
 use alloc::string::String;
 
+#[cfg(feature = "runtime")]
+pub mod boot;
+#[cfg(feature = "runtime")]
+pub mod upload;
+
 use crate::metadata::{
     MemoryTransactionMetadata, MetadataError, MetadataStore, PrepareRefusal, SessionParams,
     can_supersede, check_compatibility, check_staged, check_target, commit_transaction,
