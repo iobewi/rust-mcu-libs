@@ -62,6 +62,30 @@ pub fn authorize_observed_partition(
     authorize_inactive(layout, metadata, running)
 }
 
+/// Use the existing exclusive ESP flash metadata reader, rather than letting
+/// the upload caller provide an arbitrary otadata snapshot. The observation
+/// MUST still come from a separate execution-trust source; an otadata-selected
+/// slot is not sufficient evidence of what is running.
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+pub async fn authorize_from_flash(
+    flash: &iobewi_esp_flash::SharedFlash,
+    layout: &Layout,
+    observed: Option<Partition>,
+) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, FlashAuthorizationError> {
+    let records = crate::otadata_esp::read_entries(flash, layout.otadata)
+        .await
+        .map_err(|_| FlashAuthorizationError::Metadata)?;
+    authorize_observed_partition(layout, records, observed)
+        .map_err(FlashAuthorizationError::Authorization)
+}
+
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+#[derive(Debug, PartialEq, Eq)]
+pub enum FlashAuthorizationError {
+    Metadata,
+    Authorization(AuthorizedSelectionError),
+}
+
 /// Combine A's historical transactional selection with the common write gate.
 /// The boot report MUST be independently obtained; this adapter does not
 /// observe running hardware. Until such an observer exists, callers must fail
