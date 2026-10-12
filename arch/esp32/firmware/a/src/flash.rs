@@ -1,9 +1,9 @@
 //! Bounded physical flash operations for firmware A image partitions.
 //! Every operation acquires the process-wide SharedFlash lock exactly once.
 //! The caller is responsible for selecting an inactive OTA partition.
+use crate::Partition;
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use iobewi_esp_flash::SharedFlash;
-use crate::Partition;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlashError {
@@ -18,7 +18,10 @@ fn checked_offset(partition: Partition, offset: u32, len: u32) -> Result<u32, Fl
     if end > partition.size {
         return Err(FlashError::OutOfBounds);
     }
-    partition.offset.checked_add(offset).ok_or(FlashError::OutOfBounds)
+    partition
+        .offset
+        .checked_add(offset)
+        .ok_or(FlashError::OutOfBounds)
 }
 
 /// Read only from the designated partition. May be used for verification.
