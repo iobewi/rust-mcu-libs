@@ -128,3 +128,18 @@ The historical `workload/update/src/machine.rs` provides `WorkloadUpdater::{reco
 
 **New S0 evidence:** Direct interface and test-name comparison completed for A service, ESP shared flash writer, B machine/store. Remaining S0 work: complete all-file / test-by-test coverage and establish parity verdicts. No functional parity asserted.
 
+
+## Rust source inventory — counted at frozen baselines
+
+The historical implementation contains **42 Rust source/build files** under `firmware/`, `workload/update/`, and `bootloader/esp/`. The target contains **25 Rust files** under `common/firmware/` and `arch/esp32/firmware/`. These are *inventory counts*, not migration completion percentages: target code also reuses `arch/esp32/flash/` and individual files can absorb multiple sources.
+
+### Historical sources accounted for by workstream
+
+- Generic image / slots / boot / model: `firmware/image/src/{lib,digest,esp,esp_tests}.rs`, `firmware/slots/src/lib.rs`, `firmware/boot/src/{lib,tests}.rs`, `firmware/model/src/{lib,tests}.rs`.
+- Generic update core, metadata and services: `firmware/update/src/{lib,artifact,bootstrap,config_space,error,metadata,service,state,storage,transaction}.rs`, `firmware/update/src/service/{boot,upload}.rs`.
+- ESP application adapter: `firmware/esp32/src/{lib,otadata,service,shared_flash}.rs`.
+- ESP bootloader binary: `bootloader/esp/{build.rs,src/main.rs}`.
+- Historical B domain (called Workload): `workload/update/src/{lib,flash,layout,machine,nor,otm2,probe,service,store,supervisor,testing,tests,tests_nor,tests_service,tests_supervisor}.rs`.
+
+**No source group is intentionally dropped.** This is a file-level accountability ledger; it does not prove a complete symbol-by-symbol or test-by-test comparison. Before S1 or later stages close, each affected component must explicitly record preserved APIs, moved tests, behavioral deltas, and a gate result. S0 can be considered a *baseline and gap map* once this document is merged, but not a declaration of runtime parity.
+
