@@ -171,22 +171,26 @@ mod tests {
     fn observed_partition_authorization_fails_closed() {
         let layout = Layout {
             images: [
-                Partition { offset: 0x20000, size: 0x180000 },
-                Partition { offset: 0x1a0000, size: 0x180000 },
+                Partition {
+                    offset: 0x20000,
+                    size: 0x180000,
+                },
+                Partition {
+                    offset: 0x1a0000,
+                    size: 0x180000,
+                },
             ],
-            otadata: Partition { offset: 0xd000, size: 0x2000 },
+            otadata: Partition {
+                offset: 0xd000,
+                size: 0x2000,
+            },
         };
         let records = [Entry::new(1, state::VALID).encode(), BLANK];
         assert!(authorize_observed_partition(&layout, records, None).is_err());
-        assert!(authorize_observed_partition(
-            &layout, records, Some(layout.otadata)
-        ).is_err());
-        assert!(authorize_observed_partition(
-            &layout, records, Some(layout.images[1])
-        ).is_err());
-        let target = authorize_observed_partition(
-            &layout, records, Some(layout.images[0])
-        ).unwrap();
+        assert!(authorize_observed_partition(&layout, records, Some(layout.otadata)).is_err());
+        assert!(authorize_observed_partition(&layout, records, Some(layout.images[1])).is_err());
+        let target =
+            authorize_observed_partition(&layout, records, Some(layout.images[0])).unwrap();
         assert_eq!(target.region().offset, layout.images[1].offset);
     }
 
