@@ -12,6 +12,11 @@ pub mod artifact;
 pub mod bootstrap;
 pub mod compat;
 pub mod error;
+/// Historical OTA metadata API; reuse the sole OTM1 implementation.
+pub mod metadata {
+    pub use crate::compat::otm1::*;
+}
+pub mod service;
 pub mod state;
 pub mod storage;
 pub mod transaction;
