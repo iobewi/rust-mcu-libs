@@ -66,6 +66,12 @@ pub struct UploadResult {
     pub stats: UploadStats,
 }
 
+impl<W: UploadWriter> Default for UploadManager<W> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<W: UploadWriter> UploadManager<W> {
     pub const fn new() -> Self {
         Self {
