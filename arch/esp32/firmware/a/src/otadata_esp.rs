@@ -40,7 +40,10 @@ pub async fn execute(
 pub async fn read_entries(
     flash: &SharedFlash,
     partition: Partition,
-) -> Result<[Raw; SECTOR_COUNT], otadata::Error<<EspFlash as embedded_storage::nor_flash::ErrorType>::Error>> {
+) -> Result<
+    [Raw; SECTOR_COUNT],
+    otadata::Error<<EspFlash as embedded_storage::nor_flash::ErrorType>::Error>,
+> {
     let mut guard = flash.lock().await;
     otadata::read_entries(&mut LockedFlash(&mut guard), partition)
 }
