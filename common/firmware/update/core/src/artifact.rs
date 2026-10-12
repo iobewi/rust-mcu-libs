@@ -62,7 +62,12 @@ pub enum ResumePlan {
 /// `session_active` and `durable` describe the *engine's* state, not the
 /// backend's -- callers get these from whether a [`WriteSession`] exists and
 /// its own `durable()`.
-pub fn resume_plan(claims_progress: bool, claimed_offset: u64, session_active: bool, durable: u64) -> ResumePlan {
+pub fn resume_plan(
+    claims_progress: bool,
+    claimed_offset: u64,
+    session_active: bool,
+    durable: u64,
+) -> ResumePlan {
     if !claims_progress || claimed_offset == 0 {
         return ResumePlan::Begin;
     }
@@ -129,7 +134,14 @@ impl WriteSession {
     /// caller starts over with a new one from offset 0, which is also why
     /// this type carries no on-disk representation of its own.
     pub fn begin(total: u64, expected_digest: Digest) -> Self {
-        WriteSession { total, expected_digest, received: 0, durable: 0, pending: Vec::new(), hasher: Sha256::new() }
+        WriteSession {
+            total,
+            expected_digest,
+            received: 0,
+            durable: 0,
+            pending: Vec::new(),
+            hasher: Sha256::new(),
+        }
     }
 
     /// Bytes accepted into this session so far (`durable` plus whatever is
@@ -170,7 +182,11 @@ impl WriteSession {
     /// least every physical unit, keeping `pending` far under `total` in
     /// practice) -- seeing `write` called at all is not a promise of
     /// progress on its own.
-    pub fn append<S: ArtifactStorage>(&mut self, storage: &mut S, data: &[u8]) -> Result<(), Error<S::Error>> {
+    pub fn append<S: ArtifactStorage>(
+        &mut self,
+        storage: &mut S,
+        data: &[u8],
+    ) -> Result<(), Error<S::Error>> {
         if !self.can_append(data.len()) {
             return Err(Error::TooLarge);
         }
@@ -178,7 +194,9 @@ impl WriteSession {
         self.pending.extend_from_slice(data);
         self.received = end;
 
-        let new_durable = storage.write(self.durable, &self.pending).map_err(Error::Backend)?;
+        let new_durable = storage
+            .write(self.durable, &self.pending)
+            .map_err(Error::Backend)?;
         self.advance(new_durable)?;
         Ok(())
     }
@@ -188,27 +206,39 @@ impl WriteSession {
     /// and the digest. Both checks happen here, together, so a caller can't
     /// observe "complete" without also "digest verified" -- see the crate
     /// doc comment's invariant on never activating an unverified artifact.
-    pub fn finish<S: ArtifactStorage>(mut self, storage: &mut S) -> Result<Committed, Error<S::Error>> {
+    pub fn finish<S: ArtifactStorage>(
+        mut self,
+        storage: &mut S,
+    ) -> Result<Committed, Error<S::Error>> {
         if !self.pending.is_empty() {
             let expected = self.durable + self.pending.len() as u64;
-            let new_durable = storage.finish(self.durable, &self.pending).map_err(Error::Backend)?;
+            let new_durable = storage
+                .finish(self.durable, &self.pending)
+                .map_err(Error::Backend)?;
             self.advance(new_durable)?;
             if self.durable != expected {
                 // `advance` already refused a `new_durable` past `expected`
                 // (that's `InvalidDurabilityReport`); reaching here means it
                 // was short of it, i.e. `finish` didn't actually consume
                 // everything it was handed.
-                return Err(Error::Incomplete { durable: self.durable });
+                return Err(Error::Incomplete {
+                    durable: self.durable,
+                });
             }
         }
         if self.durable != self.total {
-            return Err(Error::Incomplete { durable: self.durable });
+            return Err(Error::Incomplete {
+                durable: self.durable,
+            });
         }
         let digest = Digest(self.hasher.finalize().into());
         if digest != self.expected_digest {
             return Err(Error::DigestMismatch(digest));
         }
-        Ok(Committed { size: self.durable, digest })
+        Ok(Committed {
+            size: self.durable,
+            digest,
+        })
     }
 
     /// Hashes the newly-durable prefix of `pending` and drains it, moving
@@ -303,7 +333,11 @@ mod tests {
         type Error = &'static str;
 
         fn write(&mut self, durable_offset: u64, pending: &[u8]) -> Result<u64, Self::Error> {
-            assert_eq!(durable_offset, self.committed.len() as u64, "engine's offset must track the backend's own durability");
+            assert_eq!(
+                durable_offset,
+                self.committed.len() as u64,
+                "engine's offset must track the backend's own durability"
+            );
             let take = (pending.len() / self.unit) * self.unit;
             self.committed.extend_from_slice(&pending[..take]);
             Ok(self.committed.len() as u64)
@@ -325,7 +359,10 @@ mod tests {
     fn streams_in_odd_chunks_and_matches_a_plain_digest() {
         let data: alloc::vec::Vec<u8> = (0u8..=255).cycle().take(10_007).collect();
         let expected = digest_of(&data);
-        let mut backend = UnitBackend { unit: 64, committed: vec![] };
+        let mut backend = UnitBackend {
+            unit: 64,
+            committed: vec![],
+        };
         let mut session = WriteSession::begin(data.len() as u64, expected);
 
         // Deliberately not a multiple of `unit`, and not of the data length either.
@@ -339,7 +376,10 @@ mod tests {
 
     #[test]
     fn received_can_run_ahead_of_durable_but_digest_only_ever_covers_durable() {
-        let mut backend = UnitBackend { unit: 8, committed: vec![] };
+        let mut backend = UnitBackend {
+            unit: 8,
+            committed: vec![],
+        };
         let mut session = WriteSession::begin(20, digest_of(&[0u8; 20]));
         session.append(&mut backend, &[0u8; 5]).unwrap();
         // 5 bytes received, but nothing is a whole 8-byte unit yet.
@@ -353,31 +393,49 @@ mod tests {
 
     #[test]
     fn refuses_more_than_the_declared_total() {
-        let mut backend = UnitBackend { unit: 4, committed: vec![] };
+        let mut backend = UnitBackend {
+            unit: 4,
+            committed: vec![],
+        };
         let mut session = WriteSession::begin(10, digest_of(&[0u8; 10]));
-        assert_eq!(session.append(&mut backend, &[0u8; 11]), Err(Error::TooLarge));
+        assert_eq!(
+            session.append(&mut backend, &[0u8; 11]),
+            Err(Error::TooLarge)
+        );
     }
 
     #[test]
     fn finish_short_of_the_total_is_incomplete() {
-        let mut backend = UnitBackend { unit: 4, committed: vec![] };
+        let mut backend = UnitBackend {
+            unit: 4,
+            committed: vec![],
+        };
         let mut session = WriteSession::begin(10, digest_of(&[0u8; 10]));
         session.append(&mut backend, &[0u8; 5]).unwrap();
         // 4 bytes durable from `append` (one whole unit), `finish` flushes
         // the last 1 -- 5 of 10 declared, reported back exactly.
-        assert_eq!(session.finish(&mut backend), Err(Error::Incomplete { durable: 5 }));
+        assert_eq!(
+            session.finish(&mut backend),
+            Err(Error::Incomplete { durable: 5 })
+        );
     }
 
     #[test]
     fn finish_with_a_wrong_digest_is_rejected_even_once_complete() {
-        let mut backend = UnitBackend { unit: 4, committed: vec![] };
+        let mut backend = UnitBackend {
+            unit: 4,
+            committed: vec![],
+        };
         let wrong = digest_of(b"not what actually gets written");
         let mut session = WriteSession::begin(4, wrong);
         session.append(&mut backend, &[1, 2, 3, 4]).unwrap();
         // The error carries what was *actually* computed, not the expected
         // one the caller already has -- proves it's the real digest of
         // `[1,2,3,4]`, not e.g. `wrong` echoed back or a placeholder.
-        assert_eq!(session.finish(&mut backend), Err(Error::DigestMismatch(digest_of(&[1, 2, 3, 4]))));
+        assert_eq!(
+            session.finish(&mut backend),
+            Err(Error::DigestMismatch(digest_of(&[1, 2, 3, 4])))
+        );
     }
 
     /// A backend that answers `write`/`finish` with whatever watermark the
@@ -401,9 +459,14 @@ mod tests {
 
     #[test]
     fn a_backend_claiming_more_durable_than_it_was_offered_is_rejected() {
-        let mut backend = LyingBackend { next_durable: 1_000_000 };
+        let mut backend = LyingBackend {
+            next_durable: 1_000_000,
+        };
         let mut session = WriteSession::begin(100, digest_of(&[0u8; 100]));
-        assert_eq!(session.append(&mut backend, &[0u8; 10]), Err(Error::InvalidDurabilityReport));
+        assert_eq!(
+            session.append(&mut backend, &[0u8; 10]),
+            Err(Error::InvalidDurabilityReport)
+        );
     }
 
     #[test]
@@ -415,7 +478,10 @@ mod tests {
         assert_eq!(session.durable(), 8);
         // ... then the backend lies and claims durability *regressed*.
         backend.next_durable = 4;
-        assert_eq!(session.append(&mut backend, &[0u8; 8]), Err(Error::InvalidDurabilityReport));
+        assert_eq!(
+            session.append(&mut backend, &[0u8; 8]),
+            Err(Error::InvalidDurabilityReport)
+        );
     }
 
     /// A backend that never durables a single byte until `finish`: legal
