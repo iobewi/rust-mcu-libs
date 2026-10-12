@@ -10,6 +10,7 @@ use iobewi_esp_partitions::{PartitionRange, erase_range as erase_raw_partition_r
 use iobewi_firmware_update::ArtifactStorage;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod shared_flash;
+pub mod partitions;
 
 /// Failure while committing artifact bytes to ESP NOR flash.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
