@@ -8,6 +8,7 @@
 pub mod flash;
 
 pub mod selection;
+pub mod otadata;
 
 use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
