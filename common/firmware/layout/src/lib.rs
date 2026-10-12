@@ -2,6 +2,7 @@
 //! Host-testable layout validation shared by ESP adapters.
 //! No flash driver, boot decision, or partition-table parser.
 pub mod domain_b;
+pub mod domain_a;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Entry<'a> {
     pub label: &'a str,
