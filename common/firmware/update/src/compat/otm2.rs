@@ -129,7 +129,13 @@ impl SlotMeta {
         id: [0; ID_LEN],
     };
 
-    pub fn new(id: &str, version: &str, digest: [u8; 32], size: u64, requires: RuntimeApi) -> Result<Self, FieldError> {
+    pub fn new(
+        id: &str,
+        version: &str,
+        digest: [u8; 32],
+        size: u64,
+        requires: RuntimeApi,
+    ) -> Result<Self, FieldError> {
         Ok(Self {
             digest,
             size: u32::try_from(size).map_err(|_| FieldError::SizeTooLarge)?,
@@ -166,7 +172,10 @@ impl SlotMeta {
         Self {
             digest,
             size: u32::from_le_bytes([raw[32], raw[33], raw[34], raw[35]]),
-            requires: RuntimeApi::new(u16::from_le_bytes([raw[36], raw[37]]), u16::from_le_bytes([raw[38], raw[39]])),
+            requires: RuntimeApi::new(
+                u16::from_le_bytes([raw[36], raw[37]]),
+                u16::from_le_bytes([raw[38], raw[39]]),
+            ),
             version,
             id,
         }
@@ -225,7 +234,11 @@ pub fn crc32(data: &[u8]) -> u32 {
     for byte in data {
         crc ^= u32::from(*byte);
         for _ in 0..8 {
-            crc = if crc & 1 != 0 { (crc >> 1) ^ 0xEDB8_8320 } else { crc >> 1 };
+            crc = if crc & 1 != 0 {
+                (crc >> 1) ^ 0xEDB8_8320
+            } else {
+                crc >> 1
+            };
         }
     }
     !crc
@@ -278,7 +291,12 @@ impl Record {
         if raw[4] != FORMAT_VERSION {
             return Err(DecodeError::BadVersion(raw[4]));
         }
-        let stored = u32::from_le_bytes([raw[OFF_CRC], raw[OFF_CRC + 1], raw[OFF_CRC + 2], raw[OFF_CRC + 3]]);
+        let stored = u32::from_le_bytes([
+            raw[OFF_CRC],
+            raw[OFF_CRC + 1],
+            raw[OFF_CRC + 2],
+            raw[OFF_CRC + 3],
+        ]);
         if crc32(&raw[..OFF_CRC]) != stored {
             return Err(DecodeError::BadCrc);
         }
@@ -291,7 +309,10 @@ impl Record {
             candidate: slot_from(raw[7])?,
             previous_valid: slot_from(raw[8])?,
             sequence: u32::from_le_bytes([raw[12], raw[13], raw[14], raw[15]]),
-            meta: [SlotMeta::decode(&raw[16..96]), SlotMeta::decode(&raw[96..176])],
+            meta: [
+                SlotMeta::decode(&raw[16..96]),
+                SlotMeta::decode(&raw[96..176]),
+            ],
         };
         record.check_coherence()?;
         Ok(record)
@@ -306,6 +327,10 @@ impl Record {
             State::Staged | State::Activating => c.is_some() && p.is_none() && a != c,
             State::PendingConfirmation | State::RollingBack => a.is_some() && c.is_none() && a != p,
         };
-        if ok { Ok(()) } else { Err(DecodeError::Malformed) }
+        if ok {
+            Ok(())
+        } else {
+            Err(DecodeError::Malformed)
+        }
     }
 }
