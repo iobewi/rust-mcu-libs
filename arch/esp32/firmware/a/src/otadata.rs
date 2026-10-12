@@ -1,8 +1,8 @@
-//! Transactional legacy EWBT otadata access.
+//! Transactional legacy A/B boot metadata access.
 //!
 //! Reads two 4KiB sectors; writes erase -> uncommitted body -> readback ->
 //! commit word last. Hardware flash access is implemented by the caller.
-//! This module never assumes that ESP-IDF's standard bootloader accepts EWBT.
+//! This module never assumes that ESP-IDF's standard bootloader accepts the legacy transactional metadata encoding.
 
 use crate::Partition;
 use iobewi_firmware_boot::{
