@@ -88,9 +88,7 @@ fn encode(state: BootstrapState) -> [u8; ENCODED_LEN] {
 
 /// Load the bootstrap lifecycle. Absence means a genuinely fresh device.
 /// A present but malformed record is never treated as Factory.
-pub async fn state<S: BootstrapStore>(
-    store: &S,
-) -> Result<BootstrapState, BootstrapError> {
+pub async fn state<S: BootstrapStore>(store: &S) -> Result<BootstrapState, BootstrapError> {
     match store.load_raw().await {
         Ok(None) => Ok(BootstrapState::Factory),
         Ok(Some(raw)) => decode(&raw).ok_or(BootstrapError::Corrupt),
@@ -98,10 +96,7 @@ pub async fn state<S: BootstrapStore>(
     }
 }
 
-async fn commit<S: BootstrapStore>(
-    store: &S,
-    next: BootstrapState,
-) -> Result<(), BootstrapError> {
+async fn commit<S: BootstrapStore>(store: &S, next: BootstrapState) -> Result<(), BootstrapError> {
     store
         .commit_raw(&encode(next))
         .await
@@ -127,22 +122,13 @@ async fn transition<S: BootstrapStore>(
 }
 
 /// Start or resume the one-time provisioning phase.
-pub async fn begin_provisioning<S: BootstrapStore>(
-    store: &S,
-) -> Result<(), BootstrapError> {
-    transition(
-        store,
-        BootstrapState::Factory,
-        BootstrapState::Provisioning,
-    )
-    .await
+pub async fn begin_provisioning<S: BootstrapStore>(store: &S) -> Result<(), BootstrapError> {
+    transition(store, BootstrapState::Factory, BootstrapState::Provisioning).await
 }
 
 /// Mark all durable prerequisites ready so the first production agent may be
 /// activated through the normal OTA transaction path.
-pub async fn ready_for_agent<S: BootstrapStore>(
-    store: &S,
-) -> Result<(), BootstrapError> {
+pub async fn ready_for_agent<S: BootstrapStore>(store: &S) -> Result<(), BootstrapError> {
     transition(
         store,
         BootstrapState::Provisioning,
@@ -153,9 +139,7 @@ pub async fn ready_for_agent<S: BootstrapStore>(
 
 /// Complete first-install bootstrap after the first agent image has been
 /// confirmed by the normal OTA validation path.
-pub async fn production<S: BootstrapStore>(
-    store: &S,
-) -> Result<(), BootstrapError> {
+pub async fn production<S: BootstrapStore>(store: &S) -> Result<(), BootstrapError> {
     transition(
         store,
         BootstrapState::ReadyForAgent,
