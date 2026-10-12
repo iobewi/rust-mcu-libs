@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "common/firmware/update/core",
+  "common/firmware/update",
   "common/firmware/boot",
   "common/firmware/image",
   "common/firmware/slots",
