@@ -95,6 +95,32 @@ mod tests {
     use iobewi_firmware_boot::{BLANK, Entry, state};
 
     #[test]
+    fn authorization_requires_observed_report_and_matching_metadata() {
+        let layout = Layout {
+            images: [
+                Partition { offset: 0x20000, size: 0x180000 },
+                Partition { offset: 0x1a0000, size: 0x180000 },
+            ],
+            otadata: Partition { offset: 0xd000, size: 0x2000 },
+        };
+        let records = [Entry::new(1, state::VALID).encode(), BLANK];
+        assert_eq!(
+            authorize_inactive(&layout, records, None),
+            Err(AuthorizedSelectionError::Selection(
+                selection::SelectionError::UnknownRunningSlot
+            ))
+        );
+        assert_eq!(
+            authorize_inactive(&layout, records, Some(RunningSlot::One)),
+            Err(AuthorizedSelectionError::Selection(
+                selection::SelectionError::RunningSlotMismatch
+            ))
+        );
+        let permit = authorize_inactive(&layout, records, Some(RunningSlot::Zero)).unwrap();
+        assert_eq!(permit.region().offset, layout.images[1].offset);
+    }
+
+    #[test]
     fn only_a_verified_report_can_unlock_an_inactive_target() {
         let layout = Layout {
             images: [
