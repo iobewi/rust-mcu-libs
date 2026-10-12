@@ -10,6 +10,7 @@ extern crate std;
 
 pub mod artifact;
 pub mod bootstrap;
+pub mod compat;
 pub mod error;
 pub mod state;
 pub mod storage;
