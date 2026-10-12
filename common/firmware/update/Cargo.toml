@@ -33,5 +33,5 @@ critical-section = { version = "1.2", features = ["std"] }
 embassy-time = { version = "0.5.0", features = ["std", "generic-queue-8"] }
 
 [dependencies.iobewi-config-space]
-path = "../../../config/space"
+path = "../../config/space"
 optional = true
