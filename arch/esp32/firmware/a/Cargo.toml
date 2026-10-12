@@ -8,5 +8,5 @@ repository.workspace = true
 description = "ESP32 legacy firmware A slot and otadata partition mapping"
 
 [dependencies]
-iobewi-firmware-slots = { path = "../../../..//common/firmware/slots" }
+iobewi-firmware-slots = { path = "../../../../common/firmware/slots" }
 iobewi-firmware-boot = { path = "../../../..//common/firmware/boot" }
