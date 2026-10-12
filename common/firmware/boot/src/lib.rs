@@ -1,5 +1,5 @@
 //! Pure decision logic for a power-cut-safe transactional A/B boot chain:
-//! the EWBT `otadata` entry format and the transitions a bootloader and
+//! the transactional A/B boot `otadata` record format and the transitions a bootloader and
 //! running application apply to it. No hardware access, no allocation -- it only says *what to write and
 //! what to boot*, so every rule can be tested on the host, including a power
 //! cut at every flash command, under an adversarial model of what a cut leaves
