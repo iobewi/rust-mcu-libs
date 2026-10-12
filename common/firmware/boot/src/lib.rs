@@ -548,10 +548,9 @@ fn pending(otadata: [Raw; SECTOR_COUNT]) -> Option<(u8, u32)> {
             seq,
             trust: Trust::Pending,
         } = classify(entry)
+            && best.is_none_or(|(_, b)| seq > b)
         {
-            if best.is_none_or(|(_, b)| seq > b) {
-                best = Some((sector as u8, seq));
-            }
+            best = Some((sector as u8, seq));
         }
     }
     best
