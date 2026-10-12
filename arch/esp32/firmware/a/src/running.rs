@@ -36,6 +36,59 @@ pub fn select_inactive(
     selection::inactive(layout, metadata, boot_report.map(RunningSlot::index))
 }
 
+/// Combine A's historical transactional selection with the common write gate.
+/// The boot report MUST be independently obtained; this adapter does not
+/// observe running hardware. Until such an observer exists, callers must fail
+/// closed rather than deriving a report from otadata.
+pub fn authorize_inactive(
+    layout: &Layout,
+    metadata: [Raw; SECTOR_COUNT],
+    boot_report: Option<RunningSlot>,
+) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, AuthorizedSelectionError> {
+    use iobewi_firmware_layout::authorization::{authorize_a, AuthorizationError};
+    use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
+
+    let chosen = select_inactive(layout, metadata, boot_report)
+        .map_err(AuthorizedSelectionError::Selection)?;
+    let running = boot_report.ok_or(AuthorizedSelectionError::Authorization(
+        AuthorizationError::UnknownRunning,
+    ))?;
+    let current = match running {
+        RunningSlot::Zero => Slot::Zero,
+        RunningSlot::One => Slot::One,
+    };
+    let target = current.other();
+    let validated = iobewi_firmware_layout::domain_a::Layout {
+        images: layout.images.map(|p| iobewi_firmware_layout::domain_a::Partition {
+            offset: p.offset,
+            size: p.size,
+        }),
+        otadata: iobewi_firmware_layout::domain_a::Partition {
+            offset: layout.otadata.offset,
+            size: layout.otadata.size,
+        },
+    };
+    let permission = authorize_a(
+        &validated,
+        Some(FirmwareSlot::new(Domain::A, current)),
+        FirmwareSlot::new(Domain::A, target),
+    )
+    .map_err(AuthorizedSelectionError::Authorization)?;
+    if permission.region().offset != chosen.offset ||
+        permission.region().size != chosen.size as usize {
+        return Err(AuthorizedSelectionError::Selection(
+            selection::SelectionError::InvalidTarget,
+        ));
+    }
+    Ok(permission)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum AuthorizedSelectionError {
+    Selection(selection::SelectionError),
+    Authorization(iobewi_firmware_layout::authorization::AuthorizationError),
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
