@@ -13,10 +13,6 @@ use crate::metadata::{
     parse_digest,
 };
 
-#[cfg(feature = "runtime")]
-pub mod boot;
-#[cfg(feature = "runtime")]
-pub mod upload;
 
 #[allow(async_fn_in_trait)]
 pub trait TargetSelection {
