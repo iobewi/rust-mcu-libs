@@ -131,7 +131,8 @@ impl Entry {
         raw[OFF_VERSION..OFF_VERSION + 4].copy_from_slice(&FORMAT_VERSION.to_le_bytes());
         raw[OFF_EXT_CRC..OFF_EXT_CRC + 4].copy_from_slice(&self.ext_crc().to_le_bytes());
         raw[OFF_STATE..OFF_STATE + 4].copy_from_slice(&self.state.to_le_bytes());
-        raw[OFF_IDF_CRC..OFF_IDF_CRC + 4].copy_from_slice(&crc32_le(u32::MAX, &self.seq.to_le_bytes()).to_le_bytes());
+        raw[OFF_IDF_CRC..OFF_IDF_CRC + 4]
+            .copy_from_slice(&crc32_le(u32::MAX, &self.seq.to_le_bytes()).to_le_bytes());
         raw
     }
 
@@ -158,7 +159,10 @@ pub fn decode(raw: &Raw) -> Decoded {
     if *raw == BLANK {
         return Decoded::Blank;
     }
-    let entry = Entry { seq: word(raw, OFF_SEQ), state: word(raw, OFF_STATE) };
+    let entry = Entry {
+        seq: word(raw, OFF_SEQ),
+        state: word(raw, OFF_STATE),
+    };
     let known = matches!(
         entry.state,
         state::NEW | state::PENDING_VERIFY | state::VALID | state::INVALID | state::ABORTED
@@ -172,7 +176,11 @@ pub fn decode(raw: &Raw) -> Decoded {
         && word(raw, OFF_RESERVED) == u32::MAX
         && word(raw, OFF_COMMIT) == COMMIT
         && word(raw, OFF_IDF_CRC) == crc32_le(u32::MAX, &entry.seq.to_le_bytes());
-    if exact { Decoded::Ok(entry) } else { Decoded::Corrupt }
+    if exact {
+        Decoded::Ok(entry)
+    } else {
+        Decoded::Corrupt
+    }
 }
 
 /// How much an entry's state can be believed.
@@ -210,7 +218,10 @@ fn classify(raw: &Raw) -> Class {
     match decode(raw) {
         Decoded::Blank => Class::Blank,
         Decoded::Corrupt => Class::Corrupt,
-        Decoded::Ok(e) => Class::Ok { seq: e.seq, trust: Trust::of(e.state) },
+        Decoded::Ok(e) => Class::Ok {
+            seq: e.seq,
+            trust: Trust::of(e.state),
+        },
     }
 }
 
@@ -231,7 +242,9 @@ pub fn update_target(otadata: [Raw; SECTOR_COUNT], slot_count: u8) -> Option<u8>
     let seq = otadata
         .iter()
         .filter_map(|raw| match decode(raw) {
-            Decoded::Ok(e) if e.state == state::VALID || e.state == state::PENDING_VERIFY => Some(e.seq),
+            Decoded::Ok(e) if e.state == state::VALID || e.state == state::PENDING_VERIFY => {
+                Some(e.seq)
+            }
             _ => None,
         })
         .max()?;
@@ -252,7 +265,9 @@ pub fn newest_entry(otadata: [Raw; SECTOR_COUNT]) -> Option<Entry> {
 
 /// Whether any decodable entry is in `wanted` state.
 pub fn has_entry_in_state(otadata: [Raw; SECTOR_COUNT], wanted: u32) -> bool {
-    otadata.iter().any(|raw| matches!(decode(raw), Decoded::Ok(e) if e.state == wanted))
+    otadata
+        .iter()
+        .any(|raw| matches!(decode(raw), Decoded::Ok(e) if e.state == wanted))
 }
 
 /// One entry update: the sector is erased, the body programmed, then -- in a
@@ -267,9 +282,16 @@ pub struct Write {
 /// A single flash command of a [`Write`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Op {
-    Erase { sector: u8 },
+    Erase {
+        sector: u8,
+    },
     /// Program `data[..len]` at `offset` within the sector's entry.
-    Program { sector: u8, offset: u8, len: u8, data: [u8; ENTRY_SIZE] },
+    Program {
+        sector: u8,
+        offset: u8,
+        len: u8,
+        data: [u8; ENTRY_SIZE],
+    },
 }
 
 impl Write {
@@ -279,9 +301,21 @@ impl Write {
         let mut commit = [0u8; ENTRY_SIZE];
         commit[..4].copy_from_slice(&COMMIT.to_le_bytes());
         [
-            Op::Erase { sector: self.sector },
-            Op::Program { sector: self.sector, offset: 0, len: ENTRY_SIZE as u8, data: self.entry.body() },
-            Op::Program { sector: self.sector, offset: OFF_COMMIT as u8, len: 4, data: commit },
+            Op::Erase {
+                sector: self.sector,
+            },
+            Op::Program {
+                sector: self.sector,
+                offset: 0,
+                len: ENTRY_SIZE as u8,
+                data: self.entry.body(),
+            },
+            Op::Program {
+                sector: self.sector,
+                offset: OFF_COMMIT as u8,
+                len: 4,
+                data: commit,
+            },
         ]
     }
 }
@@ -298,7 +332,11 @@ pub enum Halt {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Boot {
     /// Boot this slot, after applying the plan's writes.
-    Slot { slot: u8, sector: u8, seq: u32 },
+    Slot {
+        slot: u8,
+        sector: u8,
+        seq: u32,
+    },
     Halt(Halt),
 }
 
@@ -336,7 +374,11 @@ impl Plan {
 /// 4. with no candidate at all: if there is no entry that ever existed (blank
 ///    or torn `otadata`, i.e. a first boot) and slot 0 is bootable, seed it as
 ///    `Valid`; otherwise halt explicitly rather than guess.
-pub fn plan_boot(otadata: [Raw; SECTOR_COUNT], slot_count: u8, image_ok: &mut dyn FnMut(u8) -> bool) -> Plan {
+pub fn plan_boot(
+    otadata: [Raw; SECTOR_COUNT],
+    slot_count: u8,
+    image_ok: &mut dyn FnMut(u8) -> bool,
+) -> Plan {
     let class = [classify(&otadata[0]), classify(&otadata[1])];
     let mut writes = [None; 4];
     let mut count = 0;
@@ -352,7 +394,13 @@ pub fn plan_boot(otadata: [Raw; SECTOR_COUNT], slot_count: u8, image_ok: &mut dy
         if let Class::Ok { seq, trust } = *c {
             match trust {
                 Trust::Pending => {
-                    push(Write { sector: sector as u8, entry: Entry::new(seq, state::ABORTED) }, &mut writes);
+                    push(
+                        Write {
+                            sector: sector as u8,
+                            entry: Entry::new(seq, state::ABORTED),
+                        },
+                        &mut writes,
+                    );
                     rejected_any = true;
                 }
                 Trust::Dead => rejected_any = true,
@@ -368,23 +416,59 @@ pub fn plan_boot(otadata: [Raw; SECTOR_COUNT], slot_count: u8, image_ok: &mut dy
         let (sector, seq, trust) = candidate;
         let slot = slot_of(seq, slot_count);
         if !image_ok(slot) {
-            push(Write { sector: sector as u8, entry: Entry::new(seq, state::INVALID) }, &mut writes);
+            push(
+                Write {
+                    sector: sector as u8,
+                    entry: Entry::new(seq, state::INVALID),
+                },
+                &mut writes,
+            );
             rejected_any = true;
             continue;
         }
         if trust == Trust::Unproven {
-            push(Write { sector: sector as u8, entry: Entry::new(seq, state::PENDING_VERIFY) }, &mut writes);
+            push(
+                Write {
+                    sector: sector as u8,
+                    entry: Entry::new(seq, state::PENDING_VERIFY),
+                },
+                &mut writes,
+            );
         }
-        return Plan::new(Boot::Slot { slot, sector: sector as u8, seq }, writes);
+        return Plan::new(
+            Boot::Slot {
+                slot,
+                sector: sector as u8,
+                seq,
+            },
+            writes,
+        );
     }
 
     // 4. Nothing to boot. A first boot only if no entry was ever there.
     // (Corrupt includes anything not written the Embewi way: a device flashed with an ESP-IDF
     // `otadata` is re-seeded, which is the no-legacy policy, not an accident.)
-    if !rejected_any && class.iter().all(|c| matches!(c, Class::Blank | Class::Corrupt)) {
+    if !rejected_any
+        && class
+            .iter()
+            .all(|c| matches!(c, Class::Blank | Class::Corrupt))
+    {
         if image_ok(0) {
-            push(Write { sector: 0, entry: Entry::new(1, state::VALID) }, &mut writes);
-            return Plan::new(Boot::Slot { slot: 0, sector: 0, seq: 1 }, writes);
+            push(
+                Write {
+                    sector: 0,
+                    entry: Entry::new(1, state::VALID),
+                },
+                &mut writes,
+            );
+            return Plan::new(
+                Boot::Slot {
+                    slot: 0,
+                    sector: 0,
+                    seq: 1,
+                },
+                writes,
+            );
         }
         return Plan::new(Boot::Halt(Halt::NoImage), writes);
     }
@@ -406,7 +490,11 @@ pub enum ActivateError {
 /// One write, of a complete entry (sequence and state together). It goes into
 /// the sector that does **not** hold the last `Valid` entry, so the fallback
 /// image stays selectable through any interruption.
-pub fn activate(otadata: [Raw; SECTOR_COUNT], slot_count: u8, target: u8) -> Result<Write, ActivateError> {
+pub fn activate(
+    otadata: [Raw; SECTOR_COUNT],
+    slot_count: u8,
+    target: u8,
+) -> Result<Write, ActivateError> {
     let class = [classify(&otadata[0]), classify(&otadata[1])];
     let mut base_sector = None;
     let mut max_seq = 0;
@@ -421,11 +509,16 @@ pub fn activate(otadata: [Raw; SECTOR_COUNT], slot_count: u8, target: u8) -> Res
     let (protected, _) = base_sector.ok_or(ActivateError::NoValidBase)?;
 
     // Smallest sequence above everything present that selects `target`.
-    let mut seq = max_seq.checked_add(1).ok_or(ActivateError::SequenceExhausted)?;
+    let mut seq = max_seq
+        .checked_add(1)
+        .ok_or(ActivateError::SequenceExhausted)?;
     while slot_of(seq, slot_count) != target {
         seq = seq.checked_add(1).ok_or(ActivateError::SequenceExhausted)?;
     }
-    Ok(Write { sector: 1 - protected as u8, entry: Entry::new(seq, state::NEW) })
+    Ok(Write {
+        sector: 1 - protected as u8,
+        entry: Entry::new(seq, state::NEW),
+    })
 }
 
 /// The agent confirming the image it runs (self-check passed): the `Pending`
@@ -433,19 +526,29 @@ pub fn activate(otadata: [Raw; SECTOR_COUNT], slot_count: u8, target: u8) -> Res
 /// bootloader did not mark the entry `Pending`, which is a boot-chain anomaly
 /// the caller should report, not paper over.
 pub fn confirm(otadata: [Raw; SECTOR_COUNT]) -> Option<Write> {
-    pending(otadata).map(|(sector, seq)| Write { sector, entry: Entry::new(seq, state::VALID) })
+    pending(otadata).map(|(sector, seq)| Write {
+        sector,
+        entry: Entry::new(seq, state::VALID),
+    })
 }
 
 /// The agent rejecting the image it runs (self-check failed): the `Pending`
 /// entry becomes `Invalid`, so the next boot falls back at once.
 pub fn reject(otadata: [Raw; SECTOR_COUNT]) -> Option<Write> {
-    pending(otadata).map(|(sector, seq)| Write { sector, entry: Entry::new(seq, state::INVALID) })
+    pending(otadata).map(|(sector, seq)| Write {
+        sector,
+        entry: Entry::new(seq, state::INVALID),
+    })
 }
 
 fn pending(otadata: [Raw; SECTOR_COUNT]) -> Option<(u8, u32)> {
     let mut best: Option<(u8, u32)> = None;
     for (sector, entry) in otadata.iter().enumerate() {
-        if let Class::Ok { seq, trust: Trust::Pending } = classify(entry) {
+        if let Class::Ok {
+            seq,
+            trust: Trust::Pending,
+        } = classify(entry)
+        {
             if best.is_none_or(|(_, b)| seq > b) {
                 best = Some((sector as u8, seq));
             }
