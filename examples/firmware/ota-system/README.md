@@ -1,6 +1,19 @@
-# Application boot confirmation reference
+# OTA du domaine système A
 
-This C3/S3 executable complements examples/firmware-bootloader. It is a small
+**État actuel : démarrage, probation et confirmation raccordés et construits.**
+La réception OTA, sa publication et l'activation depuis un transfert restent à
+raccorder avant de déclarer cet exemple comme étalon de chaîne complète.
+Le code existant est repris, sans copie du moteur ni modification du protocole.
+
+La cible est réception → écriture inactive → vérification → publication OTM1 →
+activation → reboot → probation → confirmation ou rollback. Les variantes refus
+et blocage servent à qualifier la chaîne. La table `partitions.csv` définit les
+régions du scénario, avec une flash d'au moins 4 Mio. Elle reste un profil
+explicite de l'exemple ; la bibliothèque découvre les partitions.
+
+# Raccordement de confirmation existant
+
+This C3/S3 executable complements examples/firmware/bootloader. It is a small
 real composition, not an OTA HTTP application: it runs the existing portable
 boot gate through SystemBoot and the existing TIMG0 watchdog primitive.
 
@@ -31,8 +44,8 @@ watchdog still armed. The application owns all reset decisions.
 ## Build
 
 ```sh
-cargo +nightly build -Z build-std=core,alloc --release   --target riscv32imc-unknown-none-elf -p example-firmware-confirmation --features esp32c3 --bins
-cargo +esp build -Z build-std=core,alloc --release   --target xtensa-esp32s3-none-elf -p example-firmware-confirmation --features esp32s3 --bins
+cargo +nightly build -Z build-std=core,alloc --release   --target riscv32imc-unknown-none-elf -p example-firmware-ota-system --features esp32c3 --bins
+cargo +esp build -Z build-std=core,alloc --release   --target xtensa-esp32s3-none-elf -p example-firmware-ota-system --features esp32s3 --bins
 ```
 
 Locally tested with esp-hal 1.2.2, esp-rtos 0.4.0, esp-alloc 0.11.0 and the

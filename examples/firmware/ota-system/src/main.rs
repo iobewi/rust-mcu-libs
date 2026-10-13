@@ -97,14 +97,14 @@ async fn boot_task(flash: &'static SharedFlash) {
     core::future::pending::<()>().await;
 }
 fn log_status(status: &str) {
-    log::info!(target: "example_firmware_confirmation", "boot: {status}");
+    log::info!(target: "example_firmware_ota_system", "boot: {status}");
 }
 #[esp_hal::main]
 fn main() -> ! {
     let p = esp_hal::init(esp_hal::Config::default());
     iobewi_log::install(
         iobewi_esp_console::console_print,
-        "example_firmware_confirmation",
+        "example_firmware_ota_system",
     );
     esp_alloc::heap_allocator!(size:64*1024);
     let timg0 = TimerGroup::new(p.TIMG0);

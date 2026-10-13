@@ -83,7 +83,7 @@ software compositions and separate hardware gates are satisfied.
 
 ## Second-stage port (2026-10-13)
 
-The real executable now composes current bricks in examples/firmware-bootloader.
+The real executable now composes current bricks in examples/firmware/bootloader.
 ROM bindings, common MemoryMap constants, original linkers and tested discovery
 are in arch/esp32/firmware/boot. C3/S3 ROM duplication is removed while RTC offsets
 are preserved. Boot/application share one actual metadata executor with separate
@@ -117,7 +117,7 @@ slot or absent boot state refuses construction rather than disabling protection;
 this strengthens the integration boundary, without claiming an old boot failure.
 Wire codecs, common reconciliation and bootloader verification are unchanged.
 
-examples/firmware-confirmation initializes HAL/TIMG0/runtime before arming 20 s,
+examples/firmware/ota-system initializes HAL/TIMG0/runtime before arming 20 s,
 uses the existing NVS canary with a 15 s probation timeout, then confirms/rejects
 or resets via the existing common gate. It includes refusal/cooperative-hang
 fault features and does not fabricate activating metadata. Local C3/S3 release

@@ -1,8 +1,8 @@
 [workspace]
 members = [
-  "examples/firmware-confirmation",
+  "examples/firmware/ota-system",
   "arch/esp32/firmware/boot",
-  "examples/firmware-bootloader",
+  "examples/firmware/bootloader",
   "arch/esp32/firmware/a",
   "arch/esp32/firmware/supervisor",
   "arch/esp32/firmware/storage",

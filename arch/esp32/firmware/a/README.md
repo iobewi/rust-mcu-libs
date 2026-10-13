@@ -57,7 +57,7 @@ and before discovery/NVS/OTM1 awaits. Use common service on_boot, pending_check,
 confirm_pending/reject_pending unchanged. Only durable boot confirmation disarms
 the watchdog; failed confirmation/rejection or timeout must cause reset with the
 watchdog still armed. Do not disable it automatically when dropping the adapter.
-The reference composition in examples/firmware-confirmation demonstrates this.
+The reference composition in examples/firmware/ota-system demonstrates this.
 A startup hang before arming is still outside this protection window.
 
 CI metadata explicitly enables runtime on host and MCU: the same classification

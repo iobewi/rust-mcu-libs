@@ -11,7 +11,7 @@ fn main() {
         panic!("no supported ESP boot target feature selected");
     };
 
-    let search = format!("{dir}/../../arch/esp32/firmware/boot/linker");
+    let search = format!("{dir}/../../../arch/esp32/firmware/boot/linker");
     println!("cargo:rustc-link-search={search}");
     println!("cargo:rustc-link-arg=-T{linker}");
     println!("cargo:rerun-if-changed={search}/{linker}");

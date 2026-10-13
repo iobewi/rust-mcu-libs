@@ -19,7 +19,7 @@ before 0x9000. This deliberately strengthens old last-match-wins discovery.
 Buffers are bounded, without allocation. Host tests cover a 16 MiB A/B/C map
 and dangerous layouts. MCU features are mutually exclusive.
 
-The actual composition is examples/firmware-bootloader. Startup, boot policy,
+The actual composition is examples/firmware/bootloader. Startup, boot policy,
 image validation and metadata transactions reuse existing bricks. No physical
 flash, cache, watchdog or stack-use qualification is claimed.
 

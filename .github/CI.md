@@ -96,5 +96,5 @@ each crate's declared profile/features, not all features simultaneously.
 
 `esp32-linked-bins` links every binary in release on C3/S3 using its normal
 application linker. Unlike `esp32-bootloader`, it has no universal 32 KiB image
-limit. The firmware-confirmation reference uses it to catch unresolved timer,
+limit. The firmware/ota-system reference uses it to catch unresolved timer,
 allocator, runtime and linker symbols that a cargo check would miss.
