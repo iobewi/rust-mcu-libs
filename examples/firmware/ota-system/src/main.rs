@@ -113,6 +113,15 @@ fn main() -> ! {
         iobewi_esp_console::console_print,
         "example_firmware_ota_system",
     );
+    // Untargeted records carry the binary's module path, not the package name;
+    // the station IP is logged by the Wi-Fi crate. Both are needed to operate OTA.
+    let mut policy = iobewi_log::default_policy("example_firmware_ota_system").unwrap();
+    for target in ["firmware_ota_system_esp32", "iobewi_esp_wifi"] {
+        policy
+            .add_target(target, iobewi_log::LevelFilter::Info)
+            .unwrap();
+    }
+    iobewi_log::apply_policy(policy);
     esp_alloc::heap_allocator!(size:160*1024);
     let timg0 = TimerGroup::new(p.TIMG0);
     esp_rtos::start(timg0.timer0, p.FROM_CPU_INTR0);
