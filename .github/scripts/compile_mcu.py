@@ -25,10 +25,14 @@ def compile_selected(packages, chip):
         subprocess.run([sys.executable, "-m", "pip", "install", "esptool==5.5.0"], check=True)
     for item in packages:
         boot = item["profile"] == "esp32-bootloader"
-        cmd = ["cargo", "+"+compiler, "build" if boot else "check", "-Z", "build-std=core,alloc",
-               "--target", target, "-p", item["package"], "--features", chip, "--"+item["targets"]]
+        linked = boot or item["profile"] == "esp32-linked-bins"
+        selected_features = ",".join(f for f in (chip,item.get("features", "")) if f)
+        cmd = ["cargo", "+"+compiler, "build" if linked else "check", "-Z", "build-std=core,alloc",
+               "--target", target, "-p", item["package"], "--features", selected_features, "--"+item["targets"]]
         if boot:
             cmd += ["--profile", "bootloader"]
+        elif linked:
+            cmd += ["--release"]
         print("::group::"+item["package"], flush=True)
         try:
             subprocess.run(cmd, check=True)

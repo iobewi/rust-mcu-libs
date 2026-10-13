@@ -83,11 +83,13 @@ jobs:
       - name: Unit tests
         env:
           PKG: ${{ matrix.package }}
-        run: cargo test -p "$PKG"
+          FEATURES: ${{ matrix.features }}
+        run: cargo test -p "$PKG" --features "$FEATURES"
       - name: Clippy
         env:
           PKG: ${{ matrix.package }}
-        run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+          FEATURES: ${{ matrix.features }}
+        run: cargo clippy -p "$PKG" --features "$FEATURES" --all-targets -- -D warnings
       - name: Transactional boot exhaustive fault injection
         if: matrix.package == 'iobewi-firmware-boot'
         run: cargo test --release -p iobewi-firmware-boot

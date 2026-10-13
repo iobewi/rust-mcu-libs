@@ -100,7 +100,7 @@ impl SystemBoot {
         Ok((running, records))
     }
 
-    async fn snapshot(
+    pub(crate) async fn snapshot(
         &self,
         flash: &SharedFlash,
     ) -> Result<(running::RunningSlot, [Raw; SECTOR_COUNT]), Error> {

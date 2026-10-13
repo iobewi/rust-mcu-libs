@@ -27,6 +27,38 @@ service, perform the self-check, and arrange reboot/watchdog handling. Public
 low-level flash/metadata access is not an application authorization system.
 
 No rescue image or automatic configuration reset is added. Rollback policy and
-binary metadata remain historical. The custom bootloader and full product
-composition still require porting/integration and on-board qualification;
+binary metadata remain historical. The custom bootloader is ported and build/link/size checked; full product
+composition still requires integration and on-board qualification;
 compiling this library does not establish end-to-end OTA readiness.
+
+
+## Optional boot runtime binding
+
+With `runtime` and an MCU feature, `service::BootRuntime` implements the existing
+portable BootState/BootSelfCheck/BootWatchdog traits. Use `BootRuntime::new` with
+an exclusive mutable SystemBoot borrow, the existing SharedFlash and an
+application-provided BootSelfCheck. No dependency on an NVS schema is imposed.
+The scoped adapter prevents upload/activation through that owner until dropped.
+Its NoopRawMutex serializes the historical &self trait calls on one Embassy
+executor; it is not another physical flash mutex or a shared service manager.
+The self-check is delegated without holding either mutex.
+
+Construction snapshots actual MMU observation and boot records under one physical
+flash lock. Historical Pending-before-Valid classification is retained. As an
+explicit integration check, absent records or a state belonging to a different
+mapped slot return an error, leaving watchdog handling to the caller. This is
+not a claim that the historical bootloader makes that error. During this
+exclusive boot phase the slot is fixed; cached outcome is updated only after a
+successful confirm/reject. Direct raw flash access outside the owner breaks this
+composition contract, as with other SystemBoot operations.
+
+Arm the existing iobewi-esp-watchdog **after** HAL/TIMG0/esp-rtos initialization
+and before discovery/NVS/OTM1 awaits. Use common service on_boot, pending_check,
+confirm_pending/reject_pending unchanged. Only durable boot confirmation disarms
+the watchdog; failed confirmation/rejection or timeout must cause reset with the
+watchdog still armed. Do not disable it automatically when dropping the adapter.
+The reference composition in examples/firmware-confirmation demonstrates this.
+A startup hang before arming is still outside this protection window.
+
+CI metadata explicitly enables runtime on host and MCU: the same classification
+and observation checks are tested, and the actual ESP binding is cross-compiled.

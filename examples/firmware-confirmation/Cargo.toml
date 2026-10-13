@@ -1,0 +1,39 @@
+[package]
+name = "example-firmware-confirmation"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.95"
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "firmware-confirmation-esp32"
+path = "src/main.rs"
+required-features = ["firmware"]
+
+[features]
+default = []
+firmware = []
+reject-self-check = []
+hang-self-check = []
+esp32c3 = ["iobewi-esp-firmware-a/esp32c3", "iobewi-esp-flash/esp32c3", "iobewi-esp-watchdog/esp32c3","firmware", "esp-hal/esp32c3", "esp-rtos/esp32c3", "esp-alloc/esp32c3", "esp-bootloader-esp-idf/esp32c3", "iobewi-esp-config-space/esp32c3", "iobewi-esp-console/esp32c3"]
+esp32s3 = ["iobewi-esp-firmware-a/esp32s3", "iobewi-esp-flash/esp32s3", "iobewi-esp-watchdog/esp32s3","firmware", "esp-hal/esp32s3", "esp-rtos/esp32s3", "esp-alloc/esp32s3", "esp-bootloader-esp-idf/esp32s3", "iobewi-esp-config-space/esp32s3", "iobewi-esp-console/esp32s3"]
+
+[dependencies]
+iobewi-log = { path = "../../common/log/core" }
+iobewi-esp-console = { path = "../../arch/esp32/log/console", default-features = false }
+iobewi-config-space = { path = "../../common/config/space" }
+iobewi-esp-config-space = { path = "../../arch/esp32/config/space" }
+esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"] }
+esp-rtos = { version = "~0.4", default-features = false, features = ["embassy", "esp-alloc"] }
+esp-alloc = { version = "~0.11", default-features = false, features = ["global-allocator", "compat"] }
+esp-bootloader-esp-idf = { version = "~0.6", default-features = false }
+embassy-executor = { version = "0.10.0", default-features = false }
+static_cell = "2.1"
+
+iobewi-esp-firmware-a = { path = "../../arch/esp32/firmware/a", features = ["runtime"] }
+iobewi-esp-flash = { path = "../../arch/esp32/flash" }
+iobewi-esp-watchdog = { path = "../../arch/esp32/watchdog" }
+iobewi-firmware-update = { path = "../../common/firmware/update", features = ["runtime", "config-space"] }
+embassy-time = "0.5.0"
+log = "0.4"

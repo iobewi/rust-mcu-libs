@@ -102,3 +102,31 @@ S3 29744 bytes / 3024 margin, valid checksum/footer. A 16MB header is not physic
 16MB evidence. Stack linker guards are retained; actual use needs measurement.
 The new CI profile gates real links and packaged size. Full verification,
 product watchdog/OTA/supervised wiring and hardware faults remain separate gates.
+
+
+## Application boot gate increment (2026-10-13)
+
+The existing common service boot gate now binds to SystemBoot via the optional
+A BootRuntime adapter; the existing watchdog driver is reused. A scoped mutable
+borrow prevents activation/upload through the owner during checks. The hardware
+snapshot is read once; its outcome is updated only after successful transitions.
+Self-check/OTM1 operate after physical flash locks have dropped.
+
+Historical Pending-before-Valid classification is retained. A mismatched actual
+slot or absent boot state refuses construction rather than disabling protection;
+this strengthens the integration boundary, without claiming an old boot failure.
+Wire codecs, common reconciliation and bootloader verification are unchanged.
+
+examples/firmware-confirmation initializes HAL/TIMG0/runtime before arming 20 s,
+uses the existing NVS canary with a 15 s probation timeout, then confirms/rejects
+or resets via the existing common gate. It includes refusal/cooperative-hang
+fault features and does not fabricate activating metadata. Local C3/S3 release
+links PASS with the normal upstream application linker; S3 retains the upstream
+RWX segment warning. Generated images pass the actual boot validator (Structure
+and Full) at both example slot offsets. No physical acceptance is claimed.
+
+Host A runtime tests: 12 PASS and strict Clippy. Existing common boot gate tests
+cover confirmation failure, metadata completion retry, rejection and timeout.
+CI declares runtime features explicitly, resolves optional dependents, and links
+the new reference binary on both chips. Product upload/routes, supervised flash
+backend and runtime, pre-arm hangs and all hardware gates remain open.

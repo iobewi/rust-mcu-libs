@@ -17,3 +17,6 @@ pub mod selection;
 
 // The production adapter and host tests use the same implementation.
 pub use iobewi_firmware_layout::domain_a::*;
+
+#[cfg(feature = "runtime")]
+pub mod service;

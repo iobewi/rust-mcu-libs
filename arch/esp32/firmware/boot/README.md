@@ -22,3 +22,9 @@ and dangerous layouts. MCU features are mutually exclusive.
 The actual composition is examples/firmware-bootloader. Startup, boot policy,
 image validation and metadata transactions reuse existing bricks. No physical
 flash, cache, watchdog or stack-use qualification is claimed.
+
+The host example `validate_image` reads a generated application image and calls
+the existing validator with this crate's chip MemoryMap, checking both Structure
+and Full. It reuses parsing rather than adding an independent image inspector.
+The hexadecimal CLI slot offset/size describe the intended placement. It is not
+a hardware or authentication check and does not change bootloader verification.

@@ -84,3 +84,17 @@ MCU execution is centralized in scripts/compile_mcu.py. Discovery runs
 scripts/test_compile_mcu.py for exact-limit, empty and oversized images,
 including the historical 33488-byte Full-verification overflow. This does not
 qualify hardware or application-image authenticity.
+
+## Configured feature and link checks
+
+ci.json may also declare `"features": ["runtime"]`. Features are validated names,
+forwarded to host tests/Clippy and combined with the MCU feature by the common
+executor. A's runtime adapter uses this so CI does not only compile its default
+layout surface. Impact discovery resolves Cargo metadata with all features to
+include optional consumers in reverse dependency selection; builds still use
+each crate's declared profile/features, not all features simultaneously.
+
+`esp32-linked-bins` links every binary in release on C3/S3 using its normal
+application linker. Unlike `esp32-bootloader`, it has no universal 32 KiB image
+limit. The firmware-confirmation reference uses it to catch unresolved timer,
+allocator, runtime and linker symbols that a cargo check would miss.
