@@ -130,3 +130,29 @@ cover confirmation failure, metadata completion retry, rejection and timeout.
 CI declares runtime features explicitly, resolves optional dependents, and links
 the new reference binary on both chips. Product upload/routes, supervised flash
 backend and runtime, pre-arm hangs and all hardware gates remain open.
+
+
+## Chaîne A dans l'étalon ota-system (reprise du 13 octobre)
+
+La composition HTTPS de l'exemple raccorde désormais réception, réservation
+SystemBoot, ArtifactWriteSession unique, digest relu en flash, validation ESP
+Full avant publication OTM1, activation via activate_staged/SystemBoot et reboot.
+Le boot gate précédent est conservé. Aucun UploadManager/WriteSession imbriqué,
+aucun changement de format OTM1/OTM2/boot ni de Verify::Structure au bootloader.
+L'intégration dans un produit et les gates matériels restent distinctes.
+Voir examples/firmware/ota-system/README.md pour les commandes de préparation,
+le premier flash explicite et les scénarios nominaux/refus/blocage/coupures.
+
+Validation locale de cette composition : admission des requêtes et Clippy strict
+hôte PASS ; 70 tests du service runtime/config-space et les 2 fixtures binaires
+PASS, 12 tests A/runtime PASS. Nominal et variantes reject-self-check /
+hang-self-check liés et packagés sur C3/S3, images acceptées en Structure et Full
+aux deux offsets. Préparation complète (bootloader, application, table officielle,
+otadata initiale via codec réel) PASS sur les deux cibles. Bootloaders : 22 800 /
+29 744 octets, marges 9 968 / 3 024. Client stdlib testé contre un serveur HTTPS
+local : CA vérifié, bytes/digest/ID corrects, absence d'activation implicite,
+activation explicite PASS. Ce test client n'exécute pas le serveur MCU.
+Toolchains : stable 1.99.0, nightly 1.101.0, esp 1.98.1.0, GCC Xtensa 15.2.0 ;
+esp-hal 1.2.2, esp-rtos 0.4.0, picoserve 0.20.1, mbedtls-rs 0.3.0/sys 0.3.1,
+esptool 5.5.0. Découverte des 45 crates, gate de taille et nouveau profil combiné,
+formatage PASS. Aucun Cargo.lock suivi, aucun essai carte, aucune fusion.

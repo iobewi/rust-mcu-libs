@@ -8,7 +8,7 @@ writer ou propriétaire physique de flash.
 | Dossier | Scénario | État |
 | --- | --- | --- |
 | `bootloader/` | Second étage commun aux deux scénarios ESP | Porté ; lien/packaging/taille vérifiés C3/S3, qualification carte à faire |
-| `ota-system/` | Chaîne complète du système A | Code de boot/confirmation existant déplacé ; réception/publication/activation depuis un transfert à raccorder |
+| `ota-system/` | Chaîne complète du système A | Upload HTTPS, écriture/vérification, publication/activation et boot/confirmation raccordés ; qualification carte à faire |
 | `ota-supervised/` | Même chaîne A et domaine supplémentaire B | Spécification et table de partitions ; exécutable à implémenter après A |
 
 Ordre : terminer `ota-system`, qualifier la chaîne A, puis assembler A+B dans

@@ -14,3 +14,6 @@ esp32s3 = []
 iobewi-firmware-image = { path = "../../../../common/firmware/image", default-features = false }
 iobewi-esp-partitions = { path = "../../flash/partitions", default-features = false }
 iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
+
+[dev-dependencies]
+iobewi-firmware-boot = { path = "../../../../common/firmware/boot" }

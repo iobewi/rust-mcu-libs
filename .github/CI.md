@@ -98,3 +98,5 @@ each crate's declared profile/features, not all features simultaneously.
 application linker. Unlike `esp32-bootloader`, it has no universal 32 KiB image
 limit. The firmware/ota-system reference uses it to catch unresolved timer,
 allocator, runtime and linker symbols that a cargo check would miss.
+
+`host-esp32-linked-bins` combines host unit tests/strict Clippy without MCU features with actual C3/S3 release binary links. Firmware dependencies must be optional, enabled by the MCU/firmware features. The OTA reference uses this to execute its request-admission tests without weakening target link gates.

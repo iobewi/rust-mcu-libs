@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
+#![recursion_limit = "256"]
 extern crate alloc;
+mod ota;
 #[cfg(all(feature = "esp32c3", feature = "esp32s3"))]
 compile_error!("choose exactly one MCU feature");
 #[cfg(not(any(feature = "esp32c3", feature = "esp32s3")))]
@@ -43,7 +45,11 @@ async fn reset_for_rollback() -> ! {
     esp_hal::system::software_reset()
 }
 #[embassy_executor::task]
-async fn boot_task(flash: &'static SharedFlash) {
+async fn boot_task(
+    flash: &'static SharedFlash,
+    peripheral: esp_hal::peripherals::WIFI<'static>,
+    spawner: Spawner,
+) {
     let backend = NvsConfigBackend::from_label(flash, "nvs")
         .await
         .expect("NVS unavailable");
@@ -62,6 +68,7 @@ async fn boot_task(flash: &'static SharedFlash) {
             .await
             .expect("boot observation failed");
         let result = boot::on_boot(&store, &runtime).await;
+        log::info!("boot: running {} status {:?}", result.slot, result.status);
         match result.status {
             BootStatus::Rollback => reset_for_rollback().await,
             BootStatus::PendingVerify => {
@@ -94,7 +101,7 @@ async fn boot_task(flash: &'static SharedFlash) {
         }
     }
     // Scoped adapter has released the one SystemBoot, ready for later OTA use.
-    core::future::pending::<()>().await;
+    ota::serve(flash, system, &store, peripheral, spawner).await;
 }
 fn log_status(status: &str) {
     log::info!(target: "example_firmware_ota_system", "boot: {status}");
@@ -106,7 +113,7 @@ fn main() -> ! {
         iobewi_esp_console::console_print,
         "example_firmware_ota_system",
     );
-    esp_alloc::heap_allocator!(size:64*1024);
+    esp_alloc::heap_allocator!(size:160*1024);
     let timg0 = TimerGroup::new(p.TIMG0);
     esp_rtos::start(timg0.timer0, p.FROM_CPU_INTR0);
     // After HAL and TIMG0 resets, before discovery/NVS/OTM1/self-check awaits.
@@ -115,7 +122,7 @@ fn main() -> ! {
     static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();
     let executor = EXECUTOR.init(esp_rtos::embassy::Executor::new());
     executor.run(|spawner: Spawner| {
-        spawner.spawn(boot_task(flash).unwrap());
+        spawner.spawn(boot_task(flash, p.WIFI, spawner).unwrap());
     })
 }
 #[panic_handler]
