@@ -104,6 +104,27 @@ pub fn find(
     })
 }
 
+/// Actual mapped application, using the same upstream API as the historical
+/// firmware adapter. This does not infer execution from OTA metadata.
+pub fn booted_partition(
+    flash: &mut FlashStorage<'_>,
+    table_buffer: &mut [u8; PARTITION_TABLE_MAX_LEN],
+) -> Result<PartitionRange, PartitionError> {
+    let table =
+        read_partition_table(flash, table_buffer).map_err(|_| PartitionError::TableUnreadable)?;
+    let entry = table
+        .booted_partition()
+        .map_err(|_| PartitionError::TableUnreadable)?
+        .ok_or(PartitionError::NotFound)?;
+    if entry.raw_type() != 0 {
+        return Err(PartitionError::NotFound);
+    }
+    Ok(PartitionRange {
+        offset: entry.offset(),
+        size: entry.len() as usize,
+    })
+}
+
 /// Erase a logical, erase-aligned range inside a previously located partition.
 pub fn erase_range<F>(
     flash: &mut F,

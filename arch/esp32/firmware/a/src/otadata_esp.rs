@@ -7,7 +7,7 @@ use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use iobewi_esp_flash::{EspFlash, SharedFlash};
 use iobewi_firmware_boot::{Raw, SECTOR_COUNT, Write};
 
-struct LockedFlash<'a>(&'a mut EspFlash);
+pub(crate) struct LockedFlash<'a>(pub(crate) &'a mut EspFlash);
 
 impl otadata::Flash for LockedFlash<'_> {
     type Error = <EspFlash as embedded_storage::nor_flash::ErrorType>::Error;

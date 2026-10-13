@@ -50,106 +50,63 @@ pub fn select_inactive(
     selection::inactive(layout, metadata, boot_report.map(RunningSlot::index))
 }
 
-/// Authorize using a partition reported independently by the execution
-/// platform. The adapter MUST obtain this from the actual running image,
-/// never by reading the desired OTA slot or transactional metadata.
-pub fn authorize_observed_partition(
+/// Reserve A only after the historical target selection agrees with the
+/// observed mapped application. Never create an unowned stand-alone permit.
+pub fn reserve_inactive<'a>(
+    state: &'a mut iobewi_firmware_layout::session::DomainState,
     layout: &Layout,
     metadata: [Raw; SECTOR_COUNT],
     observed: Option<Partition>,
-) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, AuthorizedSelectionError> {
+    flash_size: u32,
+) -> Result<iobewi_firmware_layout::session::WriteGuard<'a>, ReservationError> {
+    use iobewi_firmware_layout::{authorization::SlotLayout, session::ExecutionState};
+    // The historical selector trusts PendingVerify for slot identity. An upload
+    // during probation would target the confirmed fallback; reserve must refuse.
+    if iobewi_firmware_boot::has_entry_in_state(
+        metadata,
+        iobewi_firmware_boot::state::PENDING_VERIFY,
+    ) {
+        return Err(ReservationError::PendingConfirmation);
+    }
+    use iobewi_firmware_slots::Slot;
     let running = observed.and_then(|p| from_running_partition(layout, p));
-    authorize_inactive(layout, metadata, running)
-}
-
-/// Use the existing exclusive ESP flash metadata reader, rather than letting
-/// the upload caller provide an arbitrary otadata snapshot. The observation
-/// MUST still come from a separate execution-trust source; an otadata-selected
-/// slot is not sufficient evidence of what is running.
-#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
-pub async fn authorize_from_flash(
-    flash: &iobewi_esp_flash::SharedFlash,
-    layout: &Layout,
-    observed: Option<Partition>,
-) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, FlashAuthorizationError> {
-    let records = crate::otadata_esp::read_entries(flash, layout.otadata)
-        .await
-        .map_err(|_| FlashAuthorizationError::Metadata)?;
-    authorize_observed_partition(layout, records, observed)
-        .map_err(FlashAuthorizationError::Authorization)
-}
-
-#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
-#[derive(Debug, PartialEq, Eq)]
-pub enum FlashAuthorizationError {
-    Metadata,
-    Authorization(AuthorizedSelectionError),
-}
-
-/// Combine A's historical transactional selection with the common write gate.
-/// The boot report MUST be independently obtained; this adapter does not
-/// observe running hardware. Until such an observer exists, callers must fail
-/// closed rather than deriving a report from otadata.
-pub fn authorize_inactive(
-    layout: &Layout,
-    metadata: [Raw; SECTOR_COUNT],
-    boot_report: Option<RunningSlot>,
-) -> Result<iobewi_firmware_layout::authorization::InactiveWriteTarget, AuthorizedSelectionError> {
-    use iobewi_firmware_layout::authorization::{AuthorizationError, authorize_a};
-    use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
-
-    let chosen = select_inactive(layout, metadata, boot_report)
-        .map_err(AuthorizedSelectionError::Selection)?;
-    let running = boot_report.ok_or(AuthorizedSelectionError::Authorization(
-        AuthorizationError::UnknownRunning,
-    ))?;
-    let current = match running {
-        RunningSlot::Zero => Slot::Zero,
-        RunningSlot::One => Slot::One,
-    };
-    let target = current.other();
-    let validated = iobewi_firmware_layout::domain_a::Layout {
-        images: layout
-            .images
-            .map(|p| iobewi_firmware_layout::domain_a::Partition {
-                offset: p.offset,
-                size: p.size,
-            }),
-        otadata: iobewi_firmware_layout::domain_a::Partition {
-            offset: layout.otadata.offset,
-            size: layout.otadata.size,
-        },
-    };
-    let permission = authorize_a(
-        &validated,
-        Some(FirmwareSlot::new(Domain::A, current)),
-        FirmwareSlot::new(Domain::A, target),
-    )
-    .map_err(AuthorizedSelectionError::Authorization)?;
-    if permission.region().offset != chosen.offset
-        || permission.region().size != chosen.size as usize
-    {
-        return Err(AuthorizedSelectionError::Selection(
+    let chosen = select_inactive(layout, metadata, running).map_err(ReservationError::Selection)?;
+    let active =
+        running
+            .and_then(|r| Slot::from_index(r.index()))
+            .ok_or(ReservationError::Selection(
+                selection::SelectionError::UnknownRunningSlot,
+            ))?;
+    let target = active.other();
+    if chosen != layout.images[usize::from(target.index())] {
+        return Err(ReservationError::Selection(
             selection::SelectionError::InvalidTarget,
         ));
     }
-    Ok(permission)
+    let checked =
+        SlotLayout::for_a(layout, flash_size).map_err(|_| ReservationError::InvalidLayout)?;
+    state.observe(ExecutionState::Running(active));
+    state
+        .reserve(&checked, target)
+        .map_err(ReservationError::Session)
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum AuthorizedSelectionError {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReservationError {
+    PendingConfirmation,
     Selection(selection::SelectionError),
-    Authorization(iobewi_firmware_layout::authorization::AuthorizationError),
+    InvalidLayout,
+    Session(iobewi_firmware_layout::session::SessionError),
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use iobewi_firmware_boot::{BLANK, Entry, state};
-
-    #[test]
-    fn reported_partition_must_match_exactly_one_slot() {
-        let layout = Layout {
+    use iobewi_firmware_layout::session::DomainState;
+    use iobewi_firmware_slots::Domain;
+    fn layout() -> Layout {
+        Layout {
             images: [
                 Partition {
                     offset: 0x20000,
@@ -164,126 +121,125 @@ mod tests {
                 offset: 0xd000,
                 size: 0x2000,
             },
-        };
-        assert_eq!(
-            from_running_partition(&layout, layout.images[0]),
-            Some(RunningSlot::Zero)
-        );
-        assert_eq!(
-            from_running_partition(&layout, layout.images[1]),
-            Some(RunningSlot::One)
-        );
-        assert_eq!(
-            from_running_partition(
-                &layout,
-                Partition {
-                    offset: 0x20000,
-                    size: 0x1000,
-                },
+        }
+    }
+    #[test]
+    fn only_the_exact_observed_image_unlocks_historical_target() {
+        let layout = layout();
+        let records = [Entry::new(1, state::VALID).encode(), BLANK];
+        let mut owner = DomainState::new(Domain::A);
+        for observed in [
+            None,
+            Some(layout.otadata),
+            Some(layout.images[1]),
+            Some(Partition {
+                offset: layout.images[0].offset,
+                size: 0x1000,
+            }),
+        ] {
+            assert!(reserve_inactive(&mut owner, &layout, records, observed, 0x400000).is_err());
+        }
+        let mut guard = reserve_inactive(
+            &mut owner,
+            &layout,
+            records,
+            Some(layout.images[0]),
+            0x400000,
+        )
+        .unwrap();
+        assert_eq!(guard.permit().region().offset, layout.images[1].offset);
+    }
+    #[test]
+    fn historical_bootloader_rollback_and_confirmation_select_the_other_image() {
+        let layout = layout();
+        let mut owner = DomainState::new(Domain::A);
+        for (records, observed, target) in [
+            (
+                [
+                    Entry::new(1, state::VALID).encode(),
+                    Entry::new(2, state::VALID).encode(),
+                ],
+                1,
+                0,
             ),
-            None
+            (
+                [
+                    Entry::new(1, state::VALID).encode(),
+                    Entry::new(2, state::ABORTED).encode(),
+                ],
+                0,
+                1,
+            ),
+            (
+                [
+                    Entry::new(1, state::VALID).encode(),
+                    Entry::new(2, state::INVALID).encode(),
+                ],
+                0,
+                1,
+            ),
+        ] {
+            let mut guard = reserve_inactive(
+                &mut owner,
+                &layout,
+                records,
+                Some(layout.images[observed]),
+                0x400000,
+            )
+            .unwrap();
+            assert_eq!(guard.permit().region().offset, layout.images[target].offset);
+        }
+    }
+    #[test]
+    fn blank_metadata_and_new_without_promotion_cannot_erase_running_image() {
+        let layout = layout();
+        let mut owner = DomainState::new(Domain::A);
+        assert!(
+            reserve_inactive(
+                &mut owner,
+                &layout,
+                [BLANK; 2],
+                Some(layout.images[0]),
+                0x400000
+            )
+            .is_err()
         );
-        let mut ambiguous = layout;
-        ambiguous.images[1] = ambiguous.images[0];
-        assert_eq!(
-            from_running_partition(&ambiguous, ambiguous.images[0]),
-            None
+        assert!(
+            reserve_inactive(
+                &mut owner,
+                &layout,
+                [
+                    Entry::new(1, state::VALID).encode(),
+                    Entry::new(2, state::NEW).encode()
+                ],
+                Some(layout.images[1]),
+                0x400000
+            )
+            .is_err()
         );
     }
-
     #[test]
-    fn observed_partition_authorization_fails_closed() {
-        let layout = Layout {
-            images: [
-                Partition {
-                    offset: 0x20000,
-                    size: 0x180000,
-                },
-                Partition {
-                    offset: 0x1a0000,
-                    size: 0x180000,
-                },
-            ],
-            otadata: Partition {
-                offset: 0xd000,
-                size: 0x2000,
-            },
-        };
-        let records = [Entry::new(1, state::VALID).encode(), BLANK];
-        assert!(authorize_observed_partition(&layout, records, None).is_err());
-        assert!(authorize_observed_partition(&layout, records, Some(layout.otadata)).is_err());
-        assert!(authorize_observed_partition(&layout, records, Some(layout.images[1])).is_err());
-        let target =
-            authorize_observed_partition(&layout, records, Some(layout.images[0])).unwrap();
-        assert_eq!(target.region().offset, layout.images[1].offset);
-    }
-
-    #[test]
-    fn authorization_requires_observed_report_and_matching_metadata() {
-        let layout = Layout {
-            images: [
-                Partition {
-                    offset: 0x20000,
-                    size: 0x180000,
-                },
-                Partition {
-                    offset: 0x1a0000,
-                    size: 0x180000,
-                },
-            ],
-            otadata: Partition {
-                offset: 0xd000,
-                size: 0x2000,
-            },
-        };
-        let records = [Entry::new(1, state::VALID).encode(), BLANK];
-        assert_eq!(
-            authorize_inactive(&layout, records, None),
-            Err(AuthorizedSelectionError::Selection(
-                selection::SelectionError::UnknownRunningSlot
-            ))
-        );
-        assert_eq!(
-            authorize_inactive(&layout, records, Some(RunningSlot::One)),
-            Err(AuthorizedSelectionError::Selection(
-                selection::SelectionError::RunningSlotMismatch
-            ))
-        );
-        let permit = authorize_inactive(&layout, records, Some(RunningSlot::Zero)).unwrap();
-        assert_eq!(permit.region().offset, layout.images[1].offset);
-    }
-
-    #[test]
-    fn only_a_verified_report_can_unlock_an_inactive_target() {
-        let layout = Layout {
-            images: [
-                Partition {
-                    offset: 0x20000,
-                    size: 0x180000,
-                },
-                Partition {
-                    offset: 0x1a0000,
-                    size: 0x180000,
-                },
-            ],
-            otadata: Partition {
-                offset: 0xd000,
-                size: 8192,
-            },
-        };
-        let records = [Entry::new(1, state::VALID).encode(), BLANK];
-        assert_eq!(
-            select_inactive(&layout, records, None),
-            Err(selection::SelectionError::UnknownRunningSlot)
-        );
+    fn probation_never_authorizes_overwriting_the_confirmed_fallback() {
+        let layout = layout();
+        let mut owner = DomainState::new(Domain::A);
+        let records = [
+            Entry::new(1, state::VALID).encode(),
+            Entry::new(2, state::PENDING_VERIFY).encode(),
+        ];
+        // Preserve the historical selector, but gate destructive operations.
         assert_eq!(
             select_inactive(&layout, records, Some(RunningSlot::One)),
-            Err(selection::SelectionError::RunningSlotMismatch)
+            Ok(layout.images[0])
         );
-        assert_eq!(
-            select_inactive(&layout, records, Some(RunningSlot::Zero)),
-            Ok(layout.images[1])
-        );
-        assert_eq!(RunningSlot::from_boot_report(2), None);
+        assert!(matches!(
+            reserve_inactive(
+                &mut owner,
+                &layout,
+                records,
+                Some(layout.images[1]),
+                0x400000
+            ),
+            Err(ReservationError::PendingConfirmation)
+        ));
     }
 }

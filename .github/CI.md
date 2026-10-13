@@ -24,6 +24,7 @@ Example for firmware binaries:
 
 - `host`: host unit tests and Clippy on all targets with warnings denied.
 - `esp32`: cross-compile the library for ESP32-C3 and ESP32-S3. ESP32-S3 also receives an independent latest-Xtensa build.
+- `host-esp32`: execute host unit tests/Clippy without MCU features **and** cross-compile the same library for C3/S3. Use for adapters with host-testable production logic and optional MCU bindings.
 - `esp32-bins`: cross-compile all firmware binaries for ESP32-C3 and ESP32-S3, including the independent latest-Xtensa build.
 
 The workflow also enforces `cargo fmt --all -- --check` across the workspace and prohibits tracked `Cargo.lock` files.

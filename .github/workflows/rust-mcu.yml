@@ -86,6 +86,9 @@ jobs:
         env:
           PKG: ${{ matrix.package }}
         run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+      - name: Transactional boot exhaustive fault injection
+        if: matrix.package == 'iobewi-firmware-boot'
+        run: cargo test --release -p iobewi-firmware-boot
       - name: Firmware OTA runtime feature tests and Clippy
         if: matrix.package == 'iobewi-firmware-update'
         run: |

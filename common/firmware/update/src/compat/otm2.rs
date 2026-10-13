@@ -29,6 +29,14 @@ pub enum Side {
     A,
     B,
 }
+impl Side {
+    pub const fn other(self) -> Self {
+        match self {
+            Self::A => Self::B,
+            Self::B => Self::A,
+        }
+    }
+}
 
 /// API compatibility requirement carried by a legacy OTM2 artifact.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +47,10 @@ pub struct RuntimeApi {
 impl RuntimeApi {
     pub const fn new(major: u16, minor: u16) -> Self {
         Self { major, minor }
+    }
+    /// Historical runtime compatibility rule; no change to persisted fields.
+    pub const fn satisfies(self, required: Self) -> bool {
+        self.major == required.major && self.minor >= required.minor
     }
 }
 

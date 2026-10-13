@@ -3,11 +3,23 @@
 //! Logical firmware domains and their independent A/B slot pairs.
 //! No flash, ESP partition labels, boot policy or update policy.
 
-/// Optional firmware domain. A-only devices do not need domain B.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Domain {
-    A,
-    B,
+/// Application-assigned firmware domain identity. A and B retain their IDs.
+/// This type has no wire codec: legacy OTM1/OTM2/boot records remain unchanged.
+/// Applications may reserve additional IDs (e.g. 2 for C) without another engine.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Domain(u8);
+
+impl Domain {
+    pub const A: Self = Self(0);
+    pub const B: Self = Self(1);
+
+    pub const fn new(id: u8) -> Self {
+        Self(id)
+    }
+
+    pub const fn id(self) -> u8 {
+        self.0
+    }
 }
 
 /// Logical position within one firmware domain.
@@ -67,7 +79,7 @@ mod tests {
 
     #[test]
     fn both_domains_have_independent_pairs() {
-        for domain in [Domain::A, Domain::B] {
+        for domain in [Domain::A, Domain::B, Domain::new(2)] {
             for slot in [Slot::Zero, Slot::One] {
                 let item = FirmwareSlot::new(domain, slot);
                 assert_eq!(item.other().other(), item);

@@ -1,13 +1,10 @@
-# Firmware slots
+# Firmware domain identities
 
-Small, allocation-free, hardware-neutral identifiers for optional firmware domains and their independent two-slot A/B update pairs.
+`Domain::A` and `Domain::B` retain IDs 0 and 1. Applications can assign additional
+IDs with `Domain::new(id)`, for example 2 for C. There is no list of supported
+hardware platforms or implied execution policy in this type.
 
-- `Domain::A` and `Domain::B` identify **firmware domains**, not mandatory system/workload roles.
-- `Slot::Zero` and `Slot::One` identify the positions of each domain.
-- `FirmwareSlot { domain, slot }` can represent A0, A1, B0, B1; `other()` remains in the same domain.
-- **A-only** configurations depend on no B service or runtime.
-- Physical partition naming, discovery, flash, boot policy and update policy are outside this crate.
-
-**Compatibility:** this generic crate intentionally has no `ota_0`/`ota_1` labels or `PARTITION_LAYOUT`. Those belong to an ESP32-specific legacy layout mapping. The existing flash contents, metadata and layout identifier `embewi-ab-v1` **must not change** during porting. The adapter will preserve that mapping when implemented.
-
-Host tests validate both independent pairs and A-only operation. ESP32 mappings and hardware behavior require later qualification.
+Every domain has `Slot::Zero` and `Slot::One`; `FirmwareSlot::other()` stays in
+the same domain. Physical labels, capacities and metadata belong to the layout
+and platform composition. These types do not encode any persistent record:
+OTM1/OTM2 and transactional boot metadata retain their historical bytes.

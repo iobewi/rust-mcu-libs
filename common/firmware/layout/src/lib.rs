@@ -4,6 +4,7 @@
 pub mod authorization;
 pub mod domain_a;
 pub mod domain_b;
+pub mod session;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Entry<'a> {
     pub label: &'a str,
@@ -34,6 +35,39 @@ pub enum DiscoveryError {
     OutOfFlash,
     Overlap,
     Overflow,
+}
+
+/// Validate all supplied physical regions, including partitions not selected
+/// as update targets. Platform-specific placement constraints remain in arch/.
+pub fn validate_regions(
+    regions: &[Region],
+    flash_size: u32,
+    erase_size: u32,
+) -> Result<(), DiscoveryError> {
+    if erase_size == 0 {
+        return Err(DiscoveryError::Misaligned);
+    }
+    for (i, region) in regions.iter().enumerate() {
+        let size = u32::try_from(region.size).map_err(|_| DiscoveryError::Overflow)?;
+        if size == 0 || region.offset % erase_size != 0 || size % erase_size != 0 {
+            return Err(DiscoveryError::Misaligned);
+        }
+        let end = region
+            .offset
+            .checked_add(size)
+            .ok_or(DiscoveryError::Overflow)?;
+        if end > flash_size {
+            return Err(DiscoveryError::OutOfFlash);
+        }
+        for other in &regions[..i] {
+            if (region.offset as u64) < other.offset as u64 + other.size as u64
+                && (other.offset as u64) < end as u64
+            {
+                return Err(DiscoveryError::Overlap);
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Check a provided partition-table view, shared by the production reader and host tests.
@@ -222,6 +256,62 @@ mod tests {
                 0x1000
             ),
             Err(DiscoveryError::Overflow)
+        );
+    }
+    #[test]
+    fn validates_entire_16_mib_map_including_unselected_domains_and_config() {
+        let mut regions = [
+            Region {
+                offset: 0x9000,
+                size: 0x2000,
+            },
+            Region {
+                offset: 0x20000,
+                size: 0x180000,
+            },
+            Region {
+                offset: 0x1a0000,
+                size: 0x180000,
+            },
+            Region {
+                offset: 0x320000,
+                size: 0x2000,
+            },
+            Region {
+                offset: 0x330000,
+                size: 0x40000,
+            },
+            Region {
+                offset: 0x370000,
+                size: 0x40000,
+            },
+            Region {
+                offset: 0x3b0000,
+                size: 0x2000,
+            },
+            Region {
+                offset: 0x400000,
+                size: 0x400000,
+            },
+            Region {
+                offset: 0x800000,
+                size: 0x400000,
+            },
+            Region {
+                offset: 0xc00000,
+                size: 0x400000,
+            },
+        ];
+        assert_eq!(validate_regions(&regions, 0x1000000, 0x1000), Ok(()));
+        regions[9].offset -= 0x1000;
+        assert_eq!(
+            validate_regions(&regions, 0x1000000, 0x1000),
+            Err(DiscoveryError::Overlap)
+        );
+        regions[9].offset = 0xc01000;
+        assert_eq!(
+            validate_regions(&regions, 0x1000000, 0x1000),
+            Err(DiscoveryError::OutOfFlash)
         );
     }
 }

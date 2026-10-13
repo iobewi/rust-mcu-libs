@@ -38,6 +38,9 @@ fn sector_at<E>(part: Partition, sector: usize) -> Result<u32, Error<E>> {
         return Err(Error::BadPartition);
     }
     part.offset
+        .checked_add(part.size)
+        .ok_or(Error::BadPartition)?;
+    part.offset
         .checked_add((sector as u32) * SECTOR_SIZE)
         .ok_or(Error::BadPartition)
 }
@@ -77,9 +80,12 @@ pub fn execute<F: Flash>(
 
     let expected = write.entry.body();
     flash.erase(addr, SECTOR_SIZE).map_err(Error::Flash)?;
-    flash.program(addr, &expected).map_err(Error::Flash)?;
-
     let mut readback = [0u8; ENTRY_SIZE];
+    flash.read(addr, &mut readback).map_err(Error::Flash)?;
+    if readback != BLANK {
+        return Err(Error::ReadbackMismatch);
+    }
+    flash.program(addr, &expected).map_err(Error::Flash)?;
     flash.read(addr, &mut readback).map_err(Error::Flash)?;
     if readback != expected {
         return Err(Error::ReadbackMismatch);
@@ -93,7 +99,7 @@ pub fn execute<F: Flash>(
         .program(addr + OFF_COMMIT as u32, &COMMIT.to_le_bytes())
         .map_err(Error::Flash)?;
     flash.read(addr, &mut readback).map_err(Error::Flash)?;
-    if readback != write.entry.encode() {
+    if readback != write.entry.encode() || decode(&readback) != Decoded::Ok(write.entry) {
         return Err(Error::CommitMismatch);
     }
     Ok(())
@@ -107,12 +113,14 @@ mod tests {
     struct Mem {
         raw: [u8; 8192],
         cut_after_body: bool,
+        erase_fault: bool,
     }
     impl Mem {
         fn new() -> Self {
             Self {
                 raw: [0xff; 8192],
                 cut_after_body: false,
+                erase_fault: false,
             }
         }
     }
@@ -124,7 +132,9 @@ mod tests {
             Ok(())
         }
         fn erase(&mut self, absolute: u32, len: u32) -> Result<(), ()> {
-            self.raw[absolute as usize..(absolute + len) as usize].fill(0xff);
+            if !self.erase_fault {
+                self.raw[absolute as usize..(absolute + len) as usize].fill(0xff);
+            }
             Ok(())
         }
         fn program(&mut self, absolute: u32, bytes: &[u8]) -> Result<(), ()> {
@@ -204,6 +214,107 @@ mod tests {
                 }
             ),
             Err(Error::NoTrustedFallback)
+        );
+    }
+    #[test]
+    fn failed_erase_is_detected_before_body_or_commit() {
+        let mut flash = Mem::new();
+        flash.raw[4096..4096 + ENTRY_SIZE].fill(0);
+        flash.erase_fault = true;
+        let before = flash.raw;
+        assert_eq!(
+            execute(
+                &mut flash,
+                part(),
+                Write {
+                    sector: 1,
+                    entry: Entry::new(2, state::NEW)
+                }
+            ),
+            Err(Error::ReadbackMismatch)
+        );
+        assert_eq!(flash.raw, before);
+    }
+
+    #[test]
+    fn system_activation_confirmation_and_unconfirmed_reboot_preserve_fallback() {
+        let mut flash = Mem::new();
+        let mut apply_plan = |records, image_ok: &mut dyn FnMut(u8) -> bool| {
+            let plan = iobewi_firmware_boot::plan_boot(records, 2, image_ok);
+            for write in plan.writes() {
+                execute(&mut flash, part(), write).unwrap();
+            }
+            plan.boot
+        };
+        assert!(matches!(
+            apply_plan([BLANK; 2], &mut |_| true),
+            iobewi_firmware_boot::Boot::Slot { slot: 0, .. }
+        ));
+        let records = read_entries(&mut flash, part()).unwrap();
+        execute(
+            &mut flash,
+            part(),
+            iobewi_firmware_boot::activate(records, 2, 1).unwrap(),
+        )
+        .unwrap();
+        let plan = iobewi_firmware_boot::plan_boot(
+            read_entries(&mut flash, part()).unwrap(),
+            2,
+            &mut |_| true,
+        );
+        for write in plan.writes() {
+            execute(&mut flash, part(), write).unwrap();
+        }
+        assert!(matches!(
+            plan.boot,
+            iobewi_firmware_boot::Boot::Slot { slot: 1, .. }
+        ));
+        let records = read_entries(&mut flash, part()).unwrap();
+        execute(
+            &mut flash,
+            part(),
+            iobewi_firmware_boot::confirm(records).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            iobewi_firmware_boot::update_target(read_entries(&mut flash, part()).unwrap(), 2),
+            Some(0)
+        );
+        let records = read_entries(&mut flash, part()).unwrap();
+        execute(
+            &mut flash,
+            part(),
+            iobewi_firmware_boot::activate(records, 2, 0).unwrap(),
+        )
+        .unwrap();
+        let plan = iobewi_firmware_boot::plan_boot(
+            read_entries(&mut flash, part()).unwrap(),
+            2,
+            &mut |_| true,
+        );
+        for write in plan.writes() {
+            execute(&mut flash, part(), write).unwrap();
+        }
+        assert!(matches!(
+            plan.boot,
+            iobewi_firmware_boot::Boot::Slot { slot: 0, .. }
+        ));
+        // A reboot before confirmation aborts slot 0 and restores confirmed slot 1.
+        let plan = iobewi_firmware_boot::plan_boot(
+            read_entries(&mut flash, part()).unwrap(),
+            2,
+            &mut |_| true,
+        );
+        for write in plan.writes() {
+            execute(&mut flash, part(), write).unwrap();
+        }
+        assert!(matches!(
+            plan.boot,
+            iobewi_firmware_boot::Boot::Slot { slot: 1, .. }
+        ));
+        assert_eq!(
+            iobewi_firmware_boot::update_target(read_entries(&mut flash, part()).unwrap(), 2),
+            Some(0)
         );
     }
 }

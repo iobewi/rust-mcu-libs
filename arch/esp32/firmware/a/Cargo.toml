@@ -14,8 +14,8 @@ iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
 
 [features]
 default = []
-esp32c3 = ["dep:iobewi-esp-flash", "iobewi-esp-flash/esp32c3", "dep:embedded-storage"]
-esp32s3 = ["dep:iobewi-esp-flash", "iobewi-esp-flash/esp32s3", "dep:embedded-storage"]
+esp32c3 = ["dep:iobewi-esp-flash", "iobewi-esp-flash/esp32c3", "dep:embedded-storage", "dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32c3", "dep:iobewi-esp-partitions", "iobewi-esp-partitions/esp32c3"]
+esp32s3 = ["dep:iobewi-esp-flash", "iobewi-esp-flash/esp32s3", "dep:embedded-storage", "dep:iobewi-esp-firmware-storage", "iobewi-esp-firmware-storage/esp32s3", "dep:iobewi-esp-partitions", "iobewi-esp-partitions/esp32s3"]
 
 [dependencies.iobewi-esp-flash]
 path = "../../flash"
@@ -23,4 +23,12 @@ optional = true
 
 [dependencies.embedded-storage]
 version = "0.3.1"
+optional = true
+
+[dependencies.iobewi-esp-firmware-storage]
+path = "../storage"
+optional = true
+
+[dependencies.iobewi-esp-partitions]
+path = "../../flash/partitions"
 optional = true

@@ -42,7 +42,7 @@ pub async fn read(
 /// An arbitrary partition cannot be supplied by the caller.
 pub async fn erase(
     flash: &SharedFlash,
-    target: &InactiveWriteTarget,
+    target: &mut InactiveWriteTarget,
     offset: u32,
     len: u32,
 ) -> Result<(), FlashError> {
@@ -68,7 +68,7 @@ pub async fn erase(
 /// publish metadata; the update transaction coordinates these operations.
 pub async fn write(
     flash: &SharedFlash,
-    target: &InactiveWriteTarget,
+    target: &mut InactiveWriteTarget,
     offset: u32,
     bytes: &[u8],
 ) -> Result<(), FlashError> {

@@ -19,8 +19,8 @@ pub const fn erase_size() -> usize {
     <EspFlash as NorFlash>::ERASE_SIZE
 }
 
-pub struct ArtifactWriter<'a> {
-    _permit: &'a InactiveWriteTarget,
+pub(crate) struct ArtifactWriter<'a> {
+    _permit: &'a mut InactiveWriteTarget,
     partition: PartitionRange,
     scratch: Box<[u8]>,
     erased_through: u64,
@@ -31,7 +31,7 @@ pub struct ArtifactWriter<'a> {
 impl<'a> ArtifactWriter<'a> {
     /// Requires the portable inactive-slot authorization proof.
     /// The platform must independently establish running-slot identity.
-    pub fn new(target: &'a InactiveWriteTarget) -> Self {
+    pub(crate) fn new(target: &'a mut InactiveWriteTarget) -> Self {
         let region = target.region();
         let partition = PartitionRange {
             offset: region.offset,
@@ -134,5 +134,59 @@ impl<'a> ArtifactWriter<'a> {
         let committed = engine.finish(&mut backend)?;
         self.sectors_flushed += (committed.size - before).div_ceil(erase_size() as u64) as u32;
         Ok(committed)
+    }
+}
+
+/// Shared streaming session. Owns the engine state so unrelated sessions cannot
+/// accidentally reuse an erase watermark. The writer is domain-independent.
+pub struct ArtifactWriteSession<'a> {
+    writer: ArtifactWriter<'a>,
+    engine: WriteSession,
+}
+
+impl<'a> ArtifactWriteSession<'a> {
+    pub fn begin(
+        target: &'a mut InactiveWriteTarget,
+        total: u64,
+        digest: iobewi_firmware_update::Digest,
+    ) -> Result<Self, FlashWriteError> {
+        let region = target.region();
+        if region.offset as usize % erase_size() != 0 || region.size % erase_size() != 0 {
+            return Err(FlashWriteError::Unaligned);
+        }
+        if total == 0 || total > region.size as u64 {
+            return Err(FlashWriteError::AddressOverflow);
+        }
+        Ok(Self {
+            writer: ArtifactWriter::new(target),
+            engine: WriteSession::begin(total, digest),
+        })
+    }
+
+    pub fn partition(&self) -> PartitionRange {
+        self.writer.partition()
+    }
+    pub fn sectors_flushed(&self) -> u32 {
+        self.writer.sectors_flushed()
+    }
+    pub fn erase_batches(&self) -> u32 {
+        self.writer.erase_batches()
+    }
+    pub fn received(&self) -> u64 {
+        self.engine.received()
+    }
+    pub fn durable(&self) -> u64 {
+        self.engine.durable()
+    }
+
+    pub async fn append(&mut self, flash: &SharedFlash, data: &[u8]) -> bool {
+        self.writer.append(flash, &mut self.engine, data).await
+    }
+
+    pub async fn finish(
+        mut self,
+        flash: &SharedFlash,
+    ) -> Result<Committed, Error<FlashWriteError>> {
+        self.writer.finish(flash, self.engine).await
     }
 }

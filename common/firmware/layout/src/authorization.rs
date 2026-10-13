@@ -8,15 +8,13 @@ use iobewi_firmware_slots::{Domain, FirmwareSlot, Slot};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuthorizationError {
-    UnknownRunning,
-    WrongDomain,
     ActiveTarget,
     InvalidLayout,
 }
 
-/// Single-use write permit for the ESP artifact writer. Deliberately !Copy and !Clone.
-/// Consuming this token prevents accidentally constructing two writers from one check.
-/// This is NOT a runtime hardware lock or a substitute for supervisor ownership.
+/// Bounded write authorization. Deliberately !Copy and !Clone.
+/// Writers borrow this value exclusively; it is not a hardware attestation.
+/// Use a session guard to exclude activation for the entire transaction.
 #[derive(Debug, PartialEq, Eq)]
 pub struct InactiveWriteTarget {
     slot: FirmwareSlot,
@@ -32,192 +30,115 @@ impl InactiveWriteTarget {
     }
 }
 
-/// Authorize against an A-domain layout returned by the platform's partition
-/// discovery. The caller is responsible for establishing that provenance.
-pub fn authorize_a(
-    layout: &domain_a::Layout,
-    running: Option<FirmwareSlot>,
-    requested: FirmwareSlot,
-) -> Result<InactiveWriteTarget, AuthorizationError> {
-    let images = layout.images.map(|p| Region {
-        offset: p.offset,
-        size: p.size as usize,
-    });
-    let metadata = Region {
-        offset: layout.otadata.offset,
-        size: layout.otadata.size as usize,
-    };
-    if !valid_pair(images)
-        || !valid_region(metadata)
-        || images.iter().any(|p| overlaps(*p, metadata))
-        || layout.otadata.size < domain_a::OTADATA_MIN_SIZE
-        || images.iter().any(|p| p.offset % 0x10000 != 0)
-    {
-        return Err(AuthorizationError::InvalidLayout);
-    }
-    authorize_checked(Domain::A, images, running, requested)
-}
-
-/// B uses the already assembled workload layout. B is NOT a second ESP OTA
-/// bootloader; running identity must come from the workload supervisor.
-pub fn authorize_b(
-    layout: &domain_b::WorkloadLayout,
-    running: Option<FirmwareSlot>,
-    requested: FirmwareSlot,
-) -> Result<InactiveWriteTarget, AuthorizationError> {
-    let a = layout.slot(domain_b::Side::A);
-    let b = layout.slot(domain_b::Side::B);
-    let images = [a, b].map(|p| Region {
-        offset: p.offset,
-        size: p.size as usize,
-    });
-    if !valid_pair(images) {
-        return Err(AuthorizationError::InvalidLayout);
-    }
-    authorize_checked(Domain::B, images, running, requested)
-}
-
-fn valid_region(region: Region) -> bool {
-    region.size != 0
-        && (region.offset as u64)
-            .checked_add(region.size as u64)
-            .is_some_and(|end| end <= u32::MAX as u64)
-}
-fn overlaps(a: Region, b: Region) -> bool {
-    (a.offset as u64) < b.offset as u64 + b.size as u64
-        && (b.offset as u64) < a.offset as u64 + a.size as u64
-}
-fn valid_pair(images: [Region; 2]) -> bool {
-    images.iter().copied().all(valid_region) && !overlaps(images[0], images[1])
-}
-fn authorize_checked(
+/// A physically checked pair plus its protected metadata region.
+/// No boot protocol or workload-specific minimum is imposed here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SlotLayout {
     domain: Domain,
     images: [Region; 2],
-    running: Option<FirmwareSlot>,
-    requested: FirmwareSlot,
-) -> Result<InactiveWriteTarget, AuthorizationError> {
-    let active = running.ok_or(AuthorizationError::UnknownRunning)?;
-    if active.domain != domain || requested.domain != domain {
-        return Err(AuthorizationError::WrongDomain);
+}
+
+impl SlotLayout {
+    pub fn new(
+        domain: Domain,
+        images: [Region; 2],
+        metadata: Region,
+        flash_size: u32,
+        erase_size: u32,
+    ) -> Result<Self, AuthorizationError> {
+        crate::validate_regions(&[images[0], images[1], metadata], flash_size, erase_size)
+            .map_err(|_| AuthorizationError::InvalidLayout)?;
+        Ok(Self { domain, images })
     }
-    if active.slot == requested.slot {
-        return Err(AuthorizationError::ActiveTarget);
+
+    pub fn for_a(layout: &domain_a::Layout, flash_size: u32) -> Result<Self, AuthorizationError> {
+        layout
+            .validate(flash_size)
+            .map_err(|_| AuthorizationError::InvalidLayout)?;
+        Self::new(
+            Domain::A,
+            layout.images.map(|p| Region {
+                offset: p.offset,
+                size: p.size as usize,
+            }),
+            Region {
+                offset: layout.otadata.offset,
+                size: layout.otadata.size as usize,
+            },
+            flash_size,
+            0x1000,
+        )
     }
-    if !valid_pair(images) {
-        return Err(AuthorizationError::InvalidLayout);
+
+    pub fn for_b(
+        layout: &domain_b::WorkloadLayout,
+        flash_size: u32,
+    ) -> Result<Self, AuthorizationError> {
+        let [meta, a, b] = layout.regions();
+        Self::new(
+            Domain::B,
+            [a, b].map(|r| Region {
+                offset: r.offset,
+                size: r.size as usize,
+            }),
+            Region {
+                offset: meta.offset,
+                size: meta.size as usize,
+            },
+            flash_size,
+            layout.erase_size(),
+        )
     }
-    let region = images[match requested.slot {
-        Slot::Zero => 0,
-        Slot::One => 1,
-    }];
-    Ok(InactiveWriteTarget {
-        slot: requested,
-        region,
-    })
+
+    pub const fn domain(&self) -> Domain {
+        self.domain
+    }
+
+    pub(crate) fn authorize(
+        &self,
+        active: Option<Slot>,
+        requested: Slot,
+    ) -> Result<InactiveWriteTarget, AuthorizationError> {
+        if active == Some(requested) {
+            return Err(AuthorizationError::ActiveTarget);
+        }
+        Ok(InactiveWriteTarget {
+            slot: FirmwareSlot::new(self.domain, requested),
+            region: self.images[usize::from(requested.index())],
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn id(domain: Domain, slot: Slot) -> FirmwareSlot {
-        FirmwareSlot::new(domain, slot)
-    }
-    fn a() -> domain_a::Layout {
-        domain_a::Layout {
-            images: [
-                domain_a::Partition {
-                    offset: 0x20000,
-                    size: 0x20000,
-                },
-                domain_a::Partition {
-                    offset: 0x40000,
-                    size: 0x20000,
-                },
-            ],
-            otadata: domain_a::Partition {
-                offset: 0xD000,
-                size: 0x2000,
+    #[test]
+    fn validates_capacity_geometry_and_metadata_before_authorization() {
+        let images = [
+            Region {
+                offset: 0x20000,
+                size: 0x40000,
             },
-        }
-    }
-    fn b() -> domain_b::WorkloadLayout {
-        domain_b::assemble(
-            Some(domain_b::Region::new(0x9000, 0x2000)),
-            Some(domain_b::Region::new(0x20000, 0x40000)),
-            Some(domain_b::Region::new(0x60000, 0x40000)),
-            0x1000,
-        )
-        .unwrap()
-    }
-    #[test]
-    fn fail_closed_when_running_unknown_active_or_wrong_domain() {
-        let target = id(Domain::A, Slot::One);
+            Region {
+                offset: 0x60000,
+                size: 0x40000,
+            },
+        ];
+        let meta = Region {
+            offset: 0x9000,
+            size: 0x2000,
+        };
+        assert!(SlotLayout::new(Domain::new(2), images, meta, 0x1000000, 0x1000).is_ok());
         assert_eq!(
-            authorize_a(&a(), None, target),
-            Err(AuthorizationError::UnknownRunning)
-        );
-        assert_eq!(
-            authorize_a(&a(), Some(target), target),
-            Err(AuthorizationError::ActiveTarget)
-        );
-        assert_eq!(
-            authorize_a(&a(), Some(id(Domain::B, Slot::Zero)), target),
-            Err(AuthorizationError::WrongDomain)
-        );
-    }
-    #[test]
-    fn checked_a_and_b_select_only_the_other_slot() {
-        let a_permit = authorize_a(
-            &a(),
-            Some(id(Domain::A, Slot::Zero)),
-            id(Domain::A, Slot::One),
-        )
-        .unwrap();
-        assert_eq!(a_permit.region().offset, 0x40000);
-        let b_permit = authorize_b(
-            &b(),
-            Some(id(Domain::B, Slot::Zero)),
-            id(Domain::B, Slot::One),
-        )
-        .unwrap();
-        assert_eq!(b_permit.region().offset, 0x60000);
-    }
-    #[test]
-    fn b_rejects_unobserved_or_active_workload() {
-        let target = id(Domain::B, Slot::One);
-        assert_eq!(
-            authorize_b(&b(), None, target),
-            Err(AuthorizationError::UnknownRunning)
-        );
-        assert_eq!(
-            authorize_b(&b(), Some(target), target),
-            Err(AuthorizationError::ActiveTarget)
-        );
-        assert_eq!(
-            authorize_b(&b(), Some(id(Domain::A, Slot::Zero)), target),
-            Err(AuthorizationError::WrongDomain)
-        );
-    }
-    #[test]
-    fn rejects_bad_a_metadata_overlap_and_alignment() {
-        let mut layout = a();
-        layout.otadata.offset = 0x20000;
-        assert_eq!(
-            authorize_a(
-                &layout,
-                Some(id(Domain::A, Slot::Zero)),
-                id(Domain::A, Slot::One)
-            ),
+            SlotLayout::new(Domain::B, images, meta, 0x90000, 0x1000),
             Err(AuthorizationError::InvalidLayout)
         );
-        let mut layout = a();
-        layout.images[1].offset = 0x41000;
         assert_eq!(
-            authorize_a(
-                &layout,
-                Some(id(Domain::A, Slot::Zero)),
-                id(Domain::A, Slot::One)
-            ),
+            SlotLayout::new(Domain::B, images, images[0], 0x1000000, 0x1000),
+            Err(AuthorizationError::InvalidLayout)
+        );
+        assert_eq!(
+            SlotLayout::new(Domain::B, images, meta, 0x1000000, 0),
             Err(AuthorizationError::InvalidLayout)
         );
     }
