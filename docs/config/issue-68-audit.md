@@ -1,149 +1,170 @@
-# Issue #68 — audit de persistance ConfigSpace
+# Issue #68 — ConfigSpace sur EKV : décision et qualification
 
-État : premier incrément préparatoire. Référence auditée : rust-mcu-libs
-b346a209f4d3903d9eddbbc914de714ac48db683, après les corrections a85db0c.
-Cette PR dépend de #65 ; elle ne fusionne ni ne clôture ce chantier OTA.
-Aucun nouveau moteur sélectionné définitivement, aucune migration flash exécutée.
+## Décision du mainteneur
 
-## Responsabilités et consommateurs réels
+EKV est le socle retenu pour la prochaine persistance ConfigSpace, indépendante
+du MCU. Le projet est en développement : **aucune migration NVS, aucune
+compatibilité CSM1, aucun double moteur dans la cible**. Cette décision remplace
+les propositions de migration et la comparaison ouverte du premier incrément
+bb8cbc833fd8ed87af19e408722362408abb2fee de la PR #69.
 
-| Élément | Situation observée | Action |
-| --- | --- | --- |
-| common/config/space | Manager, propriété des handles, quotas ; contrat ConfigBackend générique | Conserver API et comportement |
-| common/fs/nvs | Codec CSM1 portable mêlé aux règles de noms/comptabilité NVS ; dépend de esp-nvs | Extraire le codec, conserver le reste provisoirement |
-| arch/esp32/config/space | Générations, remplacement, tombstone, santé, namespace, découverte et accès NVS | Déplacer la persistance générique ; garder l'adaptation physique |
-| arch/esp32/fs/nvs | Vue NvsFlash empruntée au SharedFlash existant | Garder pour lecture/migration et consommateurs identifiés |
-| arch/esp32/flash | Unique propriétaire et verrou physique ; correction RDID S3 de #65 | Réutiliser ; aucune nouvelle instance FlashStorage |
+La cible conserve le manager et les handles ConfigSpace, les quotas, les valeurs
+opaques, les générations et les tombstones. EKV fournit les transactions, le
+recyclage et la rotation des pages ; les adaptateurs matériels fournissent son
+trait `ekv::flash::Flash`. ESP32 doit réutiliser `SharedFlash`, son propriétaire
+physique unique et son verrou, sans nouvelle instance de FlashStorage.
 
-Consommateurs de ConfigBackend dans le dépôt : Wi-Fi (128 octets), TLS
-(6 154 octets), log policy (1 024 octets), métadonnées et bootstrap OTA (budget
-2 048 dans ota-system), exemple config-manager (32 octets). Ces consommateurs
-sont génériques ; seuls config-manager et ota-system composent concrètement le
-backend NVS. Aucun autre consommateur direct de fs/nvs n'a été trouvé par la
-recherche Rust/Cargo du dépôt. Cela n'inventorie pas les dépôts externes.
+**État : raccordement bloqué par la qualification de reprise après coupure.**
+Le nouvel incrément fournit un banc hôte utilisant directement EKV. EKV est une
+`dev-dependency`, aucun backend EKV n'est déployé et aucune table de partitions
+n'est modifiée. Le code NVS déjà publié reste exécuté jusqu'au remplacement
+qualifié ; il ne constitue pas une couche de compatibilité de la cible.
+Aucune fusion/clôture de #65, #68 ou #69.
 
-Les tables ota-system/ota-supervised réservent NVS 0x4000 octets (16 Kio).
-L'admission actuelle réserve deux versions du blob avec la formule NVS :
-2 * (ceil((13 + payload)/32) + ceil((13 + payload)/4000) + 1).
-Elle donne 14 unités pour Wi-Fi, 392 pour TLS, 70 pour logs, 134 pour OTA,
-8 pour demo. Ces unités sont des entrées NVS, pas des octets. La capacité
-réelle dépend des statistiques/pages réservées ; ne pas promettre que tous
-les budgets sont admis dans la table de 16 Kio.
+## Consommateurs et responsabilités
 
-## Premier incrément : codec unique et compatible
+| Élément | Responsabilité dans la cible |
+| --- | --- |
+| common/config/space | Propriété/quotas, générations persistantes et tombstones, contrat load/commit/clear |
+| EKV | Persistance transactionnelle, valeurs multi-pages, intégrité CRC, recyclage/rotation |
+| arch/esp32/config/space | Adaptateur Flash borné et découverte d'une partition dédiée |
+| arch/esp32/flash | Propriétaire et verrou physiques existants, partagés avec OTA |
+| examples | Manifest des espaces, géométrie/partition, seed aléatoire par boot et initialisation explicite |
 
-Déplacer exactement MAGIC CSM1, HEADER_LEN=13, FLAG_PRESENT, CorruptRecord et
-encode_record/decode_record vers common/config/space::record. Garder les chemins
-existants via réexport depuis common/fs/nvs ; déplacer les deux tests golden et
-corruption avec le code de production. Aucun schéma ni format persistant modifié.
-Les limites de noms à 15 octets restent spécifiques à la compatibilité NVS.
+Budgets observés : Wi-Fi 128 octets, TLS 6 154, logs 1 024, OTA 2 048,
+demo config-manager 32. Seuls ota-system et config-manager composent le backend
+NVS ; aucun autre consommateur direct des deux crates fs/nvs n'a été trouvé.
+Les tables OTA actuelles réservent 16 Kio à NVS. Les **256 Kio du banc EKV ne
+sont ni une nouvelle table publiée ni une preuve d'admission des quotas**.
 
-CSM1 ne possède ni longueur interne ni CRC propre. Son framing ne constitue pas
-un moteur transactionnel : il doit être enveloppé dans un stockage assurant
-intégrité, publication atomique, recovery et recyclage. Préserver la génération
-après clear par un tombstone durable ; ne pas remplacer ce contrat par un delete
-qui perdrait la dernière génération. Ne pas sauter les commits identiques pour
-économiser l'usure sans décision explicite sur la sémantique des générations.
+## Profil testé et reproductibilité
 
-## Réutilisation amont : candidats à mesurer
+- Version publiée `ekv = "=1.0.0"`, tag
+  [v1.0.0 / e9b3ff3](https://github.com/embassy-rs/ekv/tree/e9b3ff36d29ada21dba4f440a214305b7d965abc).
+- Features : `crc`, `max-value-size-8192`, `max-chunk-size-256`.
+- Profil vérifié par assertion de compilation : pages 4 096 octets, alignement
+  4, maximum 256 pages, clé 64, valeur 8 192, chunk 256, effacement 0xff,
+  branching factor 2, scratch pages 4. Version/configuration font partie du
+  format persistant ; toute modification exige une nouvelle qualification.
+- Banc : 64 pages, soit 256 Kio, Linux x86_64, Rust stable
+  `1.99.0 (b940084d7 2026-09-28)`, profil debug.
+- Appels directs à Database, ReadTransaction et WriteTransaction ; **aucun
+  framing CSM1/CSP2, manager ConfigSpace ou pilote ESP dans le reproducteur**.
 
-Sources primaires consultées :
-- [sequential-storage](https://github.com/tweedegolf/sequential-storage),
-  [documentation](https://docs.rs/sequential-storage/latest/sequential_storage/).
-- [ekv](https://github.com/embassy-rs/ekv), source main
-  a0e2c7e16cf790e2fa7e34fac9f9dac1557824aa (2026-05-28),
-  [version publiée 1.0.0](https://docs.rs/ekv/1.0.0/ekv/),
-  [compatibilité de configuration](https://docs.rs/ekv/1.0.0/ekv/config/).
+```sh
+cargo run -p iobewi-config-space --example qualify_ekv -- wear
+cargo run -p iobewi-config-space --example qualify_ekv -- cuts
+cargo run -p iobewi-config-space --example qualify_ekv -- reproduce
+cargo test -p iobewi-config-space
+cargo clippy -p iobewi-config-space --all-targets -- -D warnings
+```
 
-| Candidat | Intérêt | Limite à qualifier |
-| --- | --- | --- |
-| sequential-storage Map | Journal compact, CRC, rotation des pages ; interface embedded-storage | Dans l'API documentée, un item tient dans une page. Un TLS de 6 154 octets dépasse une page de 4 Kio. Une adaptation multi-pages demanderait une publication atomique supplémentaire ; ne pas la masquer |
-| ekv | Transactions atomiques, valeurs multi-pages, CRC optionnel, rotation cyclique des pages | Réserve de compaction/metadata, amplification des petits commits, état/RAM et flash ; profil compilé fait partie du format |
-| Journal maison | Ajustable aux quelques espaces | Ajouterait un moteur complexe alors que des briques existent ; non retenu avant preuve d'un écart bloquant |
+Le simulateur conserve les octets et l'historique de programmation à travers
+les réouvertures. Il contrôle bornes, alignements et programmation unique par
+octet entre effacements, y compris les écritures de 0xff. À la coupure, seul un
+préfixe de la zone ciblée est programmé/effacé ; **toutes** les opérations
+suivantes échouent jusqu'à restauration de l'alimentation. Les autres octets
+restent intacts. Cela respecte le contrat Flash d'EKV. Le banc ne reproduit
+pas toutes les configurations de bits d'une coupure matérielle.
 
-ekv est un candidat prioritaire à expérimenter, pas encore la décision finale.
-Tester la version publiée avant de dépendre de main : main et 1.0.0 ne sont pas
-interchangeables par hypothèse. Le profil proposé pour expérimentation doit
-admettre CSM1 + 6 154 octets, CRC activé, et une marge de compaction mesurée.
-Les paramètres de format doivent être identifiés dans un superbloc/version de
-composition et vérifiés avant montage ; la documentation ekv prévient que leurs
-changements ne sont pas détectés automatiquement au montage.
+## Usure mesurée
 
-La configuration main étudiée définit MIN_FREE_PAGE_COUNT = 1 + scratch + 1
-+ branching_factor + ceil(max_record_size/PAGE_MAX_PAYLOAD_SIZE). Une simple
-réduction des réserves peut augmenter l'amplification. Les 4 secteurs actuels
-ne doivent pas être supposés suffisants pour ce candidat. Toute hausse de
-partition doit être chiffrée et explicitement décidée.
+Charges froides : TLS 6 154 octets, Wi-Fi 128, logs 1 024 ; puis 800 remplacements
+OTA de 2 048 octets. La dernière OTA et les trois valeurs froides restent
+lisibles après remontage. Formatage et initialisation des valeurs froides sont
+exclus des compteurs ci-dessous ; recyclage et transactions du workload inclus.
 
-Réutiliser les traits embedded-storage/embedded-storage-async quand adéquats.
-Si un candidat impose un trait spécifique (ekv Flash), l'intégration doit rester
-concrète et bornée. Ne pas prétendre qu'une NOR avec programmation 256 octets,
-une EEPROM et une FRAM ont les mêmes garanties. Les géométries non supportées
-doivent être refusées avant toute écriture ; pas de read-erase-modify-write caché.
+| Mesure | Résultat |
+| --- | ---: |
+| Octets utiles | 1 638 400 |
+| Octets programmés | 3 706 464 |
+| Amplification de programmation | 2,262246 |
+| Effacements totaux | 1 658 |
+| Secteurs effectivement effacés | 64 / 64 |
+| Effacements par secteur, min / max | 18 / 29 |
+| Effacements moyens par mise à jour | 2,0725 |
+| Pic d'effacements sur un commit | 12 |
+| Pic d'octets programmés sur un commit | 28 356 |
+| Pic d'opérations write/erase sur un commit | 775 |
 
-## Usure : critères obligatoires
+Histogramme par numéro de secteur :
 
-Le banc de stockage persistant doit compter, par secteur, les effacements,
-les opérations de programmation, octets programmés et octets utiles demandés.
-Conserver les compteurs du banc à travers les réouvertures ; ils ne sont pas
-des métadonnées persistées par le produit.
+```text
+[21,21,21,26,23,25,26,27,28,28,26,25,27,28,29,29,
+ 25,25,25,26,24,22,24,26,27,27,28,28,29,29,28,25,
+ 26,28,29,29,29,29,29,26,26,28,25,25,25,25,25,18,
+ 19,19,24,26,26,27,28,27,27,28,27,27,28,28,24,23]
+```
 
-Comparer NVS actuel et candidat sur les mêmes séquences :
-- petits commits OTA répétés, valeurs variables et identiques ;
-- Wi-Fi/logs et valeurs TLS maximales ;
-- espaces chauds modifiés avec espaces froids inchangés ;
-- clear/recommit, saturation et compactions multiples ;
-- boots répétés et coupures pendant programmation/effacement/compaction.
+100 boots avec mount/lecture TLS seuls : **0 programmation et 0 effacement**.
+Ce résultat concerne EKV direct, pas encore le self-check de l'application.
+La cible doit supprimer le canary écrit à chaque boot. Aucun gain comparatif
+NVS, temps MCU, RAM MCU ou durée de vie matérielle n'est revendiqué. Le taux
+réel de commits et l'endurance de la puce restent nécessaires pour estimer
+une durée de vie. Les coûts d'usure après recovery restent à qualifier.
 
-Publier nombres totaux, histogramme par secteur, min/max/moyenne, coût maximal
-d'un commit, RAM et occupation flash. Amplification = octets programmés / octets
-utiles (rapporter les suppressions séparément). Coût d'usure = effacements par
-commit et par secteur. Examiner le wear leveling dynamique et l'impact des
-pages froides ; la seule rotation annoncée par un moteur ne prouve pas une
-répartition uniforme sur tous les secteurs physiques.
+## Coupures : gate échouée
 
-La durée de vie dépend de l'endurance E_i de la puce réelle et du taux mesuré
-r_i d'effacements par jour : limite estimée au secteur le plus sollicité,
-min_i((E_i - usure_initiale_i) / r_i), pour r_i > 0. Aucune valeur d'endurance,
-fréquence métier ou durée en années ne doit être inventée. Les coupures peuvent
-augmenter le coût de recovery : inclure cet effet dans les mesures.
+1 972 cas, avec préfixes partiels et complets sur chaque opération d'un
+remplacement ou d'un delete EKV, avant et après 200 mises à jour recyclées.
+Le delete teste le moteur ; la future suppression ConfigSpace devra utiliser
+un tombstone transactionnel pour préserver la génération.
 
-## Compatibilité et migration : choix à résoudre
+| État initial | Action | Frontières write/erase |
+| --- | --- | ---: |
+| 4 clés initialisées | Remplacement | 62 |
+| 4 clés initialisées | Delete | 44 |
+| Après 200 mises à jour | Remplacement | 84 |
+| Après 200 mises à jour | Delete | 66 |
 
-Le montage doit distinguer vierge, format reconnu, ancien NVS, format inconnu
-et corruption. Aucun de ces échecs ne déclenche un reformatage automatique.
+**32 cas FAIL**, lors du remontage : `Corrupted`. Une valeur précédemment
+confirmée devient inaccessible. Les cas qui montent sont vérifiés pour old/new
+atomique, conservation des valeurs froides et possibilité de recommit.
+Ces préfixes sont un échantillonnage déterministe, pas une exploration exhaustive
+de toutes les coupures. Aucun recovery général n'est déclaré PASS.
 
-Option à étudier : région ConfigSpace distincte, bornée et validée, ancienne
-NVS conservée pendant l'import. Lister les clés cfg_space, décoder les records
-CSM1, préserver générations et tombstones ; publier un marqueur de migration
-seulement après copie vérifiée, rendre chaque interruption reprenable et tester
-source corrompue/destination saturée. Lire une NVS corrompue peut échouer ou
-paniquer avec esp-nvs 0.5 : définir la conduite à tenir sans perte silencieuse.
-Les dumps/reproducteurs de #68 ne sont pas présents dans cette PR ; les obtenir
-avant de prétendre rejouer ces scénarios précis.
+Reproducteur minimal : région vierge, format(seed=1), commit `ota=previous`,
+réouverture(seed=4), remplacement par 2 048 octets `0x09`, coupure à l'opération
+25 après 2 octets, abandon de Database, réouverture(seed=77).
 
-Retour à un ancien firmware : celui-ci continuerait à voir l'ancienne NVS.
-Une copie ponctuelle ne synchronise pas les commits ultérieurs. OTM1 partagé
-avec le fallback OTA rend ce point concret : décider compatibilité/transition
-avant bascule. Pas de double écriture permanente, pas de migration en place
-supposée sûre sans espace temporaire et preuve de reprise.
+```text
+torn operation=Operation { erase: false, page: 19, offset: 36, len: 8 }
+prefix=2 write_result=Err("commit: Flash(PowerOff)")
+torn header bytes=[c5, 59, ff, ff, ff, ff, ff, ff]
+FAIL: reboot: Corrupted; previously acknowledged value is inaccessible
+```
 
-## Incréments suivants et gates
+Analyse de la source 1.0.0 : PageWriter::commit écrit le ChunkHeader (magic,
+longueur, CRC) en une opération. ChunkIter::open_chunk reconnaît le magic après
+2 octets, puis refuse la longueur 0xffff. FileManager::mount propage cette erreur
+en parcourant les métadonnées. Le commit interrompu n'a pas réussi, mais il
+empêche l'accès au commit antérieur. Aucun formatage automatique n'est tenté.
 
-1. Extraction CSM1 + audit, sans changement du backend de production.
-2. Expérimentation du candidat avec simulateur persistant, tailles réelles,
-   saturation/compaction, faults byte/bit/opération et compteurs d'usure.
-3. Décision du profil/format, admission garantie et stratégie de migration.
-4. Backend ConfigSpace commun, adaptateur ESP au SharedFlash, puis migration
-   et qualification carte des scénarios OTM1 qui ont échoué dans #61.
-5. Retrait des seules couches devenues sans consommateur ; autres ports
-   matériels hors périmètre.
+Le **même reproducteur direct** a été exécuté localement sur main amont
+[a0e2c7e16cf790e2fa7e34fac9f9dac1557824aa](https://github.com/embassy-rs/ekv/tree/a0e2c7e16cf790e2fa7e34fac9f9dac1557824aa)
+avec embassy-sync 0.8 : même sortie et exit 1. Cette substitution locale n'est
+pas publiée ; la campagne complète et l'usure sur main ne sont pas revendiquées.
 
-## État des validations de ce premier incrément
+`[[example]] test=true` fait exécuter le banc par le `cargo test` habituel de la
+CI hôte. La gate `power_fail_qualification` échoue réellement : **ni ignore,
+ni transformation en succès attendu, ni suppression du contrôle**. La PR reste
+Draft et non fusionnable tant que cette garantie ne passe pas.
 
-Les corps du codec et les deux tests sont déplacés sans modification ; la
-comparaison de sources et git diff --check sont exécutables localement.
-Le compilateur Rust est absent de l'environnement de reprise ; le téléchargement
-rustup de static.rust-lang.org a été bloqué par la politique réseau. Aucune
-exécution Rust locale, mesure d'usure, injection de fautes ou qualification
-matérielle n'est annoncée PASS à ce stade. Les gates Rust/CI restent obligatoires.
+## Résultats locaux et suite
+
+- ConfigSpace existant : 10 tests PASS.
+- Banc : valeurs froides/usure PASS ; 100 boots en lecture seule PASS ;
+  coupures FAIL (32/1 972). `cargo test` retourne 101.
+- Reproducteur minimal : exit 1, version publiée et main.
+- Clippy `--all-targets -D warnings` PASS ; rustfmt et diff check PASS.
+- Aucun nouvel adaptateur ESP, lien du backend EKV ou test carte exécuté.
+  La CI verte du commit préparatoire bb8cbc8 ne valide pas cet incrément.
+
+Prochain travail : corriger/qualifier le problème de publication interrompue
+sans masquer les corruptions de records déjà validés. Rejouer également
+coupures pendant effacement/recyclage et boots répétés après interruption.
+Puis seulement : figer admission/réserves et format neuf, backend commun avec
+générations/tombstones, adaptateur ESP SharedFlash, tables/exemples, suppression
+des crates NVS et du codec CSM1, liens C3/S3, qualification matérielle OTA.
+Les ports RP2350/Teensy restent futurs ; leurs géométries doivent respecter le
+profil Flash choisi, sans read-erase-modify-write caché.

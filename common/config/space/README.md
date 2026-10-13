@@ -28,10 +28,25 @@ Callers claim a space, then load/commit an opaque value through the returned `Co
 A logical payload byte is not assumed to equal one physical storage byte; backend reservation accounting determines whether a claim can be guaranteed.
 
 
-## Existing persistent records
+## Persistence direction — issue #68
 
-`record` owns the storage-independent legacy CSM1 envelope (generation, presence
-flag, opaque payload). Its byte format is unchanged; legacy NVS callers keep
-working through re-exports from `iobewi-nvs-core`. This codec does not provide
-checksums or power-cut atomicity. Those remain the responsibility of the storage
-engine. See `docs/config/issue-68-audit.md` for the migration and qualification plan.
+EKV is the selected foundation for the next portable persistence backend.
+The project is in development: no NVS migration or CSM1 compatibility is part
+of the target. The previously published `record` module remains in the current
+NVS implementation until its replacement passes qualification.
+
+`examples/qualify_ekv.rs` exercises EKV directly on persistent simulated NOR
+flash: large cold TLS values, hot OTA updates, per-sector wear, read-only boots
+and partial write/erase failures. EKV is currently a dev-dependency only.
+
+```sh
+cargo run -p iobewi-config-space --example qualify_ekv -- wear
+cargo run -p iobewi-config-space --example qualify_ekv -- cuts
+cargo run -p iobewi-config-space --example qualify_ekv -- reproduce
+```
+
+**Power-fail qualification currently fails with EKV 1.0.0**: a torn metadata
+chunk prevents remounting and makes the previous acknowledged value inaccessible.
+The example is also a test target; `cargo test` enforces this failing gate.
+The ESP integration is blocked until recovery is qualified. See
+[the measured results and reproducer](../../../docs/config/issue-68-audit.md).
