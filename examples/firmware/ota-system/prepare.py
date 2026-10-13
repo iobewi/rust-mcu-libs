@@ -35,10 +35,16 @@ def main():
             metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--no-deps", "--format-version", "1"]))
             package = next(p for p in metadata["packages"] if p["name"] == "iobewi-esp-bootloader")
             binary = next(t["name"] for t in package["targets"] if "bin" in t["kind"])
-        run(sys.executable, "-m", "esptool", "--chip", args.chip, "elf2image", "--flash-size", "4MB",
-            "--output", str(output / (name + ".bin")), str(root / "target" / target / profile / binary))
+        # DIO, as ESP-IDF does: the ROM applies the boot header's mode before loading the
+        # second stage, and QIO reads garbage on flash whose QE bit is not already set.
+        run(sys.executable, "-m", "esptool", "--chip", args.chip, "elf2image", "--flash-mode", "dio",
+            "--flash-size", "4MB", "--output", str(output / (name + ".bin")),
+            str(root / "target" / target / profile / binary))
     if not 0 < (output / "bootloader.bin").stat().st_size <= 0x8000:
         raise RuntimeError("bootloader exceeds the partition-table boundary")
+    for name in ("bootloader", "app"):
+        if (output / (name + ".bin")).read_bytes()[2] != 0x02:
+            raise RuntimeError(name + " image header is not DIO")
     for offset in ("20000", "1a0000"):
         run("cargo", "run", "-p", "iobewi-esp-boot", "--example", "validate_image", "--features", args.chip,
             "--", str(output / "app.bin"), offset, "180000")
