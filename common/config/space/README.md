@@ -26,3 +26,12 @@ Callers claim a space, then load/commit an opaque value through the returned `Co
 ## Known limitations
 
 A logical payload byte is not assumed to equal one physical storage byte; backend reservation accounting determines whether a claim can be guaranteed.
+
+
+## Existing persistent records
+
+`record` owns the storage-independent legacy CSM1 envelope (generation, presence
+flag, opaque payload). Its byte format is unchanged; legacy NVS callers keep
+working through re-exports from `iobewi-nvs-core`. This codec does not provide
+checksums or power-cut atomicity. Those remain the responsibility of the storage
+engine. See `docs/config/issue-68-audit.md` for the migration and qualification plan.

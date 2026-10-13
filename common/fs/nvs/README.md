@@ -31,3 +31,12 @@ validate_partition_geometry checks erase alignment, at least two erase pages, ch
 ## Known limitations
 
 Uses alloc for encoding. Keys must be nonempty ASCII without NUL and at most 15 bytes. Decoder rejects short headers, wrong magic and unknown flag bits. Reservations include two versions of the largest record: 2 × (ceil((13 + budget)/32) + ceil((13 + budget)/4000) + 1); capacity keeps one page in reserve. This is entry accounting, not a guarantee against all storage failures.
+
+
+## Issue #68 — transitional ownership
+
+The unchanged CSM1 codec and its golden/corruption tests now live in
+`iobewi_config_space::record`. Existing imports from this crate are preserved
+through re-exports. NVS name constraints, entry accounting and partition geometry
+remain here. This extraction neither migrates flash contents nor fixes NVS
+power-cut recovery; it prepares the portable persistence work.

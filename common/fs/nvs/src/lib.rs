@@ -4,12 +4,9 @@
 //!
 //! The NVS backend of `iobewi-config-space` stores each space as one NVS blob
 //! (`CSM1` header: magic, generation, presence flag, then the payload). The
-//! pieces that do not touch flash -- the record framing, the generation
-//! arithmetic lives with the backend that reads/writes, the key rules, and
-//! the NVS *entry accounting* that turns a space budget into reserved NVS
-//! entries -- are here, so they can be tested on the host and so the ESP
-//! backend contains only mechanics (locking the shared flash, opening the NVS
-//! view, calling `esp-nvs`).
+//! record codec now lives in `iobewi_config_space::record`, and is re-exported
+//! here to preserve existing consumer paths during the migration. This crate
+//! retains NVS key rules, geometry and entry accounting only.
 //!
 //! # Capacity formula (unchanged)
 //!
@@ -19,23 +16,15 @@
 //! one is committed): `2 × (ceil(e/32) + ceil(e/4000) + 1)` with
 //! `e = 13 + budget`.
 //!
-//! No `fs/config` dependency: budgets arrive as plain byte counts.
-
-extern crate alloc;
-
-use alloc::vec::Vec;
+//! Budgets arrive as plain byte counts. NVS is retained for legacy access.
 
 pub use esp_nvs::{ENTRIES_PER_PAGE, ITEM_SIZE, MAX_BLOB_DATA_PER_PAGE};
 
-pub const MAGIC: [u8; 4] = *b"CSM1";
-pub const FLAG_PRESENT: u8 = 0x01;
-/// magic (4) + generation (8) + flags (1)
-pub const HEADER_LEN: usize = 4 + 8 + 1;
+pub use iobewi_config_space::record::{
+    CorruptRecord, FLAG_PRESENT, HEADER_LEN, MAGIC, decode_record, encode_record,
+};
 /// NVS keys are at most 15 bytes.
 pub const MAX_NVS_KEY_LEN: usize = 15;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CorruptRecord;
 
 /// A ConfigSpace name usable as an NVS key: non-empty, at most 15 bytes,
 /// ASCII, no NUL.
@@ -71,65 +60,9 @@ pub fn capacity_units(empty: usize, erased: usize, owned: usize) -> usize {
         .saturating_sub(ENTRIES_PER_PAGE)
 }
 
-pub fn encode_record(generation: u64, present: bool, payload: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(HEADER_LEN + payload.len());
-    out.extend_from_slice(&MAGIC);
-    out.extend_from_slice(&generation.to_le_bytes());
-    out.push(if present { FLAG_PRESENT } else { 0 });
-    out.extend_from_slice(payload);
-    out
-}
-
-/// `(generation, present, payload)`; any unknown flag bit or a bad header is
-/// corruption.
-pub fn decode_record(raw: &[u8]) -> Result<(u64, bool, &[u8]), CorruptRecord> {
-    if raw.len() < HEADER_LEN || raw[..4] != MAGIC {
-        return Err(CorruptRecord);
-    }
-    let mut generation = [0u8; 8];
-    generation.copy_from_slice(&raw[4..12]);
-    let generation = u64::from_le_bytes(generation);
-    let flags = raw[12];
-    if flags & !FLAG_PRESENT != 0 {
-        return Err(CorruptRecord);
-    }
-    Ok((generation, flags & FLAG_PRESENT != 0, &raw[HEADER_LEN..]))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn record_golden_bytes_and_round_trip() {
-        let raw = encode_record(0x0102_0304_0506_0708, true, b"hi");
-        assert_eq!(raw, b"CSM1\x08\x07\x06\x05\x04\x03\x02\x01\x01hi");
-        assert_eq!(
-            decode_record(&raw),
-            Ok((0x0102_0304_0506_0708, true, &b"hi"[..]))
-        );
-        let cleared = encode_record(9, false, &[]);
-        assert_eq!(cleared, b"CSM1\x09\0\0\0\0\0\0\0\x00");
-        assert_eq!(decode_record(&cleared), Ok((9, false, &[][..])));
-    }
-
-    #[test]
-    fn corrupt_records_are_rejected() {
-        assert_eq!(decode_record(b"CSM1"), Err(CorruptRecord));
-        assert_eq!(
-            decode_record(b"XXM1\0\0\0\0\0\0\0\0\x01"),
-            Err(CorruptRecord)
-        );
-        assert_eq!(
-            decode_record(b"CSM1\0\0\0\0\0\0\0\0\x02"),
-            Err(CorruptRecord),
-            "unknown flag bit"
-        );
-        assert_eq!(
-            decode_record(b"CSM1\0\0\0\0\0\0\0\0\x81"),
-            Err(CorruptRecord)
-        );
-    }
 
     #[test]
     fn space_names_follow_the_nvs_key_rules() {

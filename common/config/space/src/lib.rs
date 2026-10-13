@@ -20,6 +20,9 @@
 
 extern crate alloc;
 
+/// Storage-independent framing of existing configuration records.
+pub mod record;
+
 use alloc::string::String;
 use alloc::vec::Vec;
 
