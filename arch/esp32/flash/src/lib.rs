@@ -47,7 +47,24 @@ static FLASH: StaticCell<SharedFlash> = StaticCell::new();
 
 /// Construct the process-wide flash owner. Call exactly once per firmware image.
 pub fn init(flash: FLASH<'static>) -> &'static SharedFlash {
+    // esp-storage sizes the flash with the hardware RDID command, which applies
+    // SPI1's USER phases. After a ROM-configured DIO boot, USER holds the read
+    // phases the ROM read path relies on; measured on ESP32-S3: RDID then returns
+    // a shifted ID (capacity 0), and with USER cleared it returns the real ID.
+    // Clear USER only for sizing and restore it for the reads. Not measured on C3.
+    #[cfg(feature = "esp32s3")]
+    let user = esp_hal::peripherals::SPI1::regs().user().read().bits();
+    #[cfg(feature = "esp32s3")]
+    // SAFETY: before the sole FlashStorage exists, so SPI1 has no other user.
+    esp_hal::peripherals::SPI1::regs()
+        .user()
+        .write(|w| unsafe { w.bits(0) });
     let storage = FlashStorage::new(flash);
+    #[cfg(feature = "esp32s3")]
+    // SAFETY: as above; restores the ROM read configuration bit for bit.
+    esp_hal::peripherals::SPI1::regs()
+        .user()
+        .write(|w| unsafe { w.bits(user) });
     // Park a running second core around writes/erases, then resume it. The
     // driver checks the core state, independently of whether it runs a Workload.
     // Current-core interrupt masking is provided separately by esp-storage
