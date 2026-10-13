@@ -233,6 +233,19 @@ impl NvsConfigBackend {
                 warn!("Failed to save blob {}: {e:?}", key.as_str());
                 NvsConfigError::Write
             })?;
+            // Measured on ESP32-S3 after interrupted writes: esp-nvs 0.5 acknowledged
+            // sets it could not read back. Never report an unreadable commit as durable.
+            match nvs.get::<Vec<u8>>(&NAMESPACE, &key) {
+                Ok(raw) if raw == encoded => {}
+                other => {
+                    warn!(
+                        "Blob {} not readable after save: {:?}",
+                        key.as_str(),
+                        other.map(|raw| raw.len())
+                    );
+                    return Err(NvsConfigError::Write);
+                }
+            }
             Ok(generation)
         })
         .await
