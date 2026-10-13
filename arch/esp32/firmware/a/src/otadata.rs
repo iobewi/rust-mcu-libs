@@ -5,11 +5,10 @@
 //! This module never assumes that ESP-IDF's standard bootloader accepts the legacy transactional metadata encoding.
 
 use crate::Partition;
-use iobewi_firmware_boot::{
-    BLANK, COMMIT, Decoded, ENTRY_SIZE, OFF_COMMIT, Raw, SECTOR_COUNT, Write, decode,
-};
+use iobewi_firmware_boot::{Decoded, Raw, SECTOR_COUNT, Write, decode};
 
-const SECTOR_SIZE: u32 = 4096;
+pub use iobewi_firmware_boot::transaction::Flash;
+use iobewi_firmware_boot::transaction::{self, Region};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Error<E> {
@@ -20,56 +19,40 @@ pub enum Error<E> {
     ReadbackMismatch,
     CommitMismatch,
 }
-
-/// Physical flash operations. Implementations must use one shared flash owner
-/// and satisfy 4KiB erase / 4-byte write alignment and durability guarantees.
-pub trait Flash {
-    type Error;
-    fn read(&mut self, absolute: u32, output: &mut [u8]) -> Result<(), Self::Error>;
-    fn erase(&mut self, absolute: u32, len: u32) -> Result<(), Self::Error>;
-    fn program(&mut self, absolute: u32, bytes: &[u8]) -> Result<(), Self::Error>;
-}
-
-fn sector_at<E>(part: Partition, sector: usize) -> Result<u32, Error<E>> {
-    if part.size < SECTOR_SIZE * SECTOR_COUNT as u32
-        || !part.offset.is_multiple_of(SECTOR_SIZE)
-        || sector >= SECTOR_COUNT
-    {
-        return Err(Error::BadPartition);
+impl<E> From<transaction::Error<E>> for Error<E> {
+    fn from(e: transaction::Error<E>) -> Self {
+        match e {
+            transaction::Error::Flash(e) => Self::Flash(e),
+            transaction::Error::BadPartition => Self::BadPartition,
+            transaction::Error::BadSector => Self::BadSector,
+            transaction::Error::ReadbackMismatch => Self::ReadbackMismatch,
+            transaction::Error::CommitMismatch => Self::CommitMismatch,
+        }
     }
-    part.offset
-        .checked_add(part.size)
-        .ok_or(Error::BadPartition)?;
-    part.offset
-        .checked_add((sector as u32) * SECTOR_SIZE)
-        .ok_or(Error::BadPartition)
 }
-
-/// Read the first 32 bytes from each metadata sector.
+fn region(part: Partition) -> Region {
+    Region {
+        offset: part.offset,
+        size: part.size,
+    }
+}
 pub fn read_entries<F: Flash>(
     flash: &mut F,
     part: Partition,
 ) -> Result<[Raw; SECTOR_COUNT], Error<F::Error>> {
-    let mut out = [BLANK; SECTOR_COUNT];
-    for (i, raw) in out.iter_mut().enumerate() {
-        let offset = sector_at::<F::Error>(part, i)?;
-        flash.read(offset, raw).map_err(Error::Flash)?;
-    }
-    Ok(out)
+    transaction::read_entries(flash, region(part)).map_err(Into::into)
 }
-
-/// Write the requested sector, while refusing to erase the sole confirmed
-/// fallback. The selection and actual running firmware must also be verified
-/// by the calling update orchestration before an activation is attempted.
+/// Protect the sole confirmed fallback before the shared physical transaction.
 pub fn execute<F: Flash>(
     flash: &mut F,
     part: Partition,
     write: Write,
 ) -> Result<(), Error<F::Error>> {
     let sector = usize::from(write.sector);
-    let addr = sector_at::<F::Error>(part, sector)?;
+    if sector >= SECTOR_COUNT {
+        return Err(Error::BadPartition);
+    }
     let entries = read_entries(flash, part)?;
-
     let existing_valid = entries.iter().enumerate().any(|(i, raw)| {
         i != sector && matches!(decode(raw), Decoded::Ok(e) if e.state == iobewi_firmware_boot::state::VALID)
     });
@@ -77,38 +60,13 @@ pub fn execute<F: Flash>(
     if target_valid && !existing_valid {
         return Err(Error::NoTrustedFallback);
     }
-
-    let expected = write.entry.body();
-    flash.erase(addr, SECTOR_SIZE).map_err(Error::Flash)?;
-    let mut readback = [0u8; ENTRY_SIZE];
-    flash.read(addr, &mut readback).map_err(Error::Flash)?;
-    if readback != BLANK {
-        return Err(Error::ReadbackMismatch);
-    }
-    flash.program(addr, &expected).map_err(Error::Flash)?;
-    flash.read(addr, &mut readback).map_err(Error::Flash)?;
-    if readback != expected {
-        return Err(Error::ReadbackMismatch);
-    }
-    // The commit word must still be erased at this point.
-    if readback[OFF_COMMIT..OFF_COMMIT + 4] != [0xff; 4] {
-        return Err(Error::ReadbackMismatch);
-    }
-
-    flash
-        .program(addr + OFF_COMMIT as u32, &COMMIT.to_le_bytes())
-        .map_err(Error::Flash)?;
-    flash.read(addr, &mut readback).map_err(Error::Flash)?;
-    if readback != write.entry.encode() || decode(&readback) != Decoded::Ok(write.entry) {
-        return Err(Error::CommitMismatch);
-    }
-    Ok(())
+    transaction::execute(flash, region(part), write).map_err(Into::into)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use iobewi_firmware_boot::{Entry, state};
+    use iobewi_firmware_boot::{BLANK, ENTRY_SIZE, Entry, OFF_COMMIT, state};
 
     struct Mem {
         raw: [u8; 8192],

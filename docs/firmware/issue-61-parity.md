@@ -54,10 +54,10 @@ A/B or hardware qualification. Decisions are recorded in issues #50, #54, #61.
 
 - Stable Rust 1.99.0: firmware host tests, legacy binary fixtures and strict Clippy
   with update `runtime config-space`; compile-fail reservation doctests.
-- Boot release: **35 passed, 0 ignored**, including the 8 exhaustive fault tests.
+- Boot release: **37 passed, 0 ignored**, including the 8 exhaustive fault tests.
 - C3: nightly 1.101.0 (2026-10-13), riscv32imc-unknown-none-elf, core/alloc checks.
 - S3: esp toolchain 1.98.1.0, xtensa-esp32s3-none-elf, core/alloc checks.
-- Workspace CI discovery validates every one of the 42 crates.
+- Workspace CI discovery validates every one of the 44 crates.
 - `cargo fmt --all -- --check`, no tracked Cargo.lock.
 
 Independent comparison command (no engine code copied into the repository):
@@ -74,8 +74,31 @@ Output SHA256 (encoded records plus canonical decision/decode output):
 
 ## Acceptance limits
 
-No device is attached in this environment. Bootloader port/composition, product
-OTA endpoints, actual supervised activation/recovery and physical interruption
+No device is attached in this environment. Bootloader port/composition is now
+build/link/size checked; product OTA endpoints, actual supervised activation/recovery and physical interruption
 qualification are **not completed** by this increment. No rescue image or
 configuration reset is implemented. Keep #61 open and #65 Draft until the remaining
 software compositions and separate hardware gates are satisfied.
+
+
+## Second-stage port (2026-10-13)
+
+The real executable now composes current bricks in examples/firmware-bootloader.
+ROM bindings, common MemoryMap constants, original linkers and tested discovery
+are in arch/esp32/firmware/boot. C3/S3 ROM duplication is removed while RTC offsets
+are preserved. Boot/application share one actual metadata executor with separate
+application fallback protection. Raw entry iteration is shared with runtime;
+upstream driver, typed accessors and MMU observation remain reused.
+
+Intentional changes: missing/duplicate/overlapping/unaligned/out-of-capacity table
+layouts halt before writes instead of historical last-match-wins. Label matching
+follows the current library A contract. Valid-layout slot/record encodings and
+Verify::Structure, seed/rollback and RAM/MMU handover are retained. The executable
+is not byte-identical to the frozen original.
+
+Local links: esp-hal 1.2.2, esp-println 0.18.0, C3 nightly 1.101.0 and S3 esp
+1.98.1.0 + GCC 16.1.0. ESP images with 16MB headers: C3 22800 bytes / 9968 margin;
+S3 29744 bytes / 3024 margin, valid checksum/footer. A 16MB header is not physical
+16MB evidence. Stack linker guards are retained; actual use needs measurement.
+The new CI profile gates real links and packaged size. Full verification,
+product watchdog/OTA/supervised wiring and hardware faults remain separate gates.

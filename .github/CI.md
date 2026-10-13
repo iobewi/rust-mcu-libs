@@ -74,3 +74,13 @@ Python 3.11+ is required for `tomllib`.
 Compilation is not a hardware acceptance gate. AP DHCP leases, AP+STA coexistence, power-cut persistence and boot-time behavior still require physical validation.
 
 Profiles are declarative metadata; they are not independently executable shell scripts. This keeps the toolchain setup centralized and avoids executing arbitrary per-crate commands.
+
+## Bootloader link and image gate
+
+esp32-bootloader is a declarative profile: build/link with the workspace
+bootloader profile, package every binary with esptool 5.5.0, inspect the ESP
+image and enforce the historical 32768-byte limit (image at 0, table at 0x8000).
+MCU execution is centralized in scripts/compile_mcu.py. Discovery runs
+scripts/test_compile_mcu.py for exact-limit, empty and oversized images,
+including the historical 33488-byte Full-verification overflow. This does not
+qualify hardware or application-image authenticity.

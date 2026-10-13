@@ -7,3 +7,12 @@ The on-flash magic `EWBT` and entry layout remain unchanged for compatibility. T
 The adapter must execute erase/body/readback/commit in the declared order and provide image validation. Host tests reproduce interrupted operations and recovery behavior; hardware qualification on ESP32 remains required.
 
 See `docs/firmware/transactional-ab-boot.md` and `docs/firmware/dual-ota.md`.
+
+## Shared physical transaction executor
+
+transaction shares erase/body/readback/commit-last/readback between ROM boot
+and the application adapter. The existing Flash trait moved here with no HAL
+dependency. Callers exclusively own flash for the call and select transitions.
+Application sole-Valid fallback protection remains in firmware/a::otadata;
+boot must be able to invalidate that record if the image cannot boot. Tests
+execute every partial body/commit prefix and check reboot selection.

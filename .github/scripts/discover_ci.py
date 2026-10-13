@@ -9,7 +9,7 @@ import sys
 import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-ALLOWED = {"host", "esp32", "esp32-bins", "host-esp32"}
+ALLOWED = {"host", "esp32", "esp32-bins", "host-esp32", "esp32-bootloader"}
 GLOBAL = {".github/", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
 
 def git(*args):
@@ -93,7 +93,7 @@ def discover(base=None, head="HEAD", full=False):
         profile = profiles[name]
         chips = ("host",) if profile == "host" else (("host", "esp32c3", "esp32s3") if profile == "host-esp32" else ("esp32c3", "esp32s3"))
         for chip in chips:
-            matrix.append({"package": name, "chip": chip, "targets": "bins" if profile == "esp32-bins" else "lib"})
+            matrix.append({"package": name, "chip": chip, "targets": "bins" if profile in ("esp32-bins", "esp32-bootloader") else "lib", "profile": profile})
     return {"include": matrix}, selected, len(packages)
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "arch/esp32/firmware/boot",
+  "examples/firmware-bootloader",
   "arch/esp32/firmware/a",
   "arch/esp32/firmware/supervisor",
   "arch/esp32/firmware/storage",
@@ -59,3 +61,13 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/iobewi/rust-mcu-libs"
+
+# Bootloader must fit before the partition table, with historical size settings.
+[profile.bootloader]
+inherits = "release"
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
+panic = "abort"
+debug = 2
+overflow-checks = false
