@@ -70,13 +70,20 @@ pub async fn serve_forever_io<L: ConnectionListener, R: PathRouter>(
     listener: &mut L,
     router: &Router<R>,
 ) -> ! {
-    let config = server_config();
+    serve_loop(listener, router, &server_config()).await
+}
+
+async fn serve_loop<L: ConnectionListener, R: PathRouter>(
+    listener: &mut L,
+    router: &Router<R>,
+    config: &Config,
+) -> ! {
     let mut http_buffer = [0u8; HTTP_BUFFER_LEN];
     loop {
         if let Ok(connection) = listener.accept().await {
             serve_one(
                 router,
-                &config,
+                config,
                 &mut http_buffer,
                 io_socket::IoSocket::new(connection),
             )
@@ -91,5 +98,16 @@ pub async fn serve_forever_tls<L: TlsListener, R: PathRouter>(
     listener: &mut L,
     router: &Router<R>,
 ) -> ! {
-    serve_forever_io(listener, router).await
+    serve_loop(listener, router, &server_config()).await
+}
+
+/// [`serve_forever_tls`] with a caller-chosen configuration. picoserve bounds a
+/// whole request, body included, by `timeouts.read_request` (3 s by default),
+/// so a streamed upload needs a budget sized for its largest body.
+pub async fn serve_forever_tls_with<L: TlsListener, R: PathRouter>(
+    listener: &mut L,
+    router: &Router<R>,
+    config: &Config,
+) -> ! {
+    serve_loop(listener, router, config).await
 }

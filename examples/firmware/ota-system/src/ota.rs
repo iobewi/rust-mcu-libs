@@ -312,5 +312,10 @@ pub async fn serve<S: MetadataStore>(
             }),
         );
     log::info!("OTA ready: HTTPS :443; upload then activate by deployment id");
-    iobewi_http_server::serve_forever_tls(&mut listener, &router).await
+    // picoserve bounds the whole request, body included, by read_request (3 s
+    // default). Measured on S3: ~55 KB/s with erases, so a full 1.5 MiB slot needs
+    // ~28 s; budget 120 s. One connection at a time: a slow client holds it that long.
+    let mut config = iobewi_http_server::server_config();
+    config.timeouts.read_request = embassy_time::Duration::from_secs(120);
+    iobewi_http_server::serve_forever_tls_with(&mut listener, &router, &config).await
 }
