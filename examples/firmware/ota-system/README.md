@@ -83,6 +83,7 @@ Validation carte #72 : désactiver les resets automatiques du banc sur échec de
 join ; observer une nouvelle tentative dans le même boot, puis `/health` ;
 couper/rétablir le point d'accès et vérifier le retour HTTPS sans reboot.
 La cause radio des refus `DisassociatedDueToInactivity` reste à déterminer.
+Campagne S3 et correction de pile : [ota-wifi-board-campaign.md](../../../docs/firmware/ota-wifi-board-campaign.md).
 
 ## Construction
 
