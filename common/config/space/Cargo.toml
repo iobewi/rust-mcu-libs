@@ -10,10 +10,12 @@ readme = "README.md"
 keywords = ["embedded", "configuration", "no-std"]
 categories = ["embedded", "no-std"]
 
-[dev-dependencies]
-# Qualification only: requalify the persistent profile/version on upgrades.
+[dependencies]
+# Fixed persisted profile: requalify format/configuration on upgrades.
 ekv = { version = "=1.0.0", features = ["crc", "max-value-size-8192", "max-chunk-size-256"] }
 embassy-sync = "0.6.2"
+
+[dev-dependencies]
 critical-section = { version = "1.2", features = ["std"] }
 
 [[example]]

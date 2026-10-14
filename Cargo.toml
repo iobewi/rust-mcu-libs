@@ -33,7 +33,6 @@ members = [
   "arch/esp32/log/console",
   "common/log/config",
   "common/config/space",
-  "common/fs/nvs",
   "common/net/wifi/core",
   "common/net/improv/serial",
   "common/net/improv/provisioning",
@@ -41,7 +40,6 @@ members = [
   "arch/esp32/net/wifi",
   "examples/config-manager",
   "examples/wifi-modes",
-  "arch/esp32/fs/nvs",
   "arch/esp32/config/space",
   "arch/esp32/flash",
   "arch/esp32/flash/partitions",
@@ -49,7 +47,6 @@ members = [
 default-members = [
   "common/log/core",
   "common/config/space",
-  "common/fs/nvs",
   "common/net/wifi/core",
   "common/net/wifi/manager",
   "common/net/improv/serial",

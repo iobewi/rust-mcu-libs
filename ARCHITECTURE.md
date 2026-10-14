@@ -48,7 +48,7 @@ The diagram shows **ownership and use**, not a demand that every capability defi
 - Do not hardcode application schemas, credentials or provisioning behavior.
 - Do not depend on `arch/` or on an example.
 
-**Example:** `common/config/space` defines `ConfigManager`, `Budget`, `ConfigSpace` and `ConfigBackend`. It handles unique claims, quotas and access handles, not ESP NVS internals.
+**Example:** `common/config/space` defines `ConfigManager`, `Budget`, `ConfigSpace` and `ConfigBackend`. It handles unique claims, quotas and access handles, not ESP peripheral internals.
 
 ### `arch/<family>/`: concrete MCU implementation
 
@@ -60,9 +60,12 @@ The diagram shows **ownership and use**, not a demand that every capability defi
 - Manage shared hardware explicitly: one physical flash owner can be used by configuration and OTA; never silently construct competing owners.
 - Expose APIs suitable for two real composition patterns: a standalone sample and a product which already owns shared resources. Keep both APIs only when genuinely useful.
 
-**Example:** `arch/esp32/config/space` implements `ConfigBackend` using NVS. It discovers the NVS partition and performs record handling using existing `arch/esp32/fs/nvs`, `flash`, and `flash/partitions` implementations. It may offer a standalone constructor `from_flash(flash, "nvs")` and a shared-owner constructor `from_label(shared_flash, "nvs")`.
-
-**Ownership caveat:** calling `from_flash` initializes the process-wide flash owner; it must only be done once. A firmware with OTA or other flash consumers initializes the owner at the composition root and passes it to `from_label`. Never acquire multiple physical owners just to simplify a call site.
+**Example:** ConfigSpace storage uses EKV through its upstream Flash trait in
+`common/config/space`. `arch/esp32/config/space::EspConfigFlash` discovers a
+named data/0x40 partition and provides bounded read/write/erase on SharedFlash.
+The composition root initializes the physical owner once, chooses the manifest,
+allocation seed and explicit virgin-region initialization policy, and constructs
+one Store. Do not create a second physical owner or format after a mount error.
 
 ### `examples/`: real compositions, not simulations
 
@@ -73,7 +76,7 @@ The diagram shows **ownership and use**, not a demand that every capability defi
 - It is acceptable for `platform/<family>.rs` to use `esp-hal` or the matching HAL to start the firmware. **Do not move initialization of the entire MCU/Embassy runtime into a configuration-storage crate.**
 - Examples may demonstrate real operational constraints, boot behavior and failure paths. They are **not production-qualified** merely because they compile.
 
-**Example:** `examples/config-manager` has a portable scenario, an ESP32 implementation, and feature-selected source. It persists `config-ready` in a named NVS partition across boots.
+**Example:** `examples/config-manager` has a portable scenario, an ESP32 implementation, and feature-selected source. It persists `config-ready` in a named EKV partition across boots.
 
 ## Portable logic and conditional MCU builds
 
@@ -97,7 +100,7 @@ Rules:
 2. Keep platform-only dependencies conditional/optional as necessary, so they are not compiled for unrelated MCUs.
 3. Put MCU selection in the entry/composition code; never sprinkle chip conditions throughout the business scenario.
 4. Prefer an existing trait when an actual portability seam needs one. Do not create a generic HAL, universal resource manager, macro framework or startup facade for imagined future devices.
-5. The actual persistent technology is an `arch/` implementation decision: ESP32 may use NVS, while an eventual RP or Teensy implementation may choose something else without imposing that choice on `common/`.
+5. ConfigSpace selects EKV in common; architecture adapters implement its NOR Flash contract. Future RP/Teensy ports must validate their actual geometry against the persisted profile.
 6. Chip feature flags do not replace correct target triple, linker setup, runtime configuration or hardware qualification.
 
 ## Configuration: one backend, multiple spaces
@@ -108,7 +111,7 @@ Example flow:
 firmware boot (ESP32 + Embassy)
     |
     +--> initialize one shared flash owner
-    +--> obtain NvsConfigBackend once
+    +--> construct one Store<EspConfigFlash> with full manifest
     +--> create ConfigManager once
              |
              +--> claim("wifi", Budget::new(...)) --> Wi-Fi component
@@ -118,7 +121,7 @@ firmware boot (ESP32 + Embassy)
 
 - Make expected claims in a deterministic boot sequence. Claims reserve capacity for **that boot**; persisted values remain stored between boots.
 - Each component receives its own `ConfigSpace` handle, owns its schema and decides when to `load`, `commit` or `clear`.
-- The backend handles physical capacity accounting, replacement and storage-specific failure semantics; the manager does not know NVS.
+- The backend handles physical capacity accounting, replacement and storage-specific failure semantics; the manager does not know physical flash.
 - Do **not** overwrite stored configuration with defaults at every startup.
 - Choose storage sizes and failure handling from the actual use case. Avoid persisting secrets in cleartext without a threat model and appropriate protection.
 - A single backend may serve many spaces; it is not one backend or manager per configuration field.
@@ -135,7 +138,7 @@ Before adding a crate, ask:
 
 **If a wrapper only renames an upstream API, do not introduce it.** For instance, use `picoserve` directly when it meets the HTTP server need. Add an integration only for a real gap.
 
-Organize subdirectories by **capability** (e.g. `config/space`, `fs/nvs`, `flash/partitions`), not by automatic layer generation. Structural symmetry may improve discovery but does not require fake equivalents on every platform.
+Organize subdirectories by **capability** (e.g. `config/space`, `flash`, `flash/partitions`), not by automatic layer generation. Structural symmetry may improve discovery but does not require fake equivalents on every platform.
 
 ## Coding conventions
 

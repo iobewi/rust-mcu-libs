@@ -10,7 +10,7 @@
 //! encoding of the bytes stored inside it.
 //!
 //! Backends define the physical accounting model. This matters for stores
-//! such as ESP NVS where "N payload bytes" does not consume exactly N bytes
+//! such as EKV where "N payload bytes" does not consume exactly N bytes
 //! of flash. [ConfigBackend::reservation_units] converts a logical [Budget]
 //! into backend-specific capacity units, while [ConfigManager] only prevents
 //! over-commit.
@@ -20,8 +20,8 @@
 
 extern crate alloc;
 
-/// Storage-independent framing of existing configuration records.
-pub mod record;
+/// Portable EKV persistence with application-supplied Flash and manifest.
+pub mod storage;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -54,7 +54,7 @@ pub struct Snapshot {
 /// Persistence boundary used by [ConfigManager] and [ConfigSpace].
 ///
 /// Implementations own the physical storage details and the translation from
-/// logical payload bytes to reservation units. For ESP NVS, for example, an
+/// logical payload bytes to reservation units. For a flash database, for example, an
 /// implementation can conservatively account for entry/page overhead instead
 /// of pretending one payload byte equals one flash byte.
 ///

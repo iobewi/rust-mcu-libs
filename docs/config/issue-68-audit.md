@@ -1,4 +1,71 @@
-# Issue #68 — ConfigSpace sur EKV : décision et qualification
+# Issue #68 — ConfigSpace sur EKV : intégration ESP32
+
+## Incrément de raccordement — 14 octobre 2026
+
+- `common/config/space::storage::Store<F>` utilise EKV directement, manifest
+  complet, admission avant I/O, générations persistantes, tombstones, writer
+  logique couvrant lecture de génération/commit/readback, self-check en lecture
+  seule. Nouveau framing CSP2, aucune importation CSM1/NVS.
+- `EspConfigFlash` découvre data/0x40 et fournit les callbacks bornés/alignés
+  sur le SharedFlash existant. Pas de nouveau propriétaire ni mutex physique.
+- ota-system compose un Store statique avec ota2048 ; config-manager compose
+  demo32 et propose le mode `exercise` commit/clear/recommit avec logs/assertions.
+- Crates common/fs/nvs, arch/esp32/fs/nvs, dépendance esp-nvs et codec CSM1 retirés.
+  Les erreurs HTTP TLS de persistance se nomment storage_write_failed.
+- OTA A/B conserve ses offsets d'images/otadata. Partition config nouvelle :
+  0x3c0000, 0x40000 (256 Kio), sur une flash de 4 Mio minimum. Le scénario B
+  garde ses trois régions supplémentaires jusqu'à 0x3b0000. La table standalone
+  config-manager utilise config0x9000/0x40000 et factory0x50000/0x180000.
+- `prepare.py` produit config.bin vierge pour installation/reset explicite
+  seulement ; il n'est jamais envoyé par OTA. Première région entièrement
+  vierge initialisée ; toute région nonblank qui échoue au mount reste intacte.
+- Le seed est fourni par le RNG HAL, pseudo-aléatoire avant activation RF.
+  Ce n'est pas une promesse de seed cryptographique ni une endurance garantie.
+
+La limite de reprise après coupure reste acceptée pour le développement et
+suivie dans #70 ; seul son test connu en échec reste ignored. Les autres tests
+et les liens MCU restent obligatoires. Les compilations ne remplacent pas les
+tests carte. Les résultats de ce raccordement sont consignés ci-dessous ; les sections
+archivées décrivent les incréments antérieurs.
+
+---
+
+
+## Validation locale du raccordement — 14 octobre 2026
+
+ConfigSpace : 8 tests existants PASS ; banc : 10 PASS/1 ignored (#70), dont
+backend réel, quotas, tombstones, concurrence, overflow et région minimale.
+Adaptateur : 2 tests de bornes/géométrie PASS. TLS HTTP : 4 PASS. Service OTA
+runtime+config-space : 70 unitaires et 2 intégration PASS. Clippy de ces
+combinaisons all-targets -D warnings, formatage et découverte CI PASS.
+
+Liens release config-manager normal/exercise et OTA-system nominal : C3
+nightly-2026-10-13 (e9bbadf68), S3 esp1.98.1.0 PASS. S3 garde le warning RWX
+amont. La tentative locale C3 avec nightly du 14 octobre (822182db4) a échoué
+sur des métadonnées core corrompues ; la validation locale est datée, tandis
+que la CI conserve nightly et doit vérifier la compatibilité actuelle.
+
+Les trois CSV passent le générateur officiel ESP-IDF v5.5.1. Préparation S3
+réelle exécutée : images DIO, bootloader S3 29 744 octets (marge 3 024 avant
+0x8000), C3 22 800 octets (marge 9 968) ; applications C3/S3 acceptées aux
+deux offsets, otadata via le codec commun,
+config.bin vierge 262 144 octets. Aucun flash matériel. Les builds locaux sans
+credentials servent à la validation logicielle ; reconstruire les images OTA
+avec l'identité réseau/TLS de la carte pour la campagne.
+
+Usure du backend réel CSP2/readback, 800 OTA de 2 Kio et TLS/Wi-Fi/log froids :
+3 732 432 octets programmés /1 638 400 utiles, amplification 2,278096 ;
+1 658 effacements, 64/64 secteurs utilisés, min18/max29. Pics :12 effacements,
+28 556 octets programmés par commit. Génération801 et valeurs conservées au
+reboot. Formatage/initialisation exclus ; ce n'est pas une durée de vie MCU.
+
+[Procédure de campagne carte](issue-68-board-campaign.md) : config-manager
+normal/exercise, reboots nominalement après opérations terminées, refus de
+région non reconnue puis OTA A complète avec deux images EKV. Les coupures de
+commits restent dans #70. Aucun test physique déclaré PASS. Les résultats CI
+de cet incrément sont à vérifier après publication.
+
+---
 
 ## Décision du mainteneur
 

@@ -1,43 +1,36 @@
-# Config manager — multi-MCU reference example
+# Config manager — ESP32 C3/S3 reference
 
-One hardware-independent scenario with a compile-time selected MCU integration. The current implementation runs on ESP32; future RP2040/RP2350 or Teensy implementations can be added without changing `app.rs`.
+The portable app claims demo32 and persists config-ready on first boot, then
+verifies it on subsequent boots. The platform composes one SharedFlash owner,
+EspConfigFlash, a static EKV Store and ConfigManager. No NVS or migration.
 
-The example composes existing iOBEWi building blocks rather than wrapping them:
-
-- `common/config/space`: isolated configuration ownership and quotas;
-- `arch/esp32/config/space`: configuration persistence over NVS;
-- `arch/esp32/fs/nvs`, `flash` and `flash/partitions`: the existing shared ESP32 storage stack;
-- `esp-hal` + `esp-rtos` (Embassy executor): initialization and asynchronous execution.
-
-## Demonstrated behavior
-
-On first boot, discover the ESP-IDF **data/NVS partition labelled `nvs`**, claim a 32-byte space named `demo`, and save `config-ready`. On subsequent boots, read back the persisted value. The value is checked; it is **not erased or reformatted**.
-
-No address is hard-coded. The firmware expects a correctly provisioned ESP-IDF partition table with a sufficiently sized NVS partition. It does not create one.
-
-## Source layout
-
-- `src/app.rs`: portable `ConfigManager` scenario, generic over the existing `ConfigBackend` trait.
-- `src/main.rs`: `#[cfg]` target selection, with a compile-time error for unsupported selections.
-- `src/platform/esp32.rs`: Embassy entry point and one call to `NvsConfigBackend::from_flash`, which owns the standalone example's flash/NVS setup. Shared-flash products should use the existing-owner constructor instead.
-
-A new MCU gets its own platform module, selected using a Cargo feature. Its required storage adapter belongs under `arch/`, not inside the application logic. **No RP2040, RP2350 or Teensy implementation is claimed yet.**
-
-## Target selection
-
-The Cargo features `esp32c3` and `esp32s3` select the appropriate hardware support. Choose exactly one.
-
-Example build commands (require the relevant target toolchain and ESP32 linker configuration):
+Flash an ESP-IDF compatible bootloader, the supplied partitions.csv (converted
+with official gen_esp32part.py), and the application at 0x50000. The config
+partition is data/0x40 at 0x9000, 256 KiB. For the first development installation,
+explicitly erase this region or the test device. Subsequent reboots must retain
+it. Only an entirely blank region is formatted; mount failures stop the app.
+Do not flash this standalone table onto an OTA-system layout.
 
 ```sh
-cargo build --release -p example-config-manager --bin config-manager-esp32 --features esp32c3 --target riscv32imc-unknown-none-elf
-cargo +esp build --release -p example-config-manager --bin config-manager-esp32 --features esp32s3 --target xtensa-esp32s3-none-elf
+cargo +nightly build -Z build-std=core,alloc --release -p example-config-manager --features esp32c3 --target riscv32imc-unknown-none-elf --bins
+cargo +esp build -Z build-std=core,alloc --release -p example-config-manager --features esp32s3 --target xtensa-esp32s3-none-elf --bins
 ```
 
-Flashing requires an ESP-IDF-compatible bootloader and a partition table containing an NVS partition named `nvs`. Install those through the board's normal provisioning/flash flow; do not blindly erase an existing device.
+Source app.rs stays generic over ConfigBackend; platform/esp32.rs owns physical
+composition and virgin-region policy. RNG HAL supplies the per-boot allocation
+seed (pseudo-random until RF activation). The heap is 64 KiB. Actual hardware
+heap/timing and persistence need the board campaign; no RP/Teensy port is claimed.
 
-## Qualification status
+Known power-fail recovery defect in EKV is tracked in #70. Only that host test
+is ignored by explicit maintainer decision. Cross-linking and nominal tests do
+not qualify interrupted writes. The example asserts and halts on errors; it does
+not provide an implicit destructive recovery policy.
 
-**Not yet production-qualified.** The firmware was added as source, but host compilation, cross-target compilation, flash/boot, reset persistence and power-loss fault injection have not been executed in this session. The ESP dependency versions follow the imported stack and require a latest-compatible dependency review.
+For the board campaign, add `exercise` to the chip feature. This performs one
+replacement, a clear (checked absent) and a recommit, with consecutive generations
+and readback assertions. Serial logs report retained/initialized generation and
+`commit/clear/recommit PASS`. The final value is config-ready, so the next boot
+checks persistence before exercising again. This mode deliberately writes three
+times per boot; the default example only writes on first initialization.
 
-Before claiming production readiness, run chip-specific builds, confirm the physical partition geometry, test a cold restart, corrupted NVS behavior and interrupted writes, and capture serial/diagnostic evidence. The example deliberately uses assertions and halts on failure rather than implementing a product recovery policy.
+Board procedure: [ConfigSpace and OTA campaign](../../docs/config/issue-68-board-campaign.md).

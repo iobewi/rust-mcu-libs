@@ -1,17 +1,36 @@
 //! ESP32-C3 / ESP32-S3 target entry and storage integration.
 use embassy_executor::Spawner;
 use esp_hal::timer::timg::TimerGroup;
-use iobewi_esp_config_space::{FlashPeripheral, NvsConfigBackend};
+use iobewi_config_space::storage::{SpaceSpec, Store};
+use iobewi_esp_config_space::{EspConfigFlash, FlashPeripheral};
 use static_cell::StaticCell;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
 #[embassy_executor::task]
 async fn config_task(flash: FlashPeripheral<'static>) {
-    let backend = NvsConfigBackend::from_flash(flash, "nvs")
+    let shared = iobewi_esp_flash::init(flash);
+    let flash = EspConfigFlash::from_label(shared, "config")
         .await
-        .unwrap_or_else(|_| panic!("NVS partition unavailable"));
-    crate::app::run(backend).await;
+        .expect("config partition unavailable");
+    let blank = flash.is_blank().await.expect("config read failed");
+    static STORE: StaticCell<Store<EspConfigFlash>> = StaticCell::new();
+    const SPACES: &[SpaceSpec] = &[SpaceSpec::new("demo", 32)];
+    let store = STORE.init(
+        Store::new(flash, esp_hal::rng::Rng::new().random(), SPACES)
+            .expect("config admission failed"),
+    );
+    if blank {
+        store.format().await.expect("config initialization failed");
+    }
+    store
+        .mount()
+        .await
+        .unwrap_or_else(|error| {
+            log::error!(target: "example_config_manager", "config: mount failed {error:?}; explicit reset required");
+            panic!("config mount failed");
+        });
+    crate::app::run(store.backend()).await;
     core::future::pending::<()>().await;
 }
 

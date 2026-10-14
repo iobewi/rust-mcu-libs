@@ -13,8 +13,9 @@ compile_error!("choose at most one self-check fault");
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::timer::timg::TimerGroup;
+use iobewi_config_space::storage::{EkvBackend, SpaceSpec, Store};
 use iobewi_config_space::{Budget, ConfigManager};
-use iobewi_esp_config_space::NvsConfigBackend;
+use iobewi_esp_config_space::EspConfigFlash;
 use iobewi_esp_firmware_a::{platform::SystemBoot, service::BootRuntime};
 use iobewi_esp_flash::SharedFlash;
 use iobewi_firmware_update::{
@@ -28,7 +29,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 const WATCHDOG_MS: u64 = 20_000;
 const SELF_CHECK_MS: u64 = 15_000;
 
-struct Check<'a>(&'a NvsConfigBackend);
+struct Check<'a>(&'a EkvBackend<'static, EspConfigFlash>);
 impl BootSelfCheck for Check<'_> {
     async fn self_check(&self) -> bool {
         if cfg!(feature = "hang-self-check") {
@@ -50,9 +51,27 @@ async fn boot_task(
     peripheral: esp_hal::peripherals::WIFI<'static>,
     spawner: Spawner,
 ) {
-    let backend = NvsConfigBackend::from_label(flash, "nvs")
+    let config_flash = EspConfigFlash::from_label(flash, "config")
         .await
-        .expect("NVS unavailable");
+        .expect("config partition unavailable");
+    let blank = config_flash.is_blank().await.expect("config read failed");
+    static CONFIG: StaticCell<Store<EspConfigFlash>> = StaticCell::new();
+    const SPACES: &[SpaceSpec] = &[SpaceSpec::new("ota", 2048)];
+    let config = CONFIG.init(
+        Store::new(config_flash, esp_hal::rng::Rng::new().random(), SPACES)
+            .expect("config admission failed"),
+    );
+    if blank {
+        config.format().await.expect("config initialization failed");
+    }
+    config
+        .mount()
+        .await
+        .unwrap_or_else(|error| {
+            log::error!(target: "example_firmware_ota_system", "config: mount failed {error:?}; explicit reset required");
+            panic!("config mount failed");
+        });
+    let backend = config.backend();
     let mut manager = ConfigManager::new(backend);
     // Example owns its OTM1 claim; product must use its existing claim/budget.
     let ota = manager
@@ -125,7 +144,7 @@ fn main() -> ! {
     esp_alloc::heap_allocator!(size:160*1024);
     let timg0 = TimerGroup::new(p.TIMG0);
     esp_rtos::start(timg0.timer0, p.FROM_CPU_INTR0);
-    // After HAL and TIMG0 resets, before discovery/NVS/OTM1/self-check awaits.
+    // After HAL and TIMG0 resets, before discovery/EKV/OTM1/self-check awaits.
     iobewi_esp_watchdog::arm_ms(WATCHDOG_MS);
     let flash = iobewi_esp_flash::init(p.FLASH);
     static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();

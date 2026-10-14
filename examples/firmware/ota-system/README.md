@@ -12,7 +12,7 @@ Le digest assure l'intégrité, pas une signature/authenticité de l'image.
 
 ## Composition et limites
 
-Un seul SharedFlash sert NVS, les images et otadata. Un seul SystemBoot est
+Un seul SharedFlash sert EKV, les images et otadata. Un seul SystemBoot est
 possédé par la tâche, emprunté par BootRuntime pendant le boot puis utilisé
 par les routes. Son mutex logique sert un seul executor, distinct du mutex
 physique. Une requête d'upload conserve la réservation exclusive jusqu'à la
@@ -45,9 +45,9 @@ mesurer sur carte. Les credentials de cet exemple sont intégrés au build.
 
 ## Démarrage et probation
 
-HAL → TIMG0 → esp-rtos → watchdog 20 s → SharedFlash → NVS/OTM1 → boot gate.
+HAL → TIMG0 → esp-rtos → watchdog 20 s → SharedFlash → EKV/OTM1 → boot gate.
 Aucun second TimerGroup n'est construit. ConfigSpace réserve `ota`, budget
-2048 octets. Le self-check utilise le canary NVS existant ; sa deadline de
+2048 octets. Le self-check EKV vérifie CRC/records en lecture seule ; sa deadline de
 probation est de 15 s. La confirmation durable précède le désarmement.
 Refus, timeout ou échec de confirmation provoquent un reset ; le watchdog reste
 armé. Une confirmation durable suivie d'un échec de finition OTM1 est signalée
@@ -102,11 +102,12 @@ python3 -m esptool --chip esp32s3 --port /dev/ttyUSB0 write-flash \
   0x0 target/ota-system/esp32s3/bootloader.bin \
   0x8000 target/ota-system/esp32s3/partitions.bin \
   0xd000 target/ota-system/esp32s3/otadata.bin \
-  0x20000 target/ota-system/esp32s3/app.bin
+  0x20000 target/ota-system/esp32s3/app.bin \
+  0x3c0000 target/ota-system/esp32s3/config.bin
 ```
 
 Cette installation initialise explicitement ota_0 comme Valid. Elle remplace
-les régions citées, sans effacer NVS. Ne pas réutiliser l'otadata usine pour les
+les régions citées et remet explicitement ConfigSpace à zéro. Ne pas réutiliser l'otadata usine pour les
 mises à jour normales : utiliser le transfert OTA ci-dessous.
 
 ## Transfert et activation
@@ -144,3 +145,25 @@ OTM1. Vérifier le fallback confirmé et la configuration après chaque essai.
 
 Aucun flash/essai matériel n'est réalisé par la livraison logicielle. La chaîne
 supervisée B/C reste distincte ; #61 ouverte et #65 Draft jusqu'aux gates finales.
+
+## ConfigSpace EKV — nouveau profil de développement
+
+Partition `config` data/0x40, 0x3c0000, taille 0x40000 (256 Kio), sans NVS.
+Les offsets/taille des deux images A et d'otadata restent ceux du scénario.
+La composition construit Store/EspConfigFlash une seule fois, manifest ota2048,
+seed d'allocation fourni par le RNG HAL (pseudo-aléatoire avant activation RF).
+Une région entièrement vierge est initialisée au premier boot ; une région
+nonblank corrompue échoue sans formatage. Pas de migration/compatibilité CSM1.
+
+`config.bin` est un fichier vierge de préparation **à flasher uniquement pour
+une installation/reset volontaire en développement**. Ne pas le flasher entre
+les mises à jour OTA ou les tests de conservation après reboot. Les anciennes
+images NVS ne constituent pas un fallback compatible : installer deux images
+EKV puis qualifier les mises à jour dans les deux sens.
+
+Le défaut de reprise après interruption de commit EKV est accepté pour poursuivre
+le développement et suivi dans #70. Les tests nominaux ne qualifient pas cette
+garantie. Les coupures visant les commits ConfigSpace restent une campagne
+séparée ; un mount échoué n'efface jamais automatiquement les données.
+
+Campagne nominale : [procédure ConfigSpace/EKV et OTA A](../../../docs/config/issue-68-board-campaign.md).

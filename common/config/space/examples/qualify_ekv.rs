@@ -475,4 +475,323 @@ mod tests {
         profile();
         cuts().unwrap();
     }
+    use iobewi_config_space::{
+        Budget, ConfigBackend, ConfigManager,
+        storage::{AdmissionError, SpaceSpec, Store},
+    };
+    const SPACES: &[SpaceSpec] = &[
+        SpaceSpec::new("ota", 2048),
+        SpaceSpec::new("tls", 6154),
+        SpaceSpec::new("wifi", 128),
+        SpaceSpec::new("log", 1024),
+    ];
+    #[test]
+    fn configspace_generations_tombstones_and_reboot() {
+        let mem = Memory::new();
+        let store = Store::new(mem.clone(), 1, SPACES).unwrap();
+        run(store.format()).unwrap();
+        run(store.mount()).unwrap();
+        let b = store.backend();
+        let mut manager = ConfigManager::new(b);
+        let ota = manager.claim("ota", Budget::new(2048)).unwrap();
+        assert_eq!(run(ota.commit(b"first")).unwrap(), 1);
+        assert_eq!(run(ota.clear()).unwrap(), 2);
+        assert!(run(ota.load()).unwrap().is_none());
+        drop(ota);
+        drop(manager);
+        drop(store);
+        let store = Store::new(mem.clone(), 42, SPACES).unwrap();
+        run(store.mount()).unwrap();
+        assert_eq!(run(store.backend().commit("ota", b"third")).unwrap(), 3);
+        assert_eq!(
+            run(store.backend().load("ota"))
+                .unwrap()
+                .unwrap()
+                .generation,
+            3
+        );
+        mem.0.borrow_mut().operations.clear();
+        for _ in 0..100 {
+            assert!(run(store.backend().self_check()));
+        }
+        assert!(
+            mem.0.borrow().operations.is_empty(),
+            "self-check must not wear flash"
+        );
+    }
+    #[test]
+    fn configspace_full_manifest_recycles_maximum_values() {
+        for seed in [1, 23, 77] {
+            let mem = Memory::new();
+            let store = Store::new(mem.clone(), seed, SPACES).unwrap();
+            run(store.format()).unwrap();
+            let b = store.backend();
+            for spec in SPACES {
+                run(b.commit(spec.name, &vec![7; spec.max_bytes])).unwrap();
+            }
+            for n in 0..400 {
+                run(b.commit("ota", &vec![(n % 251) as u8; 2048])).unwrap();
+                if n % 13 == 0 {
+                    run(b.commit("tls", &vec![7; 6154])).unwrap();
+                }
+                if n % 29 == 0 {
+                    run(b.clear("log")).unwrap();
+                    run(b.commit("log", &vec![7; 1024])).unwrap();
+                }
+            }
+            drop(store);
+            let store = Store::new(mem, seed + 100, SPACES).unwrap();
+            run(store.mount()).unwrap();
+            for spec in &SPACES[1..] {
+                assert_eq!(
+                    run(store.backend().load(spec.name)).unwrap().unwrap().data,
+                    vec![7; spec.max_bytes]
+                );
+            }
+            assert_eq!(
+                run(store.backend().load("ota")).unwrap().unwrap().data,
+                vec![(399 % 251) as u8; 2048]
+            );
+        }
+    }
+    #[test]
+    fn configspace_rejects_bad_claims_without_mutation() {
+        const TOO_MUCH: &[SpaceSpec] = &[
+            SpaceSpec::new("a", 8176),
+            SpaceSpec::new("b", 8176),
+            SpaceSpec::new("c", 8176),
+        ];
+        const DUP: &[SpaceSpec] = &[SpaceSpec::new("ota", 1), SpaceSpec::new("ota", 2)];
+        let mem = Memory::new();
+        assert!(matches!(
+            Store::new(mem.clone(), 1, TOO_MUCH),
+            Err(AdmissionError::Capacity)
+        ));
+        assert!(matches!(
+            Store::new(mem.clone(), 1, DUP),
+            Err(AdmissionError::DuplicateClaim)
+        ));
+        assert!(mem.0.borrow().operations.is_empty());
+        let store = Store::new(mem.clone(), 1, SPACES).unwrap();
+        run(store.format()).unwrap();
+        mem.0.borrow_mut().operations.clear();
+        assert!(run(store.backend().commit("other", b"x")).is_err());
+        assert!(run(store.backend().commit("ota", &vec![0; 2049])).is_err());
+        assert!(mem.0.borrow().operations.is_empty());
+    }
+    #[test]
+    fn configspace_corruption_and_foreign_data_never_trigger_formatting() {
+        let mem = baseline(0).unwrap();
+        let before = mem.0.borrow().bytes.clone();
+        let store = Store::new(mem.clone(), 4, SPACES).unwrap();
+        assert!(
+            run(store.mount()).is_err(),
+            "raw EKV values have no ConfigSpace framing"
+        );
+        assert_eq!(mem.0.borrow().bytes, before);
+        let mem = Memory::new();
+        mem.0.borrow_mut().bytes.fill(0x33);
+        let before = mem.0.borrow().bytes.clone();
+        let store = Store::new(mem.clone(), 4, SPACES).unwrap();
+        assert!(run(store.mount()).is_err());
+        assert_eq!(mem.0.borrow().bytes, before);
+    }
+    struct Yielding(Memory);
+    struct YieldOnce(bool);
+    impl Future for YieldOnce {
+        type Output = ();
+        fn poll(mut self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+            if self.0 {
+                Poll::Ready(())
+            } else {
+                self.0 = true;
+                cx.waker().wake_by_ref();
+                Poll::Pending
+            }
+        }
+    }
+    impl Flash for Yielding {
+        type Error = Fault;
+        fn page_count(&self) -> usize {
+            self.0.page_count()
+        }
+        async fn read(&mut self, p: PageID, o: usize, b: &mut [u8]) -> Result<(), Fault> {
+            self.0.read(p, o, b).await
+        }
+        async fn erase(&mut self, p: PageID) -> Result<(), Fault> {
+            self.0.erase(p).await
+        }
+        async fn write(&mut self, p: PageID, o: usize, b: &[u8]) -> Result<(), Fault> {
+            YieldOnce(false).await;
+            self.0.write(p, o, b).await
+        }
+    }
+    #[test]
+    fn configspace_concurrent_commits_have_distinct_generations() {
+        let store = Store::new(Yielding(Memory::new()), 1, SPACES).unwrap();
+        run(store.format()).unwrap();
+        let b = store.backend();
+        let mut first = core::pin::pin!(b.commit("ota", b"first"));
+        let mut second = core::pin::pin!(b.commit("ota", b"second"));
+        let mut cx = Context::from_waker(Waker::noop());
+        let mut a = None;
+        let mut c = None;
+        while a.is_none() || c.is_none() {
+            if a.is_none()
+                && let Poll::Ready(v) = first.as_mut().poll(&mut cx)
+            {
+                a = Some(v.unwrap());
+            }
+            if c.is_none()
+                && let Poll::Ready(v) = second.as_mut().poll(&mut cx)
+            {
+                c = Some(v.unwrap());
+            }
+        }
+        assert_eq!((a.unwrap(), c.unwrap()), (1, 2));
+        let value = run(b.load("ota")).unwrap().unwrap();
+        assert_eq!(value.generation, 2);
+        assert_eq!(value.data, b"second");
+    }
+    #[test]
+    fn configspace_generation_overflow_does_not_mutate_storage() {
+        let mem = Memory::new();
+        let store = Store::new(mem.clone(), 1, SPACES).unwrap();
+        run(store.format()).unwrap();
+        drop(store);
+        let mut raw = b"CSP2".to_vec();
+        raw.extend_from_slice(&u64::MAX.to_le_bytes());
+        raw.extend_from_slice(&[1, 0, 0, 0]);
+        let database = db(&mem, 4);
+        run(database.mount()).unwrap();
+        run(write(&database, b"ota", Some(&raw))).unwrap();
+        drop(database);
+        let store = Store::new(mem.clone(), 42, SPACES).unwrap();
+        run(store.mount()).unwrap();
+        mem.0.borrow_mut().operations.clear();
+        assert!(matches!(
+            run(store.backend().commit("ota", b"overflow")),
+            Err(iobewi_config_space::storage::Error::GenerationOverflow)
+        ));
+        assert!(mem.0.borrow().operations.is_empty());
+        assert_eq!(
+            run(store.backend().load("ota"))
+                .unwrap()
+                .unwrap()
+                .generation,
+            u64::MAX
+        );
+    }
+    struct Limited(Memory, usize);
+    impl Flash for Limited {
+        type Error = Fault;
+        fn page_count(&self) -> usize {
+            self.1
+        }
+        async fn read(&mut self, p: PageID, o: usize, b: &mut [u8]) -> Result<(), Fault> {
+            assert!(p.index() < self.1);
+            self.0.read(p, o, b).await
+        }
+        async fn erase(&mut self, p: PageID) -> Result<(), Fault> {
+            assert!(p.index() < self.1);
+            self.0.erase(p).await
+        }
+        async fn write(&mut self, p: PageID, o: usize, b: &[u8]) -> Result<(), Fault> {
+            assert!(p.index() < self.1);
+            self.0.write(p, o, b).await
+        }
+    }
+    #[test]
+    fn configspace_minimum_region_recycles_and_rejects_overcommit() {
+        const OTA_ONLY: &[SpaceSpec] = &[SpaceSpec::new("ota", 2048)];
+        let mem = Memory::new();
+        assert!(matches!(
+            Store::new(Limited(mem.clone(), 32), 1, SPACES),
+            Err(AdmissionError::Capacity)
+        ));
+        assert!(matches!(
+            Store::new(Limited(mem.clone(), 16), 1, OTA_ONLY),
+            Err(AdmissionError::Geometry)
+        ));
+        assert!(matches!(
+            Store::new(Limited(mem.clone(), 512), 1, OTA_ONLY),
+            Err(AdmissionError::Geometry)
+        ));
+        assert!(mem.0.borrow().operations.is_empty());
+        let store = Store::new(Limited(mem.clone(), 32), 1, OTA_ONLY).unwrap();
+        run(store.format()).unwrap();
+        for n in 0..400 {
+            run(store.backend().commit("ota", &vec![(n % 251) as u8; 2048])).unwrap();
+        }
+        drop(store);
+        let store = Store::new(Limited(mem.clone(), 32), 42, OTA_ONLY).unwrap();
+        run(store.mount()).unwrap();
+        let value = run(store.backend().load("ota")).unwrap().unwrap();
+        assert_eq!(value.generation, 400);
+        assert_eq!(value.data, vec![(399 % 251) as u8; 2048]);
+        assert!(mem.0.borrow().bytes[32 * PAGE..].iter().all(|b| *b == 255));
+    }
+    #[test]
+    fn configspace_wear_with_actual_record_framing() {
+        let mem = Memory::new();
+        let store = Store::new(mem.clone(), 1, SPACES).unwrap();
+        run(store.format()).unwrap();
+        let b = store.backend();
+        for (key, value) in [
+            ("tls", vec![0x5a; 6154]),
+            ("wifi", vec![4; 128]),
+            ("log", vec![5; 1024]),
+            ("ota", b"previous".to_vec()),
+        ] {
+            run(b.commit(key, &value)).unwrap();
+        }
+        drop(store);
+        {
+            let mut s = mem.0.borrow_mut();
+            s.erases.fill(0);
+            s.programmed = 0;
+            s.operations.clear();
+        }
+        let store = Store::new(mem.clone(), 4, SPACES).unwrap();
+        run(store.mount()).unwrap();
+        let mut peak_erases = 0;
+        let mut peak_programmed = 0;
+        for n in 0..800 {
+            let before = {
+                let s = mem.0.borrow();
+                (s.erases.iter().sum::<u64>(), s.programmed)
+            };
+            run(store.backend().commit("ota", &vec![(n % 251) as u8; 2048])).unwrap();
+            let s = mem.0.borrow();
+            peak_erases = peak_erases.max(s.erases.iter().sum::<u64>() - before.0);
+            peak_programmed = peak_programmed.max(s.programmed - before.1);
+        }
+        drop(store);
+        let store = Store::new(mem.clone(), 42, SPACES).unwrap();
+        run(store.mount()).unwrap();
+        let ota = run(store.backend().load("ota")).unwrap().unwrap();
+        assert_eq!(ota.generation, 801);
+        assert_eq!(ota.data, vec![(799 % 251) as u8; 2048]);
+        for (key, value) in [
+            ("tls", vec![0x5a; 6154]),
+            ("wifi", vec![4; 128]),
+            ("log", vec![5; 1024]),
+        ] {
+            assert_eq!(run(store.backend().load(key)).unwrap().unwrap().data, value);
+        }
+        let stats = mem.0.borrow();
+        println!(
+            "STORE_WEAR updates=800 useful={} programmed={} erases={} min={} max={} used={} peak_erases={} peak_programmed={} histogram={:?}",
+            800 * 2048,
+            stats.programmed,
+            stats.erases.iter().sum::<u64>(),
+            stats.erases.iter().min().unwrap(),
+            stats.erases.iter().max().unwrap(),
+            stats.erases.iter().filter(|n| **n > 0).count(),
+            peak_erases,
+            peak_programmed,
+            stats.erases
+        );
+        assert_eq!(stats.erases.iter().filter(|n| **n > 0).count(), 64);
+    }
 }
