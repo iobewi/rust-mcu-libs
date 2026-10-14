@@ -13,8 +13,10 @@ impl Sleep for Clock {
         Timer::after(Duration::from_millis(ms.into())).await;
     }
 }
-struct Observer<'a>(&'a Signal<NoopRawMutex, Stack<'static>>);
-impl LinkObserver<Stack<'static>> for Observer<'_> {
+pub type Ready = Signal<NoopRawMutex, Stack<'static>>;
+
+struct Observer(&'static Ready);
+impl LinkObserver<Stack<'static>> for Observer {
     fn ready(&mut self, network: Stack<'static>) {
         log::info!("Wi-Fi ready; HTTPS can use the station stack");
         self.0.signal(network);
@@ -24,10 +26,11 @@ impl LinkObserver<Stack<'static>> for Observer<'_> {
     }
 }
 
+#[embassy_executor::task]
 pub async fn maintain(
     transport: iobewi_esp_wifi::WifiManager<3>,
     config: ConfigSpace<EkvBackend<'static, EspConfigFlash>>,
-    ready: &Signal<NoopRawMutex, Stack<'static>>,
+    ready: &'static Ready,
 ) -> ! {
     let provisioned = is_provisioned(&config).await;
     let mut manager = WifiManager::new(transport, config);
