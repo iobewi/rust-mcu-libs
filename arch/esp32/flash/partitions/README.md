@@ -24,3 +24,14 @@ Partition discovery receives an existing mutable `FlashStorage`; callers obtain 
 ## Known limitations
 
 The ESP-IDF typed accessors used by `find` can panic on unknown partition subtypes. `for_each_entry` and `find_by_label` compare raw entries instead.
+
+## ROM boot integration
+
+raw::entries is the bounded borrowed byte view shared by ROM boot and runtime
+for_each_entry. ESP dependencies are optional/chip-selected; host tests need no
+HAL. Upstream 0.6's byte-table constructor is private and its public reader
+requires FlashStorage: this adds only the missing byte view. Unknown types and
+subtypes stay raw. It stops at the first non-entry magic, including MD5, and
+rejects empty/malformed input or invalid UTF-8 labels. It does not validate MD5
+or encrypted boot. Runtime still uses the upstream reader, typed lookup and
+actual MMU boot observation. No extra physical owner is constructed.

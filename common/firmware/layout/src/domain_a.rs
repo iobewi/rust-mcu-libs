@@ -53,58 +53,111 @@ pub fn label(slot: FirmwareSlot) -> Result<&'static str, LayoutError> {
     match (slot.domain, slot.slot) {
         (Domain::A, Slot::Zero) => Ok(OTA0),
         (Domain::A, Slot::One) => Ok(OTA1),
-        (Domain::B, _) => Err(LayoutError::UnsupportedDomain),
+        (_, _) => Err(LayoutError::UnsupportedDomain),
     }
 }
 
 /// Select exactly two ESP application slots and one metadata partition.
 /// Reject ambiguous, overlapping and out-of-flash partition maps.
 pub fn discover(entries: &[Entry<'_>], flash_size: u32) -> Result<Layout, LayoutError> {
-    let mut slots = [None, None];
-    let mut metadata = None;
-    for entry in entries {
-        let index = match (entry.kind, entry.subtype, entry.label) {
-            (APP_TYPE, OTA0_SUBTYPE, OTA0) => Some(0),
-            (APP_TYPE, OTA1_SUBTYPE, OTA1) => Some(1),
-            _ => None,
-        };
-        let is_metadata =
-            (entry.kind, entry.subtype, entry.label) == (DATA_TYPE, OTADATA_SUBTYPE, OTADATA);
-        if index.is_none() && !is_metadata {
-            continue;
-        }
-        let p = entry.partition;
-        if p.size == 0 || p.offset % 0x1000 != 0 || p.size % 0x1000 != 0 {
-            return Err(LayoutError::Unaligned);
-        }
-        let end = p.offset.checked_add(p.size).ok_or(LayoutError::Overflow)?;
-        if end > flash_size {
-            return Err(LayoutError::OutOfBounds);
-        }
-        if let Some(i) = index {
-            if slots[i].replace(p).is_some() {
-                return Err(LayoutError::Duplicate);
-            }
-        } else if metadata.replace(p).is_some() {
+    let required = [
+        crate::Requirement {
+            label: OTA0,
+            kind: APP_TYPE,
+            subtype: OTA0_SUBTYPE,
+        },
+        crate::Requirement {
+            label: OTA1,
+            kind: APP_TYPE,
+            subtype: OTA1_SUBTYPE,
+        },
+        crate::Requirement {
+            label: OTADATA,
+            kind: DATA_TYPE,
+            subtype: OTADATA_SUBTYPE,
+        },
+    ];
+    // Reject ambiguous labels even when one duplicate has the wrong subtype.
+    for req in &required {
+        if entries.iter().filter(|e| e.label == req.label).count() > 1 {
             return Err(LayoutError::Duplicate);
         }
     }
-    let [Some(a0), Some(a1)] = slots else {
-        return Err(LayoutError::MissingSlot);
-    };
-    let meta = metadata.ok_or(LayoutError::MissingMetadata)?;
+    let checked = crate::validate(
+        entries.iter().map(|e| crate::Entry {
+            label: e.label,
+            kind: e.kind,
+            subtype: e.subtype,
+            offset: e.partition.offset,
+            size: e.partition.size,
+        }),
+        &required,
+        flash_size,
+        0x1000,
+    )
+    .map_err(|error| match error {
+        crate::DiscoveryError::Missing => {
+            if required[..2].iter().any(|r| {
+                !entries
+                    .iter()
+                    .any(|e| e.label == r.label && e.kind == r.kind && e.subtype == r.subtype)
+            }) {
+                LayoutError::MissingSlot
+            } else {
+                LayoutError::MissingMetadata
+            }
+        }
+        crate::DiscoveryError::Duplicate => LayoutError::Duplicate,
+        crate::DiscoveryError::Misaligned => LayoutError::Unaligned,
+        crate::DiscoveryError::OutOfFlash => LayoutError::OutOfBounds,
+        crate::DiscoveryError::Overflow => LayoutError::Overflow,
+        crate::DiscoveryError::Overlap => LayoutError::Overlapping,
+        crate::DiscoveryError::TableUnreadable => LayoutError::MissingMetadata,
+    })?;
+    let [a0, a1, meta] = checked.map(|r| Partition {
+        offset: r.offset,
+        size: r.size as u32,
+    });
+    if a0.offset % 0x10000 != 0 || a1.offset % 0x10000 != 0 {
+        return Err(LayoutError::Unaligned);
+    }
     if meta.size < OTADATA_MIN_SIZE {
         return Err(LayoutError::MetadataTooSmall);
-    }
-    for (a, b) in [(a0, a1), (a0, meta), (a1, meta)] {
-        if a.offset < b.offset + b.size && b.offset < a.offset + a.size {
-            return Err(LayoutError::Overlapping);
-        }
     }
     Ok(Layout {
         images: [a0, a1],
         otadata: meta,
     })
+}
+
+impl Layout {
+    /// Recheck public fields before authorizing a writer.
+    pub fn validate(&self, flash_size: u32) -> Result<(), LayoutError> {
+        discover(
+            &[
+                Entry {
+                    label: OTA0,
+                    kind: APP_TYPE,
+                    subtype: OTA0_SUBTYPE,
+                    partition: self.images[0],
+                },
+                Entry {
+                    label: OTA1,
+                    kind: APP_TYPE,
+                    subtype: OTA1_SUBTYPE,
+                    partition: self.images[1],
+                },
+                Entry {
+                    label: OTADATA,
+                    kind: DATA_TYPE,
+                    subtype: OTADATA_SUBTYPE,
+                    partition: self.otadata,
+                },
+            ],
+            flash_size,
+        )
+        .map(|_| ())
+    }
 }
 
 #[cfg(test)]
@@ -154,5 +207,18 @@ mod tests {
         let mut e = standard();
         e[0].partition.size = 0x400000;
         assert_eq!(discover(&e, 0x400000), Err(LayoutError::OutOfBounds));
+    }
+    #[test]
+    fn rejects_nonbootable_app_alignment_and_wrong_subtype_duplicates() {
+        let mut e = standard();
+        e[0].partition.offset -= 0x1000;
+        assert_eq!(discover(&e, 0x400000), Err(LayoutError::Unaligned));
+        let mut wrong = e[0];
+        wrong.subtype = OTA1_SUBTYPE;
+        let table = [standard()[0], standard()[1], standard()[2], wrong];
+        assert_eq!(discover(&table, 0x400000), Err(LayoutError::Duplicate));
+        let mut e = standard();
+        e[0].partition.offset = 0xffff0000;
+        assert_eq!(discover(&e, u32::MAX), Err(LayoutError::Overflow));
     }
 }

@@ -49,6 +49,8 @@ jobs:
           else
             python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --full
           fi
+      - name: Validate boot image size gate
+        run: python3 .github/scripts/test_compile_mcu.py
       - name: Reject tracked Cargo.lock files
         run: |
           if git ls-files | grep -E '(^|/)Cargo\.lock$'; then
@@ -81,11 +83,16 @@ jobs:
       - name: Unit tests
         env:
           PKG: ${{ matrix.package }}
-        run: cargo test -p "$PKG"
+          FEATURES: ${{ matrix.features }}
+        run: cargo test -p "$PKG" --features "$FEATURES"
       - name: Clippy
         env:
           PKG: ${{ matrix.package }}
-        run: cargo clippy -p "$PKG" --all-targets -- -D warnings
+          FEATURES: ${{ matrix.features }}
+        run: cargo clippy -p "$PKG" --features "$FEATURES" --all-targets -- -D warnings
+      - name: Transactional boot exhaustive fault injection
+        if: matrix.package == 'iobewi-firmware-boot'
+        run: cargo test --release -p iobewi-firmware-boot
       - name: Firmware OTA runtime feature tests and Clippy
         if: matrix.package == 'iobewi-firmware-update'
         run: |
@@ -112,23 +119,15 @@ jobs:
         with:
           targets: riscv32imc-unknown-none-elf
           components: rust-src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Compile selected ESP32-C3 crates
         env:
           PACKAGES: ${{ needs.discover.outputs.esp32c3_packages }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, os, subprocess
-          for item in json.loads(os.environ["PACKAGES"]):
-              cmd = ["cargo", "+nightly", "check", "-Z", "build-std=core,alloc",
-                     "--target", "riscv32imc-unknown-none-elf",
-                     "-p", item["package"], "--features", "esp32c3", "--" + item["targets"]]
-              print("::group::" + item["package"], flush=True)
-              try:
-                  subprocess.run(cmd, check=True)
-              finally:
-                  print("::endgroup::", flush=True)
-          PY
+          python3 .github/scripts/compile_mcu.py --chip esp32c3
 
   esp32s3:
     name: ESP32-S3 selected crates / ${{ matrix.variant }}
@@ -147,23 +146,15 @@ jobs:
           override: false
           version: ${{ matrix.version }}
           github-token: ${{ github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Compile selected ESP32-S3 crates
         env:
           PACKAGES: ${{ needs.discover.outputs.esp32s3_packages }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, os, subprocess
-          for item in json.loads(os.environ["PACKAGES"]):
-              cmd = ["cargo", "+esp", "check", "-Z", "build-std=core,alloc",
-                     "--target", "xtensa-esp32s3-none-elf",
-                     "-p", item["package"], "--features", "esp32s3", "--" + item["targets"]]
-              print("::group::" + item["package"], flush=True)
-              try:
-                  subprocess.run(cmd, check=True)
-              finally:
-                  print("::endgroup::", flush=True)
-          PY
+          python3 .github/scripts/compile_mcu.py --chip esp32s3
 
   affected-gate:
     name: Affected crate validation

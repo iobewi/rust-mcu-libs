@@ -24,6 +24,7 @@ Example for firmware binaries:
 
 - `host`: host unit tests and Clippy on all targets with warnings denied.
 - `esp32`: cross-compile the library for ESP32-C3 and ESP32-S3. ESP32-S3 also receives an independent latest-Xtensa build.
+- `host-esp32`: execute host unit tests/Clippy without MCU features **and** cross-compile the same library for C3/S3. Use for adapters with host-testable production logic and optional MCU bindings.
 - `esp32-bins`: cross-compile all firmware binaries for ESP32-C3 and ESP32-S3, including the independent latest-Xtensa build.
 
 The workflow also enforces `cargo fmt --all -- --check` across the workspace and prohibits tracked `Cargo.lock` files.
@@ -73,3 +74,29 @@ Python 3.11+ is required for `tomllib`.
 Compilation is not a hardware acceptance gate. AP DHCP leases, AP+STA coexistence, power-cut persistence and boot-time behavior still require physical validation.
 
 Profiles are declarative metadata; they are not independently executable shell scripts. This keeps the toolchain setup centralized and avoids executing arbitrary per-crate commands.
+
+## Bootloader link and image gate
+
+esp32-bootloader is a declarative profile: build/link with the workspace
+bootloader profile, package every binary with esptool 5.5.0, inspect the ESP
+image and enforce the historical 32768-byte limit (image at 0, table at 0x8000).
+MCU execution is centralized in scripts/compile_mcu.py. Discovery runs
+scripts/test_compile_mcu.py for exact-limit, empty and oversized images,
+including the historical 33488-byte Full-verification overflow. This does not
+qualify hardware or application-image authenticity.
+
+## Configured feature and link checks
+
+ci.json may also declare `"features": ["runtime"]`. Features are validated names,
+forwarded to host tests/Clippy and combined with the MCU feature by the common
+executor. A's runtime adapter uses this so CI does not only compile its default
+layout surface. Impact discovery resolves Cargo metadata with all features to
+include optional consumers in reverse dependency selection; builds still use
+each crate's declared profile/features, not all features simultaneously.
+
+`esp32-linked-bins` links every binary in release on C3/S3 using its normal
+application linker. Unlike `esp32-bootloader`, it has no universal 32 KiB image
+limit. The firmware/ota-system reference uses it to catch unresolved timer,
+allocator, runtime and linker symbols that a cargo check would miss.
+
+`host-esp32-linked-bins` combines host unit tests/strict Clippy without MCU features with actual C3/S3 release binary links. Firmware dependencies must be optional, enabled by the MCU/firmware features. The OTA reference uses this to execute its request-admission tests without weakening target link gates.

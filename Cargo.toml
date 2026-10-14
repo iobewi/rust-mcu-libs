@@ -1,6 +1,10 @@
 [workspace]
 members = [
+  "examples/firmware/ota-system",
+  "arch/esp32/firmware/boot",
+  "examples/firmware/bootloader",
   "arch/esp32/firmware/a",
+  "arch/esp32/firmware/supervisor",
   "arch/esp32/firmware/storage",
   "common/firmware/update",
   "common/firmware/layout",
@@ -29,7 +33,6 @@ members = [
   "arch/esp32/log/console",
   "common/log/config",
   "common/config/space",
-  "common/fs/nvs",
   "common/net/wifi/core",
   "common/net/improv/serial",
   "common/net/improv/provisioning",
@@ -37,7 +40,6 @@ members = [
   "arch/esp32/net/wifi",
   "examples/config-manager",
   "examples/wifi-modes",
-  "arch/esp32/fs/nvs",
   "arch/esp32/config/space",
   "arch/esp32/flash",
   "arch/esp32/flash/partitions",
@@ -45,7 +47,6 @@ members = [
 default-members = [
   "common/log/core",
   "common/config/space",
-  "common/fs/nvs",
   "common/net/wifi/core",
   "common/net/wifi/manager",
   "common/net/improv/serial",
@@ -58,3 +59,13 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/iobewi/rust-mcu-libs"
+
+# Bootloader must fit before the partition table, with historical size settings.
+[profile.bootloader]
+inherits = "release"
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
+panic = "abort"
+debug = 2
+overflow-checks = false

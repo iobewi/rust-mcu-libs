@@ -54,6 +54,7 @@ pub enum Unsupported {
     /// The two slots must have the same size.
     SlotsDiffer,
     Overlap,
+    Overflow,
 }
 
 /// A validated dual-slot Workload layout.
@@ -77,10 +78,15 @@ pub fn assemble(
     if erase_size == 0 {
         return Err(Unsupported::Misaligned);
     }
-    if meta.size < erase_size.saturating_mul(2) {
+    let metadata_min = erase_size.checked_mul(2).ok_or(Unsupported::Overflow)?;
+    if meta.size < metadata_min {
         return Err(Unsupported::MetaTooSmall);
     }
     for region in [meta, a, b] {
+        region
+            .offset
+            .checked_add(region.size)
+            .ok_or(Unsupported::Overflow)?;
         if region.offset % erase_size != 0 || region.size % erase_size != 0 {
             return Err(Unsupported::Misaligned);
         }
@@ -289,6 +295,27 @@ mod tests {
                 0x1000
             ),
             Err(Unsupported::Misaligned)
+        );
+    }
+    #[test]
+    fn rejects_address_and_metadata_geometry_overflow() {
+        assert_eq!(
+            assemble(
+                r(0x9000, 0x2000),
+                r(0xffff0000, 0x40000),
+                r(0x60000, 0x40000),
+                0x1000
+            ),
+            Err(Unsupported::Overflow)
+        );
+        assert_eq!(
+            assemble(
+                r(0, u32::MAX),
+                r(0x20000, 0x40000),
+                r(0x60000, 0x40000),
+                0x80000000
+            ),
+            Err(Unsupported::Overflow)
         );
     }
 }

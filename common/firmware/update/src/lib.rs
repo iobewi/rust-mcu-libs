@@ -21,6 +21,7 @@ pub mod metadata {
 pub mod service;
 pub mod state;
 pub mod storage;
+pub mod supervised;
 pub mod transaction;
 
 pub use artifact::{Committed, Digest, ResumePlan, WriteSession, is_complete, resume_plan};

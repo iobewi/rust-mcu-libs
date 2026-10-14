@@ -1,3 +1,4 @@
 {
-  "profile": "esp32-bins"
+  "profile": "esp32-linked-bins",
+  "features": ["exercise"]
 }

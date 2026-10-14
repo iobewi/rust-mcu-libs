@@ -9,7 +9,7 @@ import sys
 import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-ALLOWED = {"host", "esp32", "esp32-bins"}
+ALLOWED = {"host", "esp32", "esp32-bins", "host-esp32", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins"}
 GLOBAL = {".github/", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
 
 def git(*args):
@@ -51,7 +51,7 @@ def select(changed, packages, reverse, base=None):
 def discover(base=None, head="HEAD", full=False):
     workspace = tomllib.loads((ROOT / "Cargo.toml").read_text())
     members = workspace["workspace"]["members"]
-    profiles, packages = {}, {}
+    profiles, packages, features = {}, {}, {}
     for member in members:
         directory = ROOT / member
         manifest = directory / "Cargo.toml"
@@ -60,16 +60,24 @@ def discover(base=None, head="HEAD", full=False):
             raise ValueError(f"{member}: every workspace crate requires Cargo.toml and ci.json")
         name = tomllib.loads(manifest.read_text())["package"]["name"]
         config = json.loads(config_path.read_text())
-        if set(config) != {"profile"} or config["profile"] not in ALLOWED:
+        if (not isinstance(config, dict) or "profile" not in config
+                or not set(config) <= {"profile", "features"}
+                or not isinstance(config["profile"], str)
+                or config["profile"] not in ALLOWED):
             raise ValueError(f"{member}: invalid ci.json profile")
+        extra = config.get("features", [])
+        if not isinstance(extra, list) or any(not isinstance(f, str) or not f or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for c in f) for f in extra):
+            raise ValueError(f"{member}: invalid ci.json features")
+        features[name] = ",".join(extra)
         if name in packages:
             raise ValueError(f"duplicate package name: {name}")
         packages[name], profiles[name] = member, config["profile"]
 
     # Resolve effective Cargo package IDs, including renamed/path dependencies,
-    # using Cargo's authoritative resolved dependency graph.
+    # using Cargo's authoritative graph, including optional consumers. All
+    # features are for resolution only, never compiled together across MCUs.
     metadata = json.loads(subprocess.check_output(
-        ["cargo", "metadata", "--format-version", "1"], cwd=ROOT, text=True
+        ["cargo", "metadata", "--all-features", "--format-version", "1"], cwd=ROOT, text=True
     ))
     ids = {pkg["id"]: pkg["name"] for pkg in metadata["packages"] if pkg["name"] in packages}
     reverse = {name: set() for name in packages}
@@ -91,9 +99,9 @@ def discover(base=None, head="HEAD", full=False):
     matrix = []
     for name in sorted(selected):
         profile = profiles[name]
-        chips = ("host",) if profile == "host" else ("esp32c3", "esp32s3")
+        chips = ("host",) if profile == "host" else (("host", "esp32c3", "esp32s3") if profile in ("host-esp32", "host-esp32-linked-bins") else ("esp32c3", "esp32s3"))
         for chip in chips:
-            matrix.append({"package": name, "chip": chip, "targets": "bins" if profile == "esp32-bins" else "lib"})
+            matrix.append({"package": name, "chip": chip, "targets": "bins" if profile in ("esp32-bins", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins") and chip != "host" else "lib", "profile": profile, "features": features[name]})
     return {"include": matrix}, selected, len(packages)
 
 if __name__ == "__main__":

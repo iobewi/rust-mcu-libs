@@ -5,30 +5,30 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "ESP NVS adapter for IOBEWI ConfigSpace"
-keywords = ["esp32", "configuration", "nvs", "embedded", "no-std"]
+description = "ESP shared NOR flash adapter for EKV ConfigSpace"
+keywords = ["esp32", "configuration", "flash", "embedded", "no-std"]
 categories = ["embedded", "hardware-support", "no-std"]
 
 [features]
 default = []
 esp32c3 = [
   "iobewi-esp-flash/esp32c3",
-  "iobewi-esp-nvs/esp32c3",
+  "dep:embedded-storage",
   "iobewi-esp-partitions/esp32c3",
 ]
 esp32s3 = [
   "iobewi-esp-flash/esp32s3",
-  "iobewi-esp-nvs/esp32s3",
+  "dep:embedded-storage",
   "iobewi-esp-partitions/esp32s3",
 ]
 
 [dependencies]
 iobewi-config-space = { path = "../../../../common/config/space" }
-iobewi-nvs-core = { path = "../../../../common/fs/nvs" }
-iobewi-esp-flash = { path = "../../flash" }
-iobewi-esp-nvs = { path = "../../fs/nvs" }
-esp-nvs = "0.5.0"
-log = { version = "0.4.29", default-features = false }
+iobewi-esp-flash = { path = "../../flash", optional = true }
 
-iobewi-esp-partitions = { path = "../../flash/partitions" }
-embedded-storage = "0.3.1"
+iobewi-esp-partitions = { path = "../../flash/partitions", optional = true }
+embedded-storage = { version = "0.3.1", optional = true }
+
+ekv = { version = "=1.0.0", features = ["crc", "max-value-size-8192", "max-chunk-size-256"] }
+
+iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }

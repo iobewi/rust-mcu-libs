@@ -557,3 +557,5 @@ fn pending(otadata: [Raw; SECTOR_COUNT]) -> Option<(u8, u32)> {
 }
 #[cfg(test)]
 mod tests;
+
+pub mod transaction;

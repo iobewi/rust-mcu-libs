@@ -11,14 +11,15 @@ pub async fn run<B: ConfigBackend>(backend: B) {
     match space.load().await {
         Ok(Some(snapshot)) => {
             assert_eq!(snapshot.data.as_slice(), b"config-ready");
-            core::hint::black_box(snapshot.generation);
+            log::info!(target: "example_config_manager", "config: retained generation {}", snapshot.generation);
         }
         Ok(None) => {
             let generation = space
                 .commit(b"config-ready")
                 .await
                 .unwrap_or_else(|_| panic!("configuration write failed"));
-            assert_eq!(generation, 1);
+            assert!(generation > 0);
+            log::info!(target: "example_config_manager", "config: initialized generation {generation}");
         }
         Err(_) => panic!("configuration read failed"),
     }
@@ -29,4 +30,54 @@ pub async fn run<B: ConfigBackend>(backend: B) {
         .unwrap_or_else(|_| panic!("verification read failed"))
         .unwrap_or_else(|| panic!("configuration missing"));
     assert_eq!(snapshot.data.as_slice(), b"config-ready");
+    log::info!(target: "example_config_manager", "config: verified generation {}", snapshot.generation);
+    #[cfg(feature = "exercise")]
+    {
+        let previous = snapshot.generation;
+        assert_eq!(
+            space
+                .commit(b"replacement")
+                .await
+                .unwrap_or_else(|_| panic!("replacement failed")),
+            previous + 1
+        );
+        assert_eq!(
+            space
+                .load()
+                .await
+                .unwrap_or_else(|_| panic!("load failed"))
+                .unwrap()
+                .data,
+            b"replacement"
+        );
+        assert_eq!(
+            space
+                .clear()
+                .await
+                .unwrap_or_else(|_| panic!("clear failed")),
+            previous + 2
+        );
+        assert!(
+            space
+                .load()
+                .await
+                .unwrap_or_else(|_| panic!("clear read failed"))
+                .is_none()
+        );
+        assert_eq!(
+            space
+                .commit(b"config-ready")
+                .await
+                .unwrap_or_else(|_| panic!("recommit failed")),
+            previous + 3
+        );
+        let last = space
+            .load()
+            .await
+            .unwrap_or_else(|_| panic!("recommit read failed"))
+            .unwrap();
+        assert_eq!(last.data, b"config-ready");
+        assert_eq!(last.generation, previous + 3);
+        log::info!(target: "example_config_manager", "config: commit/clear/recommit PASS generation {}", last.generation);
+    }
 }

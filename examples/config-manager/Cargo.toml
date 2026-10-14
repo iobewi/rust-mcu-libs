@@ -14,8 +14,9 @@ required-features = ["firmware"]
 [features]
 default = []
 firmware = []
-esp32c3 = ["firmware", "esp-hal/esp32c3", "esp-rtos/esp32c3", "esp-alloc/esp32c3", "esp-bootloader-esp-idf/esp32c3", "iobewi-esp-config-space/esp32c3", "iobewi-esp-console/esp32c3"]
-esp32s3 = ["firmware", "esp-hal/esp32s3", "esp-rtos/esp32s3", "esp-alloc/esp32s3", "esp-bootloader-esp-idf/esp32s3", "iobewi-esp-config-space/esp32s3", "iobewi-esp-console/esp32s3"]
+exercise = []
+esp32c3 = ["firmware", "esp-hal/esp32c3", "esp-rtos/esp32c3", "esp-alloc/esp32c3", "esp-bootloader-esp-idf/esp32c3", "iobewi-esp-config-space/esp32c3", "iobewi-esp-flash/esp32c3", "iobewi-esp-console/esp32c3"]
+esp32s3 = ["firmware", "esp-hal/esp32s3", "esp-rtos/esp32s3", "esp-alloc/esp32s3", "esp-bootloader-esp-idf/esp32s3", "iobewi-esp-config-space/esp32s3", "iobewi-esp-flash/esp32s3", "iobewi-esp-console/esp32s3"]
 
 [dependencies]
 iobewi-log = { path = "../../common/log/core" }
@@ -28,3 +29,7 @@ esp-alloc = { version = "~0.11", default-features = false, features = ["global-a
 esp-bootloader-esp-idf = { version = "~0.6", default-features = false }
 embassy-executor = { version = "0.10.0", default-features = false }
 static_cell = "2.1"
+
+iobewi-esp-flash = { path = "../../arch/esp32/flash" }
+
+log = { version = "0.4", default-features = false }
