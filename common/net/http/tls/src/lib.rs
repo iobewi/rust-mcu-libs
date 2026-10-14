@@ -70,7 +70,7 @@ pub async fn cert_response<B: ProvisioningBackend>(
         }
         Err(SaveCertError::Storage) => json_error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "{\"error\":\"nvs_write_failed\"}",
+            "{\"error\":\"storage_write_failed\"}",
         ),
     }
 }
@@ -90,7 +90,7 @@ pub async fn ca_response<B: ProvisioningBackend>(
         Ok(()) => json_ok(String::from("{\"status\":\"saved\"}")),
         Err(SaveCertError::Storage) => json_error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "{\"error\":\"nvs_write_failed\"}",
+            "{\"error\":\"storage_write_failed\"}",
         ),
         Err(SaveCertError::Invalid | SaveCertError::Mismatch) => json_error(
             StatusCode::BAD_REQUEST,

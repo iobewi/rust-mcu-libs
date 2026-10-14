@@ -5,7 +5,7 @@ spécification et sa table ; il n'ajoute pas de crate vide ou de fausse mise à
 jour B. La réception/publication/activation A sera d'abord terminée dans
 `../ota-system` et ses mécanismes seront partagés via les briques existantes.
 
-La table conserve exactement NVS, `otadata`, `ota_0` et `ota_1` du premier
+La table partage `config` EKV, `otadata`, `ota_0` et `ota_1` du premier
 scénario. Elle ajoute `wl_meta`, `workload_a` et `workload_b`, conformément au
 layout B historique : slots égaux de 256 Kio et métadonnées sur deux secteurs
 d'effacement distincts. Cette extension n'est pas un second bootloader.

@@ -1,296 +1,215 @@
 #![no_std]
-
-//! ESP NVS backend for IOBEWI ConfigSpace.
-//!
-//! ConfigSpace persistence semantics live here. Physical flash ownership and
-//! the ESP NVS platform bridge are supplied by the ESP implementation crates, allowing
-//! this backend to coexist with other storage consumers such as IOBEWI OTA.
-
-extern crate alloc;
-
-use alloc::vec::Vec;
-use core::sync::atomic::{AtomicBool, Ordering};
-
-use esp_nvs::Nvs;
-use esp_nvs::error::Error as NvsError;
-use iobewi_config_space::{Budget, ConfigBackend, Snapshot};
-use iobewi_esp_flash::SharedFlash;
-use iobewi_esp_nvs::{NvsFlash, open as open_nvs};
-use iobewi_nvs_core::{
-    capacity_units, decode_record, encode_record, entries_for_blob, reservation_units,
-    valid_space_name,
-};
-use log::warn;
-
-pub use iobewi_nvs_core::{ENTRIES_PER_PAGE, ITEM_SIZE, MAX_BLOB_DATA_PER_PAGE};
-
-const NAMESPACE: esp_nvs::Key = esp_nvs::Key::from_str("cfg_space");
-const HEALTH_NAMESPACE: esp_nvs::Key = esp_nvs::Key::from_str("cfg_health");
-const HEALTH_KEY: esp_nvs::Key = esp_nvs::Key::from_str("canary");
-
-pub use iobewi_esp_flash::FlashPeripheral;
-pub use iobewi_esp_nvs::NvsPartition;
-
+#![allow(async_fn_in_trait)]
+//! EKV NOR partition adapter using the existing single ESP SharedFlash owner.
+//! Transaction, generation and capacity policies remain in ConfigSpace/EKV.
+#[cfg(any(test, feature = "esp32c3", feature = "esp32s3"))]
+const PAGE: usize = iobewi_config_space::storage::PAGE_SIZE;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NvsConfigError {
-    Unavailable,
-    Write,
-    InvalidSpace,
-    CorruptRecord,
-    GenerationOverflow,
+pub enum GeometryError {
+    Alignment,
+    Size,
+    Bounds,
 }
-
-static HEALTHY: AtomicBool = AtomicBool::new(true);
-
-#[derive(Clone, Copy)]
-pub struct NvsConfigBackend {
-    flash: &'static SharedFlash,
-    partition: NvsPartition,
-    capacity_units: usize,
-}
-
-#[derive(Debug)]
-pub enum NvsStartupError {
-    Discovery(iobewi_esp_partitions::PartitionError),
-    Geometry(iobewi_nvs_core::PartitionGeometryError),
-    Backend(NvsConfigError),
-}
-impl NvsConfigBackend {
-    /// Initialize the single shared ESP flash owner and discover the NVS partition.
-    /// Call only once per firmware image, from the application composition root.
-    /// For firmware with other flash consumers, initialize the owner separately
-    /// and use `from_label` so all consumers share the same owner.
-    pub async fn from_flash(
-        flash: FlashPeripheral<'static>,
-        label: &str,
-    ) -> Result<Self, NvsStartupError> {
-        let shared = iobewi_esp_flash::init(flash);
-        Self::from_label(shared, label).await
+#[cfg(any(test, feature = "esp32c3", feature = "esp32s3"))]
+fn geometry(offset: u32, size: usize, capacity: usize) -> Result<(), GeometryError> {
+    if !(offset as usize).is_multiple_of(PAGE) || !size.is_multiple_of(PAGE) {
+        return Err(GeometryError::Alignment);
     }
-
-    /// Discover the named data/NVS partition using the existing shared owner.
-    /// No fallback address, erase/reformat-on-error or new FlashStorage instance.
-    pub async fn from_label(
+    if !(32..=256).contains(&(size / PAGE)) {
+        return Err(GeometryError::Size);
+    }
+    let end = (offset as usize)
+        .checked_add(size)
+        .ok_or(GeometryError::Bounds)?;
+    if end > capacity || end > u32::MAX as usize {
+        return Err(GeometryError::Bounds);
+    }
+    Ok(())
+}
+#[cfg(any(test, feature = "esp32c3", feature = "esp32s3"))]
+fn address(base: u32, size: usize, page: usize, offset: usize, len: usize) -> Option<u32> {
+    if page >= size / PAGE || offset.checked_add(len)? > PAGE {
+        return None;
+    }
+    if !offset.is_multiple_of(4) || !len.is_multiple_of(4) {
+        return None;
+    }
+    let relative = page.checked_mul(PAGE)?.checked_add(offset)?;
+    base.checked_add(u32::try_from(relative).ok()?)
+}
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+mod runtime {
+    use super::*;
+    use embedded_storage::nor_flash::{ErrorType, NorFlash, ReadNorFlash};
+    pub use iobewi_esp_flash::FlashPeripheral;
+    use iobewi_esp_flash::{EspFlash, SharedFlash};
+    #[derive(Debug)]
+    pub enum Error {
+        Discovery(iobewi_esp_partitions::PartitionError),
+        Layout(iobewi_firmware_layout::DiscoveryError),
+        Geometry(GeometryError),
+        DriverGeometry,
+        Bounds,
+        Flash(<EspFlash as ErrorType>::Error),
+    }
+    /// Exclusive EKV view of one data/0x40 partition. No cloned view or second
+    /// FlashStorage owner. All callbacks lock SharedFlash for one operation.
+    pub struct EspConfigFlash {
         flash: &'static SharedFlash,
-        label: &str,
-    ) -> Result<Self, NvsStartupError> {
-        use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
-        let partition = {
+        base: u32,
+        size: usize,
+    }
+    impl EspConfigFlash {
+        pub async fn from_label(flash: &'static SharedFlash, label: &str) -> Result<Self, Error> {
+            if EspFlash::ERASE_SIZE != PAGE
+                || EspFlash::READ_SIZE == 0
+                || EspFlash::WRITE_SIZE == 0
+                || !4usize.is_multiple_of(EspFlash::READ_SIZE)
+                || !4usize.is_multiple_of(EspFlash::WRITE_SIZE)
+            {
+                return Err(Error::DriverGeometry);
+            }
             let mut owner = flash.lock().await;
             let mut table = [0u8; iobewi_esp_partitions::TABLE_BUFFER_SIZE];
-            let range =
-                iobewi_esp_partitions::find_by_label(owner.storage(), &mut table, label, 1, 2)
-                    .map_err(NvsStartupError::Discovery)?;
-            iobewi_nvs_core::validate_partition_geometry(
-                range.offset as usize,
-                range.size,
-                owner.capacity(),
-                iobewi_esp_flash::EspFlash::ERASE_SIZE,
-            )
-            .map_err(NvsStartupError::Geometry)?;
-            NvsPartition::new(range.offset as usize, range.size)
-        }; // Release the mutex before new() locks it again.
-        Self::new(flash, partition)
-            .await
-            .map_err(NvsStartupError::Backend)
-    }
-
-    pub async fn new(
-        flash: &'static SharedFlash,
-        partition: NvsPartition,
-    ) -> Result<Self, NvsConfigError> {
-        let capacity_units = {
-            let mut flash = flash.lock().await;
-            let mut nvs = open_nvs(&mut flash, partition).map_err(|e| {
-                warn!("NVS unavailable: {e:?}");
-                HEALTHY.store(false, Ordering::Relaxed);
-                NvsConfigError::Unavailable
-            })?;
-            let stats = nvs.statistics().map_err(|e| {
-                warn!("Failed to read NVS statistics: {e:?}");
-                HEALTHY.store(false, Ordering::Relaxed);
-                NvsConfigError::Write
-            })?;
-            // Reservations are computed from each space's full budget, which
-            // already covers the entries its stored blob occupies. Those
-            // entries are neither empty nor erased, so they must be added back
-            // or they would be counted twice and capacity would shrink with
-            // every value persisted, until the next boot's claims fail.
-            let owned = Self::owned_entries(&mut nvs)?;
-            capacity_units(
-                stats.entries_overall.empty as usize,
-                stats.entries_overall.erased as usize,
-                owned,
-            )
-        };
-        HEALTHY.store(true, Ordering::Relaxed);
-        Ok(Self {
-            flash,
-            partition,
-            capacity_units,
-        })
-    }
-
-    pub fn is_healthy(&self) -> bool {
-        HEALTHY.load(Ordering::Relaxed)
-    }
-
-    pub async fn self_check(&self) -> bool {
-        const VALUE: u8 = 0xA5;
-        let ok = self
-            .with_nvs(|nvs| {
-                nvs.set(&HEALTH_NAMESPACE, &HEALTH_KEY, VALUE)
-                    .map_err(|_| NvsConfigError::Write)?;
-                let read_back = nvs
-                    .get::<u8>(&HEALTH_NAMESPACE, &HEALTH_KEY)
-                    .map_err(|_| NvsConfigError::Write)?
-                    == VALUE;
-                nvs.delete(&HEALTH_NAMESPACE, &HEALTH_KEY)
-                    .map_err(|_| NvsConfigError::Write)?;
-                Ok(read_back)
-            })
-            .await
-            .unwrap_or(false);
-        HEALTHY.store(ok, Ordering::Relaxed);
-        ok
-    }
-
-    async fn with_nvs<R>(
-        &self,
-        f: impl FnOnce(&mut Nvs<NvsFlash<'_>>) -> Result<R, NvsConfigError>,
-    ) -> Result<R, NvsConfigError> {
-        let mut flash = self.flash.lock().await;
-        let mut nvs = open_nvs(&mut flash, self.partition).map_err(|e| {
-            warn!("NVS unavailable: {e:?}");
-            HEALTHY.store(false, Ordering::Relaxed);
-            NvsConfigError::Unavailable
-        })?;
-        let result = f(&mut nvs);
-        if result.is_err() {
-            HEALTHY.store(false, Ordering::Relaxed);
-        }
-        result
-    }
-
-    fn key(space: &str) -> Result<esp_nvs::Key, NvsConfigError> {
-        if !valid_space_name(space) {
-            return Err(NvsConfigError::InvalidSpace);
-        }
-        Ok(esp_nvs::Key::from_slice(space.as_bytes()))
-    }
-
-    /// Entries currently written by this backend's own blobs (one version per
-    /// space; superseded versions are erased and already counted as free).
-    fn owned_entries<T: esp_nvs::platform::Platform>(
-        nvs: &mut Nvs<T>,
-    ) -> Result<usize, NvsConfigError> {
-        let mut keys = Vec::new();
-        for entry in nvs.typed_entries() {
-            let (namespace, key, _) = entry.map_err(|e| {
-                warn!("Failed to enumerate NVS entries: {e:?}");
-                NvsConfigError::Write
-            })?;
-            if namespace == NAMESPACE {
-                keys.push(key);
-            }
-        }
-        let mut owned = 0usize;
-        for key in keys {
-            let raw = nvs.get::<Vec<u8>>(&NAMESPACE, &key).map_err(|e| {
-                warn!("Failed to read blob {}: {e:?}", key.as_str());
-                NvsConfigError::Write
-            })?;
-            let entries = entries_for_blob(raw.len()).ok_or(NvsConfigError::CorruptRecord)?;
-            owned = owned.saturating_add(entries);
-        }
-        Ok(owned)
-    }
-
-    async fn replace(
-        &self,
-        space: &str,
-        present: bool,
-        payload: &[u8],
-    ) -> Result<u64, NvsConfigError> {
-        let key = Self::key(space)?;
-        self.with_nvs(|nvs| {
-            let generation = match nvs.get::<Vec<u8>>(&NAMESPACE, &key) {
-                Ok(raw) => {
-                    let (generation, _, _) =
-                        decode_record(&raw).map_err(|_| NvsConfigError::CorruptRecord)?;
-                    generation
-                        .checked_add(1)
-                        .ok_or(NvsConfigError::GenerationOverflow)?
-                }
-                Err(NvsError::NamespaceNotFound | NvsError::KeyNotFound) => 1,
-                Err(e) => {
-                    warn!("Failed to read blob {}: {e:?}", key.as_str());
-                    return Err(NvsConfigError::Write);
-                }
+            // Standard reference profile: second stage and table occupy 0..0x9000.
+            // Validate the complete map and unique label before mutation.
+            use iobewi_firmware_layout::{Entry, Region, Requirement};
+            let mut regions =
+                [Region { offset: 0, size: 0 }; iobewi_esp_partitions::raw::MAX_LEN / 32 + 1];
+            regions[0] = Region {
+                offset: 0,
+                size: 0x9000,
             };
-            let encoded = encode_record(generation, present, payload);
-            nvs.set(&NAMESPACE, &key, encoded.as_slice()).map_err(|e| {
-                warn!("Failed to save blob {}: {e:?}", key.as_str());
-                NvsConfigError::Write
-            })?;
-            // Measured on ESP32-S3 after interrupted writes: esp-nvs 0.5 acknowledged
-            // sets it could not read back. Never report an unreadable commit as durable.
-            match nvs.get::<Vec<u8>>(&NAMESPACE, &key) {
-                Ok(raw) if raw == encoded => {}
-                other => {
-                    warn!(
-                        "Blob {} not readable after save: {:?}",
-                        key.as_str(),
-                        other.map(|raw| raw.len())
-                    );
-                    return Err(NvsConfigError::Write);
+            let mut count = 1;
+            iobewi_esp_partitions::for_each_entry(owner.storage(), &mut table, |entry| {
+                regions[count] = Region {
+                    offset: entry.offset,
+                    size: entry.size as usize,
+                };
+                count += 1;
+            })
+            .map_err(Error::Discovery)?;
+            let capacity = u32::try_from(owner.capacity()).map_err(|_| Error::Bounds)?;
+            iobewi_firmware_layout::validate_regions(&regions[..count], capacity, PAGE as u32)
+                .map_err(Error::Layout)?;
+            let entries = iobewi_esp_partitions::raw::entries(&table)
+                .map_err(|_| Error::Bounds)?
+                .map(|e| Entry {
+                    label: e.label,
+                    kind: e.kind,
+                    subtype: e.subtype,
+                    offset: e.offset,
+                    size: e.size,
+                });
+            let [range] = iobewi_firmware_layout::validate(
+                entries,
+                &[Requirement {
+                    label,
+                    kind: 1,
+                    subtype: 0x40,
+                }],
+                capacity,
+                PAGE as u32,
+            )
+            .map_err(Error::Layout)?;
+            geometry(range.offset, range.size, owner.capacity()).map_err(Error::Geometry)?;
+            Ok(Self {
+                flash,
+                base: range.offset,
+                size: range.size,
+            })
+        }
+        /// Read-only virgin-region check for an explicit first-boot policy.
+        /// A nonblank region must be mounted; errors never trigger formatting.
+        pub async fn is_blank(&self) -> Result<bool, Error> {
+            let mut data = [0u8; 256];
+            for offset in (0..self.size).step_by(data.len()) {
+                let addr = self
+                    .base
+                    .checked_add(u32::try_from(offset).map_err(|_| Error::Bounds)?)
+                    .ok_or(Error::Bounds)?;
+                self.flash
+                    .lock()
+                    .await
+                    .read(addr, &mut data)
+                    .map_err(Error::Flash)?;
+                if data.iter().any(|b| *b != 255) {
+                    return Ok(false);
                 }
             }
-            Ok(generation)
-        })
-        .await
+            Ok(true)
+        }
+    }
+    impl ekv::flash::Flash for EspConfigFlash {
+        type Error = Error;
+        fn page_count(&self) -> usize {
+            self.size / PAGE
+        }
+        async fn read(
+            &mut self,
+            page: ekv::flash::PageID,
+            offset: usize,
+            data: &mut [u8],
+        ) -> Result<(), Error> {
+            let addr = address(self.base, self.size, page.index(), offset, data.len())
+                .ok_or(Error::Bounds)?;
+            self.flash
+                .lock()
+                .await
+                .read(addr, data)
+                .map_err(Error::Flash)
+        }
+        async fn write(
+            &mut self,
+            page: ekv::flash::PageID,
+            offset: usize,
+            data: &[u8],
+        ) -> Result<(), Error> {
+            let addr = address(self.base, self.size, page.index(), offset, data.len())
+                .ok_or(Error::Bounds)?;
+            self.flash
+                .lock()
+                .await
+                .write(addr, data)
+                .map_err(Error::Flash)
+        }
+        async fn erase(&mut self, page: ekv::flash::PageID) -> Result<(), Error> {
+            let addr = address(self.base, self.size, page.index(), 0, PAGE).ok_or(Error::Bounds)?;
+            let end = addr.checked_add(PAGE as u32).ok_or(Error::Bounds)?;
+            self.flash
+                .lock()
+                .await
+                .erase(addr, end)
+                .map_err(Error::Flash)
+        }
     }
 }
-
-impl ConfigBackend for NvsConfigBackend {
-    type Error = NvsConfigError;
-
-    fn capacity_units(&self) -> usize {
-        self.capacity_units
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+pub use runtime::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rejects_regions_outside_geometry_and_flash() {
+        assert_eq!(geometry(0x3c0000, 0x40000, 0x400000), Ok(()));
+        assert_eq!(
+            geometry(0x3c0001, 0x40000, 0x400000),
+            Err(GeometryError::Alignment)
+        );
+        assert_eq!(
+            geometry(0x3d0000, 0x40000, 0x400000),
+            Err(GeometryError::Bounds)
+        );
+        assert_eq!(geometry(0, 0x4000, 0x400000), Err(GeometryError::Size));
+        assert_eq!(geometry(0, 0x101000, 0x400000), Err(GeometryError::Size));
     }
-
-    fn reservation_units(&self, space: &str, budget: Budget) -> Option<usize> {
-        if !valid_space_name(space) {
-            return None;
-        }
-        reservation_units(budget.max_bytes())
-    }
-
-    async fn load(&self, space: &str) -> Result<Option<Snapshot>, Self::Error> {
-        let key = Self::key(space)?;
-        self.with_nvs(|nvs| match nvs.get::<Vec<u8>>(&NAMESPACE, &key) {
-            Ok(raw) => {
-                let (generation, present, payload) =
-                    decode_record(&raw).map_err(|_| NvsConfigError::CorruptRecord)?;
-                Ok(present.then(|| Snapshot {
-                    generation,
-                    data: payload.to_vec(),
-                }))
-            }
-            Err(NvsError::NamespaceNotFound | NvsError::KeyNotFound) => Ok(None),
-            Err(e) => {
-                warn!("Failed to read blob {}: {e:?}", key.as_str());
-                Err(NvsConfigError::Write)
-            }
-        })
-        .await
-    }
-
-    async fn commit(&self, space: &str, data: &[u8]) -> Result<u64, Self::Error> {
-        self.replace(space, true, data).await
-    }
-
-    async fn clear(&self, space: &str) -> Result<u64, Self::Error> {
-        self.replace(space, false, &[]).await
+    #[test]
+    fn every_page_callback_is_bounded_and_aligned() {
+        assert_eq!(address(0x3c0000, 0x40000, 63, 0, 4096), Some(0x3ff000));
+        assert!(address(0x3c0000, 0x40000, 64, 0, 4).is_none());
+        assert!(address(0x3c0000, 0x40000, 63, 4092, 8).is_none());
+        assert!(address(0, 0x40000, 0, 1, 4).is_none());
+        assert!(address(0, 0x40000, 0, 0, 3).is_none());
+        assert!(address(0, 0x40000, 0, usize::MAX, 4).is_none());
     }
 }
