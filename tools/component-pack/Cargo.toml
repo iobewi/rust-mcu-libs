@@ -1,0 +1,13 @@
+[package]
+name = "iobewi-workload-pack"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+iobewi-workload-image = { path = "../../common/firmware/component/image" }
+iobewi-workload-abi = { path = "../../common/firmware/component/abi" }
+iobewi-firmware-update = { path = "../../common/firmware/update" }
+sha2 = "0.10"

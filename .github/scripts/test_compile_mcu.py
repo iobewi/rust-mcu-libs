@@ -30,3 +30,12 @@ for chip in ("esp32c3", "esp32s3"):
         assert "build" in command and "--release" in command and "--bins" in command
         assert "check" not in command
 print("Host/MCU combined profile preserves release link gates")
+
+with patch.object(compile_mcu.subprocess, "run") as run:
+    compile_mcu.compile_selected([{
+        "package": "native-test", "profile": "host-esp32s3-linked-bins",
+        "features": "", "targets": "bins",
+    }], "esp32s3")
+    command = run.call_args.args[0]
+    assert "build" in command and "--release" in command and "--bins" in command
+print("Native S3 profile preserves release link gate")

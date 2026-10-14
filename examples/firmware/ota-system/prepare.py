@@ -9,17 +9,20 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scenario", choices=("ota-system", "ota-supervised"), default="ota-system")
     parser.add_argument("--chip", required=True, choices=("esp32c3", "esp32s3"))
     parser.add_argument("--partition-tool", required=True, type=Path,
                         help="official ESP-IDF components/partition_table/gen_esp32part.py")
     parser.add_argument("--fault", choices=("reject-self-check", "hang-self-check"))
     args = parser.parse_args()
+    if args.scenario == "ota-supervised" and args.chip != "esp32s3":
+        parser.error("native ota-supervised requires ESP32-S3")
     root = Path(__file__).resolve().parents[3]
     os.chdir(root)
     compiler, target = {"esp32c3": ("nightly", "riscv32imc-unknown-none-elf"),
                         "esp32s3": ("esp", "xtensa-esp32s3-none-elf")}[args.chip]
     target_dir = Path(os.environ.get("CARGO_TARGET_DIR", str(root / "target"))).resolve()
-    output = target_dir / "ota-system" / args.chip
+    output = target_dir / args.scenario / args.chip
     output.mkdir(parents=True, exist_ok=True)
     features = args.chip + ("," + args.fault if args.fault else "")
     def run(*command):
@@ -27,9 +30,9 @@ def main():
     run("cargo", "+" + compiler, "build", "-Z", "build-std=core,alloc", "--target", target,
         "-p", "iobewi-esp-bootloader", "--features", args.chip, "--profile", "bootloader", "--bins")
     run("cargo", "+" + compiler, "build", "-Z", "build-std=core,alloc", "--target", target,
-        "-p", "example-firmware-ota-system", "--features", features, "--release", "--bins")
+        "-p", "example-firmware-" + args.scenario, "--features", features, "--release", "--bins")
     for name, profile, binary in (("bootloader", "bootloader", "iobewi-bootloader-esp"),
-                                  ("app", "release", "firmware-ota-system-esp32")):
+                                  ("app", "release", "firmware-" + args.scenario + "-esp32")):
         # Resolve the binary's actual name from Cargo metadata, for the bootloader.
         if name == "bootloader":
             import json
@@ -51,8 +54,10 @@ def main():
             "--", str(output / "app.bin"), offset, "180000")
     run("cargo", "run", "-p", "iobewi-esp-boot", "--example", "factory_otadata", "--", str(output / "otadata.bin"), "0")
     run(sys.executable, str(args.partition_tool.resolve()),
-        "examples/firmware/ota-system/partitions.csv", str(output / "partitions.bin"))
+        "examples/firmware/" + args.scenario + "/partitions.csv", str(output / "partitions.bin"))
     (output / "config.bin").write_bytes(bytes([0xff]) * 0x40000)
+    if args.scenario == "ota-supervised":
+        (output / "wl_meta.bin").write_bytes(bytes([0xff]) * 0x2000)
     print("Prepared:", output)
     print("Initial flash only: bootloader @0, partitions @0x8000, otadata @0xd000, app @0x20000, virgin config @0x3c0000 (explicit development reset)")
 

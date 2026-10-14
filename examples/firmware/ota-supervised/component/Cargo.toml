@@ -1,0 +1,25 @@
+[package]
+name = "example-supervised-component"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "supervised-component"
+path = "src/main.rs"
+required-features = ["esp32s3"]
+
+[features]
+default = []
+esp32s3 = ["dep:iobewi-workload"]
+variant-b = []
+fault-ignore-stop = []
+fault-log-flood = []
+fault-panic = []
+fault-null-jump = []
+fault-reset-chip = []
+
+[dependencies]
+iobewi-workload = { path = "../../../../common/firmware/component/sdk", features = ["panic-handler"], optional = true }

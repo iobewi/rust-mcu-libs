@@ -268,6 +268,7 @@ pub async fn serve<S: MetadataStore>(
     store: &S,
     peripheral: esp_hal::peripherals::WIFI<'static>,
     spawner: Spawner,
+    #[cfg(feature = "supervised")] component: Option<&'static crate::supervised::SharedComponent>,
 ) -> ! {
     assert!(
         !TOKEN.is_empty() && !CERT.is_empty() && !KEY.is_empty(),
@@ -309,6 +310,40 @@ pub async fn serve<S: MetadataStore>(
             iobewi_http_server::routing::post_service(Handler {
                 state: &state,
                 activate: true,
+            }),
+        );
+    #[cfg(feature = "supervised")]
+    let router = router
+        .route(
+            "/workload/upload",
+            iobewi_http_server::routing::post_service(crate::supervised::Handler {
+                component,
+                action: 0,
+                token: TOKEN,
+            }),
+        )
+        .route(
+            "/workload/activate",
+            iobewi_http_server::routing::post_service(crate::supervised::Handler {
+                component,
+                action: 1,
+                token: TOKEN,
+            }),
+        )
+        .route(
+            "/workload/status",
+            iobewi_http_server::routing::get_service(crate::supervised::Handler {
+                component,
+                action: 2,
+                token: TOKEN,
+            }),
+        )
+        .route(
+            "/workload/stop",
+            iobewi_http_server::routing::post_service(crate::supervised::Handler {
+                component,
+                action: 3,
+                token: TOKEN,
             }),
         );
     log::info!("OTA ready: HTTPS :443; upload then activate by deployment id");

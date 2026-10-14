@@ -1,0 +1,15 @@
+[package]
+name = "iobewi-workload"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Native supervised component sdk, historical IWNI/ABI contracts"
+
+[features]
+default = []
+panic-handler = []
+
+[dependencies]
+iobewi-workload-abi = { path = "../abi" }

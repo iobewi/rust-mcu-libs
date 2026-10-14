@@ -1,0 +1,17 @@
+[package]
+name = "iobewi-workload-native"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Native supervised component native, historical IWNI/ABI contracts"
+
+[features]
+default = []
+test-util = []
+
+[dependencies]
+iobewi-firmware-update = { path = "../../update" }
+iobewi-workload-image = { path = "../image" }
+iobewi-workload-abi = { path = "../abi" }
