@@ -3,6 +3,9 @@
 #![recursion_limit = "256"]
 extern crate alloc;
 mod ota;
+#[cfg(feature = "supervised")]
+#[path = "../../ota-supervised/src/supervised.rs"]
+mod supervised;
 #[cfg(all(feature = "esp32c3", feature = "esp32s3"))]
 compile_error!("choose exactly one MCU feature");
 #[cfg(not(any(feature = "esp32c3", feature = "esp32s3")))]
@@ -40,6 +43,8 @@ impl BootSelfCheck for Check<'_> {
     }
 }
 async fn reset_for_rollback() -> ! {
+    #[cfg(feature = "supervised")]
+    supervised::clean_reboot();
     // Same settling delay as the historical application binding. Watchdog stays
     // armed even if rejection or this delay cannot complete.
     Timer::after(Duration::from_millis(200)).await;
@@ -50,6 +55,7 @@ async fn boot_task(
     flash: &'static SharedFlash,
     peripheral: esp_hal::peripherals::WIFI<'static>,
     spawner: Spawner,
+    #[cfg(feature = "supervised")] cpu: esp_hal::system::CpuControl<'static>,
 ) {
     let config_flash = EspConfigFlash::from_label(flash, "config")
         .await
@@ -120,7 +126,32 @@ async fn boot_task(
         }
     }
     // Scoped adapter has released the one SystemBoot, ready for later OTA use.
-    ota::serve(flash, system, &store, peripheral, spawner).await;
+    #[cfg(feature = "supervised")]
+    let component = match supervised::Component::new(flash, cpu).await {
+        Ok(mut component) => {
+            if component.recover().await.is_err() {
+                log::error!("B: recovery failed; system A remains available");
+            }
+            static COMPONENT: StaticCell<supervised::SharedComponent> = StaticCell::new();
+            let shared = COMPONENT.init(embassy_sync::mutex::Mutex::new(component));
+            spawner.spawn(supervised::monitor(shared).unwrap());
+            Some(&*shared)
+        }
+        Err(()) => {
+            log::error!("B: unavailable; system A remains available");
+            None
+        }
+    };
+    ota::serve(
+        flash,
+        system,
+        &store,
+        peripheral,
+        spawner,
+        #[cfg(feature = "supervised")]
+        component,
+    )
+    .await;
 }
 fn log_status(status: &str) {
     log::info!(target: "example_firmware_ota_system", "boot: {status}");
@@ -135,7 +166,11 @@ fn main() -> ! {
     // Untargeted records carry the binary's module path, not the package name;
     // the station IP is logged by the Wi-Fi crate. Both are needed to operate OTA.
     let mut policy = iobewi_log::default_policy("example_firmware_ota_system").unwrap();
-    for target in ["firmware_ota_system_esp32", "iobewi_esp_wifi"] {
+    for target in [
+        "firmware_ota_system_esp32",
+        "firmware_ota_supervised_esp32",
+        "iobewi_esp_wifi",
+    ] {
         policy
             .add_target(target, iobewi_log::LevelFilter::Info)
             .unwrap();
@@ -150,7 +185,16 @@ fn main() -> ! {
     static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();
     let executor = EXECUTOR.init(esp_rtos::embassy::Executor::new());
     executor.run(|spawner: Spawner| {
-        spawner.spawn(boot_task(flash, p.WIFI, spawner).unwrap());
+        spawner.spawn(
+            boot_task(
+                flash,
+                p.WIFI,
+                spawner,
+                #[cfg(feature = "supervised")]
+                esp_hal::system::CpuControl::new(p.CPU_CTRL),
+            )
+            .unwrap(),
+        );
     })
 }
 #[panic_handler]

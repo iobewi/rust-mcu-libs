@@ -21,3 +21,10 @@ pub fn begin_update<'a>(
         digest,
     )
 }
+
+pub mod metadata;
+#[cfg(feature = "native")]
+pub mod native;
+
+#[cfg(feature = "native")]
+pub mod storage;

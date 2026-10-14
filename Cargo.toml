@@ -1,5 +1,12 @@
 [workspace]
 members = [
+    "examples/firmware/ota-supervised/component",
+    "examples/firmware/ota-supervised",
+    "common/firmware/component/abi",
+    "common/firmware/component/image",
+    "common/firmware/component/native",
+    "common/firmware/component/sdk",
+    "tools/component-pack",
   "examples/firmware/ota-system",
   "arch/esp32/firmware/boot",
   "examples/firmware/bootloader",

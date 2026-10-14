@@ -15,6 +15,9 @@ def main():
     parser.add_argument("image", type=Path)
     parser.add_argument("deployment_id")
     parser.add_argument("--ca", required=True, help="trusted server certificate/CA PEM")
+    parser.add_argument("--domain", choices=("system", "component"), default="system")
+    parser.add_argument("--version", default="1")
+    parser.add_argument("--runtime-api", default="1.0")
     parser.add_argument("--activate", action="store_true")
     args = parser.parse_args()
     url = urlsplit(args.url)
@@ -25,6 +28,7 @@ def main():
         parser.error("set IOBEWI_OTA_TOKEN")
     if not 1 <= len(args.deployment_id) <= 64 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_." for c in args.deployment_id):
         parser.error("invalid deployment id")
+    endpoint = "/ota" if args.domain == "system" else "/workload"
     context = ssl.create_default_context(cafile=args.ca)
     with args.image.open("rb") as image:
         digest = hashlib.file_digest(image, "sha256").hexdigest()
@@ -34,7 +38,7 @@ def main():
             parser.error("empty image")
         image.seek(0)
         connection = http.client.HTTPSConnection(url.hostname, url.port or 443, context=context, timeout=60)
-        connection.putrequest("POST", "/ota/upload")
+        connection.putrequest("POST", endpoint + "/upload")
         for name, value in {
             "Authorization": "Bearer " + token,
             "X-Deployment-ID": args.deployment_id,
@@ -42,6 +46,9 @@ def main():
             "Content-Length": str(length),
         }.items():
             connection.putheader(name, value)
+        if args.domain == "component":
+            connection.putheader("X-Component-Version", args.version)
+            connection.putheader("X-Runtime-Api", args.runtime_api)
         connection.endheaders()
         remaining = length
         while remaining:
@@ -58,13 +65,13 @@ def main():
         print("staged:", args.deployment_id)
     if args.activate:
         connection = http.client.HTTPSConnection(url.hostname, url.port or 443, context=context, timeout=60)
-        connection.request("POST", "/ota/activate", body=b"", headers={
+        connection.request("POST", endpoint + "/activate", body=b"", headers={
             "Authorization": "Bearer " + token, "X-Deployment-ID": args.deployment_id,
         })
         response = connection.getresponse()
         result = response.read(2048).decode()
         connection.close()
-        if response.status != 200 or result != "activating":
+        if response.status != 200 or result != ("activating" if args.domain == "system" else "pending"):
             raise RuntimeError(f"activation failed: {response.status} {result}")
         print("activating; inspect device logs for confirmation or rollback")
 

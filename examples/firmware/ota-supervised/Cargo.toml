@@ -1,0 +1,105 @@
+[package]
+name = "example-firmware-ota-supervised"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.95"
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "firmware-ota-supervised-esp32"
+path = "../ota-system/src/main.rs"
+required-features = ["firmware"]
+
+[features]
+default = []
+supervised = []
+firmware = [
+    "dep:iobewi-log",
+    "dep:iobewi-esp-console",
+    "dep:iobewi-config-space",
+    "dep:iobewi-esp-config-space",
+    "dep:esp-hal",
+    "dep:esp-rtos",
+    "dep:esp-alloc",
+    "dep:esp-bootloader-esp-idf",
+    "dep:embassy-executor",
+    "dep:static_cell",
+    "dep:iobewi-esp-firmware-a",
+    "dep:iobewi-esp-flash",
+    "dep:iobewi-esp-watchdog",
+    "dep:embassy-time",
+    "dep:log",
+    "dep:iobewi-esp-wifi",
+    "dep:iobewi-esp-tls",
+    "dep:iobewi-crypto-mbedtls",
+    "dep:iobewi-http-server",
+    "dep:iobewi-esp-firmware-storage",
+    "dep:iobewi-firmware-slots",
+    "dep:iobewi-esp-boot",
+    "dep:embassy-net",
+    "dep:embassy-sync",
+    "dep:embedded-storage",
+    "dep:sha2",
+]
+reject-self-check = []
+hang-self-check = []
+esp32s3 = [
+    "supervised",
+    "dep:iobewi-esp-firmware-supervisor",
+    "iobewi-esp-firmware-supervisor/native",
+    "dep:iobewi-workload-native",
+    "dep:iobewi-firmware-layout",
+    "iobewi-esp-wifi/esp32s3",
+    "iobewi-esp-tls/esp32s3",
+    "iobewi-esp-boot/esp32s3",
+    "iobewi-esp-firmware-a/esp32s3",
+    "iobewi-esp-flash/esp32s3",
+    "iobewi-esp-watchdog/esp32s3",
+    "firmware",
+    "esp-hal/esp32s3",
+    "esp-rtos/esp32s3",
+    "esp-alloc/esp32s3",
+    "esp-bootloader-esp-idf/esp32s3",
+    "iobewi-esp-config-space/esp32s3",
+    "iobewi-esp-console/esp32s3",
+]
+
+[dependencies]
+iobewi-log = { path = "../../../common/log/core", optional = true }
+iobewi-esp-console = { path = "../../../arch/esp32/log/console", default-features = false, optional = true }
+iobewi-config-space = { path = "../../../common/config/space", optional = true }
+iobewi-esp-config-space = { path = "../../../arch/esp32/config/space", optional = true }
+esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"], optional = true }
+esp-rtos = { version = "~0.4", default-features = false, features = ["embassy", "esp-alloc", "esp-radio"], optional = true }
+esp-alloc = { version = "~0.11", default-features = false, features = ["global-allocator", "compat"], optional = true }
+esp-bootloader-esp-idf = { version = "~0.6", default-features = false, optional = true }
+embassy-executor = { version = "0.10.0", default-features = false, optional = true }
+static_cell = { version = "2.1", optional = true }
+
+iobewi-esp-firmware-a = { path = "../../../arch/esp32/firmware/a", features = ["runtime"], optional = true }
+iobewi-esp-flash = { path = "../../../arch/esp32/flash", optional = true }
+iobewi-esp-watchdog = { path = "../../../arch/esp32/watchdog", optional = true }
+iobewi-firmware-update = { path = "../../../common/firmware/update", features = ["runtime", "config-space"] }
+embassy-time = { version = "0.5.0", optional = true }
+log = { version = "0.4", optional = true }
+
+iobewi-esp-wifi = { path = "../../../arch/esp32/net/wifi", optional = true }
+iobewi-esp-tls = { path = "../../../arch/esp32/net/tls", default-features = false, optional = true }
+iobewi-crypto-mbedtls = { path = "../../../arch/esp32/crypto/mbedtls", optional = true }
+iobewi-http-server = { path = "../../../common/net/http/server", optional = true }
+iobewi-esp-firmware-storage = { path = "../../../arch/esp32/firmware/storage", optional = true }
+iobewi-firmware-slots = { path = "../../../common/firmware/slots", optional = true }
+iobewi-firmware-image = { path = "../../../common/firmware/image" }
+iobewi-esp-boot = { path = "../../../arch/esp32/firmware/boot", optional = true }
+embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "tcp"], optional = true }
+embassy-sync = { version = "0.8.0", optional = true }
+embedded-storage = { version = "0.3.1", optional = true }
+sha2 = { version = "0.10.9", default-features = false, optional = true }
+
+example-firmware-ota-system = { path = "../ota-system" }
+iobewi-esp-firmware-supervisor = { path = "../../../arch/esp32/firmware/supervisor", optional = true }
+iobewi-workload-native = { path = "../../../common/firmware/component/native", optional = true }
+iobewi-firmware-layout = { path = "../../../common/firmware/layout", optional = true }
+
+iobewi-workload-image = { path = "../../../common/firmware/component/image" }
