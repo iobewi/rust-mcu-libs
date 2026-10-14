@@ -3,10 +3,10 @@
 #![recursion_limit = "256"]
 extern crate alloc;
 mod ota;
-mod wifi;
 #[cfg(feature = "supervised")]
 #[path = "../../ota-supervised/src/supervised.rs"]
 mod supervised;
+mod wifi;
 #[cfg(all(feature = "esp32c3", feature = "esp32s3"))]
 compile_error!("choose exactly one MCU feature");
 #[cfg(not(any(feature = "esp32c3", feature = "esp32s3")))]

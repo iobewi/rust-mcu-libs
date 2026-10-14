@@ -280,81 +280,78 @@ pub async fn serve<S: MetadataStore>(
     static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
     let wifi = WifiManager::<3>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
     let ready = embassy_sync::signal::Signal::new();
-    embassy_futures::join::join(
-        crate::wifi::maintain(wifi, wifi_config, &ready),
-        async {
-            let stack = ready.wait().await;
-            let tls = iobewi_esp_tls::init(|| None);
-            let mut rx = [0u8; 4096];
-            let mut tx = [0u8; 4096];
-            let mut listener = EspTlsListener::new(stack, tls, identity, &mut rx, &mut tx);
-            let state = State {
-                system: Mutex::new(system),
-                flash,
-                store,
-            };
-            let router = iobewi_http_server::HttpRouter::new()
-                .route(
-                    "/health",
-                    iobewi_http_server::routing::get(|| async { "ok" }),
-                )
-                .route(
-                    "/ota/upload",
-                    iobewi_http_server::routing::post_service(Handler {
-                        state: &state,
-                        activate: false,
-                    }),
-                )
-                .route(
-                    "/ota/activate",
-                    iobewi_http_server::routing::post_service(Handler {
-                        state: &state,
-                        activate: true,
-                    }),
-                );
-            #[cfg(feature = "supervised")]
-            let router = router
-                .route(
-                    "/workload/upload",
-                    iobewi_http_server::routing::post_service(crate::supervised::Handler {
-                        component,
-                        action: 0,
-                        token: TOKEN,
-                    }),
-                )
-                .route(
-                    "/workload/activate",
-                    iobewi_http_server::routing::post_service(crate::supervised::Handler {
-                        component,
-                        action: 1,
-                        token: TOKEN,
-                    }),
-                )
-                .route(
-                    "/workload/status",
-                    iobewi_http_server::routing::get_service(crate::supervised::Handler {
-                        component,
-                        action: 2,
-                        token: TOKEN,
-                    }),
-                )
-                .route(
-                    "/workload/stop",
-                    iobewi_http_server::routing::post_service(crate::supervised::Handler {
-                        component,
-                        action: 3,
-                        token: TOKEN,
-                    }),
-                );
-            log::info!("OTA ready: HTTPS :443; upload then activate by deployment id");
-            // picoserve bounds the whole request, body included, by read_request (3 s
-            // default). Measured on S3: ~55 KB/s with erases, so a full 1.5 MiB slot needs
-            // ~28 s; budget 120 s. One connection at a time: a slow client holds it that long.
-            let mut config = iobewi_http_server::server_config();
-            config.timeouts.read_request = embassy_time::Duration::from_secs(120);
-            iobewi_http_server::serve_forever_tls_with(&mut listener, &router, &config).await
-        },
-    )
+    embassy_futures::join::join(crate::wifi::maintain(wifi, wifi_config, &ready), async {
+        let stack = ready.wait().await;
+        let tls = iobewi_esp_tls::init(|| None);
+        let mut rx = [0u8; 4096];
+        let mut tx = [0u8; 4096];
+        let mut listener = EspTlsListener::new(stack, tls, identity, &mut rx, &mut tx);
+        let state = State {
+            system: Mutex::new(system),
+            flash,
+            store,
+        };
+        let router = iobewi_http_server::HttpRouter::new()
+            .route(
+                "/health",
+                iobewi_http_server::routing::get(|| async { "ok" }),
+            )
+            .route(
+                "/ota/upload",
+                iobewi_http_server::routing::post_service(Handler {
+                    state: &state,
+                    activate: false,
+                }),
+            )
+            .route(
+                "/ota/activate",
+                iobewi_http_server::routing::post_service(Handler {
+                    state: &state,
+                    activate: true,
+                }),
+            );
+        #[cfg(feature = "supervised")]
+        let router = router
+            .route(
+                "/workload/upload",
+                iobewi_http_server::routing::post_service(crate::supervised::Handler {
+                    component,
+                    action: 0,
+                    token: TOKEN,
+                }),
+            )
+            .route(
+                "/workload/activate",
+                iobewi_http_server::routing::post_service(crate::supervised::Handler {
+                    component,
+                    action: 1,
+                    token: TOKEN,
+                }),
+            )
+            .route(
+                "/workload/status",
+                iobewi_http_server::routing::get_service(crate::supervised::Handler {
+                    component,
+                    action: 2,
+                    token: TOKEN,
+                }),
+            )
+            .route(
+                "/workload/stop",
+                iobewi_http_server::routing::post_service(crate::supervised::Handler {
+                    component,
+                    action: 3,
+                    token: TOKEN,
+                }),
+            );
+        log::info!("OTA ready: HTTPS :443; upload then activate by deployment id");
+        // picoserve bounds the whole request, body included, by read_request (3 s
+        // default). Measured on S3: ~55 KB/s with erases, so a full 1.5 MiB slot needs
+        // ~28 s; budget 120 s. One connection at a time: a slow client holds it that long.
+        let mut config = iobewi_http_server::server_config();
+        config.timeouts.read_request = embassy_time::Duration::from_secs(120);
+        iobewi_http_server::serve_forever_tls_with(&mut listener, &router, &config).await
+    })
     .await;
     unreachable!("Wi-Fi maintenance and HTTPS are permanent")
 }
