@@ -80,6 +80,30 @@ Le serveur ne démarre pas sans token et identité TLS. Il n'ouvre aucun port HT
 clair. Les routes de mutation exigent Bearer ; `/health` indique seulement que
 le serveur répond, pas une mesure détaillée de santé.
 
+## Connexion et reconnexion Wi-Fi
+
+Les deux étalons OTA utilisent `iobewi-wifi-manager` (`common/net/wifi/manager`)
+avec le transport `iobewi-esp-wifi`. Le manifeste ConfigSpace déclare `ota` et
+`wifi` ; aucun autre propriétaire flash ni partition supplémentaire n'est créé.
+
+Au premier démarrage sans configuration Wi-Fi valide, les identifiants du build
+servent au provisioning : connexion et DHCP, puis commit WFC1 par le gestionnaire.
+Un échec est retenté avec la temporisation existante (1, 2, 4, 8 puis 10 secondes),
+sans panic ni reboot. Les identifiants enregistrés sont prioritaires aux boots
+suivants ; changer les variables de build ne remplace pas ces valeurs persistées.
+Pour changer de réseau, utiliser le provisioning du gestionnaire dans une
+composition adaptée, ou préparer explicitement une nouvelle configuration usine.
+
+`maintain()` reste actif en parallèle du serveur HTTPS : celui-ci attend la
+première connexion, puis le gestionnaire reconnecte la station après une perte
+de lien. Il n'y a pas de reset automatique du firmware en cas d'échec Wi-Fi.
+La persistance EKV garde les limites documentées dans #70.
+
+Validation carte #72 : désactiver les resets automatiques du banc sur échec de
+join ; observer une nouvelle tentative dans le même boot, puis `/health` ;
+couper/rétablir le point d'accès et vérifier le retour HTTPS sans reboot.
+La cause radio des refus `DisassociatedDueToInactivity` reste à déterminer.
+
 Depuis la racine du dépôt, préparer sans flasher, avec le générateur officiel
 ESP-IDF de tables de partitions :
 

@@ -103,7 +103,6 @@ préserver ses partitions mais ne l'exécutera pas.
 
 ## Campagne matérielle restante (#61)
 
-Bilan carte du 14 octobre 2026 (S3) : `docs/firmware/ota-supervised-board-campaign.md`.
 Aucun essai carte B n'est déclaré PASS par le code ou la CI. Consigner commit,
 SoC/capacité, toolchain, SHA256, commandes, logs et dumps avant/après.
 
@@ -128,3 +127,11 @@ SoC/capacité, toolchain, SHA256, commandes, logs et dumps avant/après.
 Le défaut EKV sous interruption (#70) reste différé ; ne pas relancer sa
 campagne dans ce mandat. #72 Wi-Fi reste différée. Qualification C3 dans #71,
 qualification réelle B et compléments A/B dans #61.
+
+## Wi-Fi partagé avec l'étalon A
+
+La composition utilise le même gestionnaire portable, espace `wifi`, bootstrap
+des identifiants et boucle `maintain()` que `ota-system`. Voir sa section
+« Connexion et reconnexion Wi-Fi ». La connexion n'est plus une tentative unique
+qui bloque le firmware sur échec ; la maintenance continue pendant HTTPS et B.
+La qualification #72 doit être réalisée sans resets Wi-Fi automatiques du banc.

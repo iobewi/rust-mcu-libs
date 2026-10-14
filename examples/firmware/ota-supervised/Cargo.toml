@@ -31,6 +31,8 @@ firmware = [
     "dep:embassy-time",
     "dep:log",
     "dep:iobewi-esp-wifi",
+    "dep:iobewi-wifi-manager",
+    "dep:embassy-futures",
     "dep:iobewi-esp-tls",
     "dep:iobewi-crypto-mbedtls",
     "dep:iobewi-http-server",
@@ -85,6 +87,8 @@ embassy-time = { version = "0.5.0", optional = true }
 log = { version = "0.4", optional = true }
 
 iobewi-esp-wifi = { path = "../../../arch/esp32/net/wifi", optional = true }
+iobewi-wifi-manager = { path = "../../../common/net/wifi/manager", optional = true }
+embassy-futures = { version = "0.1", optional = true }
 iobewi-esp-tls = { path = "../../../arch/esp32/net/tls", default-features = false, optional = true }
 iobewi-crypto-mbedtls = { path = "../../../arch/esp32/crypto/mbedtls", optional = true }
 iobewi-http-server = { path = "../../../common/net/http/server", optional = true }
