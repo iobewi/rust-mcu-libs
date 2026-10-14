@@ -164,13 +164,41 @@ erreur ; seul l'avertissement upstream RWX du linker S3 apparaît.
 
 | Essai | Résultat | Trace |
 | --- | --- | --- |
-| Premier boot sur région vierge | **PASS (indirect)** | carte effacée puis installée ; la ligne `initialized generation 1` n'a pas été capturée (boot exécuté avant reconnexion de la console) ; tous les boots suivants : `retained`/`verified generation 1` |
-| 10 reboots logiciels | **PASS** | variante de qualification non commitée (`software_reset()` 3 s après verified, lecture seule) : 71 boots `RTC_SW_SYS_RST` ; les 83 boots de CM2–CM3 (logiciels et alimentation) sont tous `retained`/`verified generation 1` |
+| Premier boot sur région vierge | **PASS** | rejoué avec capture : effacement complet + image fusionnée (config à 0xFF dans l'image elle-même) écrits sans reset final, port gardé ouvert ; un seul `rst:0x1` capturé depuis la ROM, puis `config: initialized generation 1` et `verified generation 1`. Premier passage (ligne `initialized` non capturée) et essai intermédiaire (boot coupé 0,4 s après le démarrage par un reset EN superflu) écartés |
+| 10 reboots logiciels | **PASS** | variante de qualification décrite ci-dessous (`software_reset()` 3 s après verified, lecture seule) : 71 boots `RTC_SW_SYS_RST` ; les 83 boots de CM2–CM3 (logiciels et alimentation) sont tous `retained`/`verified generation 1` |
 | 10 cycles d'alimentation | **PASS** | 10 boots `POWERON` après débranchement des deux câbles USB, mode normal, tous `generation 1` |
 | Variante exercise | **PASS** | génération 1 → 4 (premier boot non capturé, déduit), puis `commit/clear/recommit PASS generation 7` capturé |
 | Reboot exercise (reset EN) | **PASS** | `retained generation 7`, puis `PASS generation 10` |
 | Retour au mode normal | **PASS** | `retained`/`verified generation 10`, reset EN supplémentaire identique ; aucune réinitialisation |
 | Refus d'une région non reconnue (optionnel) | **non exécuté** | — |
+
+Variante de reboots logiciels : l'exemple publié n'a pas de commande de
+reboot. Cette modification de qualification, non destinée à la fusion, a été
+appliquée sur `4c00423` puis retirée :
+
+```diff
+--- a/examples/config-manager/src/platform/esp32.rs
++++ b/examples/config-manager/src/platform/esp32.rs
+@@ -31,7 +31,10 @@ async fn config_task(flash: FlashPeripheral<'static>) {
+             panic!("config mount failed");
+         });
+     crate::app::run(store.backend()).await;
+-    core::future::pending::<()>().await;
++    // QUALIFICATION ONLY (not committed): software reboot loop, read-only after init.
++    log::info!(target: "example_config_manager", "qual: software reset in 3 s");
++    esp_hal::delay::Delay::new().delay_millis(3000);
++    esp_hal::system::software_reset();
+ }
+```
+
+Build : même commande que le mode normal (`--features esp32s3`), puis
+`esptool elf2image --flash-mode dio --flash-size 4MB` ; installation de l'app
+seule à 0x50000, sans effacement. Image testée SHA256
+`c24bfc144875cc26f46087a92cf89f9e848bab29006a7d4fbc31a436152296c2`. Une
+reconstruction ultérieure depuis ce patch ne diffère que par l'heure de
+compilation de `esp_app_desc`, le SHA de l'ELF qu'il contient et la somme/SHA
+finale de l'image (71 octets) ; toutes les images de ce bilan portent cet
+horodatage.
 
 Mesure (horodatage console, résolution ~0,2 s) : trois commits `exercise`
 entre `verified` et `PASS` : 1,2 à 2,2 s.
@@ -211,4 +239,13 @@ puis l'essai a été rejoué sans reset.
 - C3 : non exécuté sur carte.
 - La première association Wi-Fi échoue environ une fois sur deux
   (`DisassociatedDueToInactivity`) ; l'exemple ne retente pas et nécessite un
-  reset. Comportement déjà constaté avec le backend NVS, sans rapport avec EKV.
+  reset. Même symptôme et même fréquence relevés le 13 octobre avec le backend
+  NVS (`docs/firmware/COMPTE-RENDU-A.md`, observations hors chaîne A), donc
+  indépendant du changement de backend. À suivre séparément.
+
+### Verdict
+
+Validé fonctionnellement sur ESP32-S3 en fonctionnement nominal : ConfigSpace
+EKV isolé et OTA A avec ConfigSpace EKV, sans correction de code. Non validés :
+C3, heap/pile, refus d'une région non reconnue, et toute interruption pendant
+une écriture EKV, une publication, une activation ou une confirmation (#70).
