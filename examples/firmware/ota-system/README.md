@@ -60,26 +60,6 @@ refuse le contrôle, le second le bloque de façon coopérative. Une vraie inten
 OTM1 Activating concordante et un fallback confirmé sont requis pour tester la
 probation. Aucun effacement automatique de configuration ni rescue n'est ajouté.
 
-## Construction
-
-Installer Rust nightly + rust-src/RISC-V, esp 1.98.1.0 + GCC Xtensa, CMake,
-Clang ESP étendu pour le build TLS C3, et esptool 5.5.0. Charger export-esp.sh et
-placer les exécutables requis sur PATH, comme pour l'exemple https-health.
-Définir avant le build :
-
-```sh
-export IOBEWI_STA_SSID='your-network'
-export IOBEWI_STA_PASSWORD='your-password'
-export IOBEWI_OTA_TOKEN='your-long-random-token'
-export IOBEWI_TLS_CERT_PEM="$(cat server-cert.pem)"
-export IOBEWI_TLS_KEY_PEM="$(cat server-key.pem)"
-```
-
-Le certificat doit avoir un SAN correspondant au nom/IP utilisé par le client.
-Le serveur ne démarre pas sans token et identité TLS. Il n'ouvre aucun port HTTP
-clair. Les routes de mutation exigent Bearer ; `/health` indique seulement que
-le serveur répond, pas une mesure détaillée de santé.
-
 ## Connexion et reconnexion Wi-Fi
 
 Les deux étalons OTA utilisent `iobewi-wifi-manager` (`common/net/wifi/manager`)
@@ -103,6 +83,26 @@ Validation carte #72 : désactiver les resets automatiques du banc sur échec de
 join ; observer une nouvelle tentative dans le même boot, puis `/health` ;
 couper/rétablir le point d'accès et vérifier le retour HTTPS sans reboot.
 La cause radio des refus `DisassociatedDueToInactivity` reste à déterminer.
+
+## Construction
+
+Installer Rust nightly + rust-src/RISC-V, esp 1.98.1.0 + GCC Xtensa, CMake,
+Clang ESP étendu pour le build TLS C3, et esptool 5.5.0. Charger export-esp.sh et
+placer les exécutables requis sur PATH, comme pour l'exemple https-health.
+Définir avant le build :
+
+```sh
+export IOBEWI_STA_SSID='your-network'
+export IOBEWI_STA_PASSWORD='your-password'
+export IOBEWI_OTA_TOKEN='your-long-random-token'
+export IOBEWI_TLS_CERT_PEM="$(cat server-cert.pem)"
+export IOBEWI_TLS_KEY_PEM="$(cat server-key.pem)"
+```
+
+Le certificat doit avoir un SAN correspondant au nom/IP utilisé par le client.
+Le serveur ne démarre pas sans token et identité TLS. Il n'ouvre aucun port HTTP
+clair. Les routes de mutation exigent Bearer ; `/health` indique seulement que
+le serveur répond, pas une mesure détaillée de santé.
 
 Depuis la racine du dépôt, préparer sans flasher, avec le générateur officiel
 ESP-IDF de tables de partitions :

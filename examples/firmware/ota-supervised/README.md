@@ -103,6 +103,7 @@ préserver ses partitions mais ne l'exécutera pas.
 
 ## Campagne matérielle restante (#61)
 
+Bilan carte du 14 octobre 2026 (S3) : `docs/firmware/ota-supervised-board-campaign.md`.
 Aucun essai carte B n'est déclaré PASS par le code ou la CI. Consigner commit,
 SoC/capacité, toolchain, SHA256, commandes, logs et dumps avant/après.
 
