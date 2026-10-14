@@ -467,9 +467,10 @@ mod tests {
         assert!(mem.0.borrow().operations.is_empty());
     }
 
-    // Deliberately enforced as a gate, not ignored or converted into an expected
-    // failure: the dependency currently violates the required OTA guarantee.
+    // Maintainer decision: continue development with the known upstream defect.
+    // Keep the failing qualification runnable with --ignored; tracked in #70.
     #[test]
+    #[ignore = "Known EKV power-fail defect; maintainer-approved deferral: https://github.com/iobewi/rust-mcu-libs/issues/70"]
     fn power_fail_qualification() {
         profile();
         cuts().unwrap();

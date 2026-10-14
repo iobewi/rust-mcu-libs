@@ -47,6 +47,15 @@ cargo run -p iobewi-config-space --example qualify_ekv -- reproduce
 
 **Power-fail qualification currently fails with EKV 1.0.0**: a torn metadata
 chunk prevents remounting and makes the previous acknowledged value inaccessible.
-The example is also a test target; `cargo test` enforces this failing gate.
-The ESP integration is blocked until recovery is qualified. See
+The maintainer chose to continue development with this known limitation. Only
+`power_fail_qualification` is ignored in automatic tests, tracked in
+[issue #70](https://github.com/iobewi/rust-mcu-libs/issues/70). Nominal, wear and
+read-only reboot tests remain enabled. A green CI does not qualify power-fail
+recovery. The CLI reproducers above still fail, and the ignored test runs with:
+
+```sh
+cargo test -p iobewi-config-space --example qualify_ekv power_fail_qualification -- --ignored --nocapture
+```
+
+ESP integration may proceed; power-fail recovery remains unqualified. See
 [the measured results and reproducer](../../../docs/config/issue-68-audit.md).

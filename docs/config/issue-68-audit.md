@@ -14,11 +14,13 @@ recyclage et la rotation des pages ; les adaptateurs matériels fournissent son
 trait `ekv::flash::Flash`. ESP32 doit réutiliser `SharedFlash`, son propriétaire
 physique unique et son verrou, sans nouvelle instance de FlashStorage.
 
-**État : raccordement bloqué par la qualification de reprise après coupure.**
+**Décision du 14 octobre 2026 : poursuivre le raccordement en développement
+avec le défaut connu ; reprise après coupure non qualifiée, suivie dans
+[#70](https://github.com/iobewi/rust-mcu-libs/issues/70).**
 Le nouvel incrément fournit un banc hôte utilisant directement EKV. EKV est une
 `dev-dependency`, aucun backend EKV n'est déployé et aucune table de partitions
 n'est modifiée. Le code NVS déjà publié reste exécuté jusqu'au remplacement
-qualifié ; il ne constitue pas une couche de compatibilité de la cible.
+effectif ; il ne constitue pas une couche de compatibilité de la cible.
 Aucune fusion/clôture de #65, #68 ou #69.
 
 ## Consommateurs et responsabilités
@@ -145,12 +147,31 @@ Le **même reproducteur direct** a été exécuté localement sur main amont
 avec embassy-sync 0.8 : même sortie et exit 1. Cette substitution locale n'est
 pas publiée ; la campagne complète et l'usure sur main ne sont pas revendiquées.
 
-`[[example]] test=true` fait exécuter le banc par le `cargo test` habituel de la
-CI hôte. La gate `power_fail_qualification` échoue réellement : **ni ignore,
-ni transformation en succès attendu, ni suppression du contrôle**. La PR reste
-Draft et non fusionnable tant que cette garantie ne passe pas.
+## Décision de CI — 14 octobre 2026
 
-## Résultats locaux et suite
+Le mainteneur demande de poursuivre le développement avec ce défaut connu,
+sans engager maintenant un fork/correctif EKV. Suivi dédié :
+[#70](https://github.com/iobewi/rust-mcu-libs/issues/70), lié aux signalements
+amont [#26](https://github.com/embassy-rs/ekv/issues/26) et
+[#25](https://github.com/embassy-rs/ekv/pull/25). La PR amont #25 fournit un
+reproducteur sans correctif et signale aussi la publication trop précoce d'une
+nouvelle page de métadonnées, pouvant produire KeyNotFound.
+
+`[[example]] test=true` conserve les tests nominaux/usure/boots dans la CI.
+**Seul `power_fail_qualification` est marqué ignore**, avec la référence #70.
+Il n'est ni supprimé ni transformé en succès attendu. Commande manuelle :
+
+```sh
+cargo test -p iobewi-config-space --example qualify_ekv power_fail_qualification -- --ignored --nocapture
+```
+
+Les CLI `cuts` et `reproduce` restent inchangées et retournent un échec.
+Une CI verte avec ce test ignoré valide les contrôles actifs ; elle ne corrige
+pas le défaut et ne qualifie pas la reprise après coupure. Le développement et
+l'intégration ESP peuvent continuer selon cette décision. La PR reste Draft
+pour le chantier #68 encore incomplet.
+
+## Résultats de l'incrément 892fc6c et suite
 
 - ConfigSpace existant : 10 tests PASS.
 - Banc : valeurs froides/usure PASS ; 100 boots en lecture seule PASS ;
@@ -160,11 +181,21 @@ Draft et non fusionnable tant que cette garantie ne passe pas.
 - Aucun nouvel adaptateur ESP, lien du backend EKV ou test carte exécuté.
   La CI verte du commit préparatoire bb8cbc8 ne valide pas cet incrément.
 
-Prochain travail : corriger/qualifier le problème de publication interrompue
-sans masquer les corruptions de records déjà validés. Rejouer également
-coupures pendant effacement/recyclage et boots répétés après interruption.
-Puis seulement : figer admission/réserves et format neuf, backend commun avec
+Le défaut amont et la réactivation de sa qualification sont désormais suivis
+dans #70. Ne pas masquer les corruptions des records déjà validés ; ne pas
+reformater automatiquement en cas de mount échoué.
+
+Prochain travail #68 : figer admission/réserves et format neuf, backend commun avec
 générations/tombstones, adaptateur ESP SharedFlash, tables/exemples, suppression
 des crates NVS et du codec CSM1, liens C3/S3, qualification matérielle OTA.
 Les ports RP2350/Teensy restent futurs ; leurs géométries doivent respecter le
 profil Flash choisi, sans read-erase-modify-write caché.
+
+## Vérification locale de la suspension — 14 octobre 2026
+
+Rust 1.99.0 : `cargo test -p iobewi-config-space` PASS (10 tests existants,
+2 tests du banc PASS, 1 seul ignored avec référence #70). Rustfmt check,
+Clippy all-targets -D warnings et diff check PASS. Exécution explicite de
+`power_fail_qualification -- --ignored --nocapture` : FAIL, exit 101,
+32/1 972 cas en échec. Le reproducer est conservé sans changement de logique.
+La CI distante de cette suspension reste à vérifier après publication.
