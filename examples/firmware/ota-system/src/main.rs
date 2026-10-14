@@ -6,6 +6,7 @@ mod ota;
 #[cfg(feature = "supervised")]
 #[path = "../../ota-supervised/src/supervised.rs"]
 mod supervised;
+mod wifi;
 #[cfg(all(feature = "esp32c3", feature = "esp32s3"))]
 compile_error!("choose exactly one MCU feature");
 #[cfg(not(any(feature = "esp32c3", feature = "esp32s3")))]
@@ -62,7 +63,10 @@ async fn boot_task(
         .expect("config partition unavailable");
     let blank = config_flash.is_blank().await.expect("config read failed");
     static CONFIG: StaticCell<Store<EspConfigFlash>> = StaticCell::new();
-    const SPACES: &[SpaceSpec] = &[SpaceSpec::new("ota", 2048)];
+    const SPACES: &[SpaceSpec] = &[
+        SpaceSpec::new("ota", 2048),
+        SpaceSpec::new("wifi", iobewi_wifi_manager::CONFIG_BUDGET.max_bytes()),
+    ];
     let config = CONFIG.init(
         Store::new(config_flash, esp_hal::rng::Rng::new().random(), SPACES)
             .expect("config admission failed"),
@@ -83,6 +87,9 @@ async fn boot_task(
     let ota = manager
         .claim("ota", Budget::new(2048))
         .expect("OTA claim failed");
+    let wifi = manager
+        .claim("wifi", iobewi_wifi_manager::CONFIG_BUDGET)
+        .expect("Wi-Fi claim failed");
     let store = ConfigSpaceMetadataStore(&ota);
     let check = Check(&backend);
     let mut system = SystemBoot::discover(flash)
@@ -146,6 +153,7 @@ async fn boot_task(
         flash,
         system,
         &store,
+        wifi,
         peripheral,
         spawner,
         #[cfg(feature = "supervised")]
@@ -170,6 +178,7 @@ fn main() -> ! {
         "firmware_ota_system_esp32",
         "firmware_ota_supervised_esp32",
         "iobewi_esp_wifi",
+        "iobewi_wifi_manager",
     ] {
         policy
             .add_target(target, iobewi_log::LevelFilter::Info)

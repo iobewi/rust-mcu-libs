@@ -60,6 +60,31 @@ refuse le contrôle, le second le bloque de façon coopérative. Une vraie inten
 OTM1 Activating concordante et un fallback confirmé sont requis pour tester la
 probation. Aucun effacement automatique de configuration ni rescue n'est ajouté.
 
+## Connexion et reconnexion Wi-Fi
+
+Les deux étalons OTA utilisent `iobewi-wifi-manager` (`common/net/wifi/manager`)
+avec le transport `iobewi-esp-wifi`. Le manifeste ConfigSpace déclare `ota` et
+`wifi` ; aucun autre propriétaire flash ni partition supplémentaire n'est créé.
+
+Au premier démarrage sans configuration Wi-Fi valide, les identifiants du build
+servent au provisioning : connexion et DHCP, puis commit WFC1 par le gestionnaire.
+Un échec est retenté avec la temporisation existante (1, 2, 4, 8 puis 10 secondes),
+sans panic ni reboot. Les identifiants enregistrés sont prioritaires aux boots
+suivants ; changer les variables de build ne remplace pas ces valeurs persistées.
+Pour changer de réseau, utiliser le provisioning du gestionnaire dans une
+composition adaptée, ou préparer explicitement une nouvelle configuration usine.
+
+`maintain()` reste actif en parallèle du serveur HTTPS : celui-ci attend la
+première connexion, puis le gestionnaire reconnecte la station après une perte
+de lien. Il n'y a pas de reset automatique du firmware en cas d'échec Wi-Fi.
+La persistance EKV garde les limites documentées dans #70.
+
+Validation carte #72 : désactiver les resets automatiques du banc sur échec de
+join ; observer une nouvelle tentative dans le même boot, puis `/health` ;
+couper/rétablir le point d'accès et vérifier le retour HTTPS sans reboot.
+La cause radio des refus `DisassociatedDueToInactivity` reste à déterminer.
+Campagne S3 et correction de pile : [ota-wifi-board-campaign.md](../../../docs/firmware/ota-wifi-board-campaign.md).
+
 ## Construction
 
 Installer Rust nightly + rust-src/RISC-V, esp 1.98.1.0 + GCC Xtensa, CMake,

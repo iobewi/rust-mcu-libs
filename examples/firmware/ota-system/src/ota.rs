@@ -4,6 +4,8 @@ use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embedded_storage::nor_flash::ReadNorFlash;
+use iobewi_config_space::{ConfigSpace, storage::EkvBackend};
+use iobewi_esp_config_space::EspConfigFlash;
 use iobewi_esp_firmware_a::platform::SystemBoot;
 use iobewi_esp_firmware_storage::shared_flash::ArtifactWriteSession;
 use iobewi_esp_flash::{EspFlash, SharedFlash};
@@ -266,6 +268,7 @@ pub async fn serve<S: MetadataStore>(
     flash: &SharedFlash,
     system: SystemBoot,
     store: &S,
+    wifi_config: ConfigSpace<EkvBackend<'static, EspConfigFlash>>,
     peripheral: esp_hal::peripherals::WIFI<'static>,
     spawner: Spawner,
     #[cfg(feature = "supervised")] component: Option<&'static crate::supervised::SharedComponent>,
@@ -275,15 +278,13 @@ pub async fn serve<S: MetadataStore>(
         "OTA token and TLS identity required"
     );
     static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
-    let mut wifi =
-        WifiManager::<3>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
-    let ssid = option_env!("IOBEWI_STA_SSID").expect("IOBEWI_STA_SSID required");
-    let password = option_env!("IOBEWI_STA_PASSWORD").expect("IOBEWI_STA_PASSWORD required");
-    assert!(
-        wifi.connect(ssid, String::from(password)).await,
-        "STA join failed"
-    );
-    let stack = wifi.network_handle().expect("STA stack unavailable");
+    let wifi = WifiManager::<3>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
+    // Maintenance runs in its own task (static state): composing it with the server in this
+    // task (join) overflowed the S3 main stack during TLS handshakes (#72 board campaign).
+    static READY: StaticCell<crate::wifi::Ready> = StaticCell::new();
+    let ready = READY.init(crate::wifi::Ready::new());
+    spawner.spawn(crate::wifi::maintain(wifi, wifi_config, ready).expect("Wi-Fi task unavailable"));
+    let stack = ready.wait().await;
     let tls = iobewi_esp_tls::init(|| None);
     let mut rx = [0u8; 4096];
     let mut tx = [0u8; 4096];
