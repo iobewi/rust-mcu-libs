@@ -170,7 +170,7 @@ erreur ; seul l'avertissement upstream RWX du linker S3 apparaît.
 | Variante exercise | **PASS** | génération 1 → 4 (premier boot non capturé, déduit), puis `commit/clear/recommit PASS generation 7` capturé |
 | Reboot exercise (reset EN) | **PASS** | `retained generation 7`, puis `PASS generation 10` |
 | Retour au mode normal | **PASS** | `retained`/`verified generation 10`, reset EN supplémentaire identique ; aucune réinitialisation |
-| Refus d'une région non reconnue (optionnel) | **non exécuté** | — |
+| Refus d'une région non reconnue (optionnel) | **non exécuté** | exécuté ensuite : voir complément #71 |
 
 Variante de reboots logiciels : l'exemple publié n'a pas de commande de
 reboot. Cette modification de qualification, non destinée à la fusion, a été
@@ -235,11 +235,11 @@ puis l'essai a été rejoué sans reset.
 
 - Coupures/resets pendant un commit ConfigSpace, une publication, une
   activation ou une confirmation : hors campagne nominale, suivi #70.
-- Heap et pile : non mesurés.
+- Heap et pile : non mesurés (mesurés ensuite sur S3 : complément #71).
 - C3 : non exécuté sur carte.
 - La première association Wi-Fi échoue environ une fois sur deux
   (`DisassociatedDueToInactivity`) ; l'exemple ne retente pas et nécessite un
-  reset. Même symptôme et même fréquence relevés le 13 octobre avec le backend
+  reset (suivi #72). Même symptôme et même fréquence relevés le 13 octobre avec le backend
   NVS (`docs/firmware/COMPTE-RENDU-A.md`, observations hors chaîne A), donc
   indépendant du changement de backend. À suivre séparément.
 
@@ -249,3 +249,134 @@ Validé fonctionnellement sur ESP32-S3 en fonctionnement nominal : ConfigSpace
 EKV isolé et OTA A avec ConfigSpace EKV, sans correction de code. Non validés :
 C3, heap/pile, refus d'une région non reconnue, et toute interruption pendant
 une écriture EKV, une publication, une activation ou une confirmation (#70).
+
+## Complément #71 — 14 octobre 2026
+
+Commit testé : `e6e274d762642d328c7e1496dfae14b9de773824` (`port/61-write-authority`,
+fusion de #69). Son code est identique à `4c00423` (seul ce document diffère) :
+les images nominales du bilan ci-dessus restent celles testées. Même carte
+ESP32-S3 et mêmes outils ; écritures ciblées par esptool-js `writeFlash`
+(adresse donnée, sans effacement global, sans reset final), puis réouverture
+du port 115200 : le reset d'ouverture produit le seul boot, capturé en entier.
+
+| Vérification | Résultat | Code |
+| --- | --- | --- |
+| Refus d'une région non reconnue | **PASS** | nominal, aucune instrumentation |
+| Heap et pile | **mesurés** (marges ci-dessous) | instrumenté, qualification seulement |
+| C3 : identité, capacité, table | **non exécuté** | aucune carte C3 au banc ; le correctif SPI1 USER reste mesuré sur S3 seulement |
+
+### Refus d'une région non reconnue (code nominal)
+
+Carte en config-manager normal (`37d431db…3357`), table standalone, config à
+0x9000/0x40000, génération 1. Relectures en lecture seule (esptool-js
+`readFlash`, région 0x9000/0x40000) :
+
+| Étape | Action | Constat |
+| --- | --- | --- |
+| R0 | relecture de sauvegarde | `0f47cdc89672f05d2dd86e97d082a0f9661d20edec9fc2645f94210c32af49b4` ; deux pages EKV (0x36000, 0x37000), reste 0xFF |
+| W1 | écriture de `not-ekv-256k.bin` à 0x9000 : motif `IOBEWI-QUAL-NOT-EKV-` répété sur 256 Kio, SHA256 `5c1bd73e9dfa9c8b2b2f651960d51e1afb4a50f8075bd119c8ad24bd405ce5cc` | boot capturé : `ERROR - config: mount failed Mount(Corrupted); explicit reset required`, puis plus aucune sortie (panic silencieux) |
+| R1 | relecture (suivie du reset matériel de fin de relecture : nouveau boot sur la région) | SHA256 `5c1bd73e…ce5cc`, identique octet pour octet à l'image écrite |
+| R2 | relecture après ce boot supplémentaire | identique à l'image écrite |
+| W2 | restauration explicite : écriture de R0 à 0x9000 | boot capturé : `retained generation 1`, `verified generation 1` |
+| R3 | relecture finale | identique à R0 (`0f47cdc8…49b4`) |
+
+Verdict : **PASS**. Deux boots sur la région non reconnue l'ont refusée sans
+écriture, sans formatage et sans réinitialisation automatique ; la restauration
+explicite rend le fonctionnement nominal, et ce boot nominal n'écrit rien.
+Ce test ne qualifie pas la reprise après coupure (#70).
+
+### Heap et pile (code instrumenté)
+
+Moyens existants : esp-alloc fournit `HEAP.stats()`/`free()` ; pour la pile,
+esp-hal n'offre que la détection de débordement (garde `__stack_chk_guard`,
+contrôle de plage du pointeur de pile), pas de mesure d'usage. Une sonde de
+qualification, non destinée à la fusion, a donc été ajoutée hors dépôt :
+
+- **heap** : feature esp-alloc `internal-heap-stats` (compteurs `current_usage`
+  et `max_usage` mis à jour à chaque allocation/libération) ; `min_free =
+  size − max_usage`, minimum depuis le boot ;
+- **pile** : au début de `main`, avant `esp_hal::init`, la pile principale cpu0
+  (`_stack_end_cpu0` .. `_stack_start_cpu0`) est peinte en `0xA5A5A5A5` de
+  `_stack_end_cpu0 + 256` (garde à +60 non touchée) jusqu'à 1 Kio sous le cadre
+  du peintre ; chaque sonde cherche le premier mot modifié. Valeur = maximum
+  depuis le boot (haute eau cumulée), pas l'usage instantané.
+
+Piles couvertes : la pile principale cpu0, qui porte la tâche principale
+esp-rtos, l'exécuteur Embassy (tâches config, boot, OTA, HTTP/TLS) et les
+interruptions prises pendant leur exécution. **Non couvertes** : les piles des
+tâches radio esp-rtos, allouées dans le heap esp-alloc (comptées dans l'usage
+heap, mais leur profondeur n'est pas mesurée) ; le cpu1 n'est pas démarré par
+ces exemples. Limites : la zone non peinte en haut (1 152 o pour
+config-manager, 2 304 o pour ota-system) est comptée comme utilisée ; un
+appel profond bref entre deux sondes est capté par la sonde suivante (haute
+eau) ; la mesure peut sous-estimer si les mots les plus profonds d'un cadre
+ne sont jamais écrits ou reçoivent exactement le motif ; aucune sonde n'a
+signalé l'épuisement de la zone peinte.
+
+Coût de l'instrumentation : app `exercise` +1 216 o (173 440 contre 172 224) ;
+app ota-system −448 o (1 051 056 contre 1 051 504, effet de mise en page du
+compilateur) ; aucune allocation ajoutée ; coût CPU des compteurs heap et durée
+du marquage au boot non mesurés. Les valeurs ci-dessous valent pour ces images
+instrumentées ; elles ne remplacent pas une mesure du code nominal, qui n'est
+pas instrumentable sans modification.
+
+**config-manager** (`--features esp32s3,exercise` + patch, app
+`ca62b749a03cf2ac6eeeb65180f6440b650cadadc395f24cd2cc4ca76e14ef4b`) : heap
+65 536 o, pile principale réservée 246 564 o.
+
+| Point (cumulé depuis le boot) | Région existante (gén. 1 → 4) : heap max / min libre | pile max | Région vierge (format, gén. 1 → 4) : heap max / min libre | pile max |
+| --- | --- | --- | --- | --- |
+| début de tâche | 0 / 65 536 | 5 900 | 0 / 65 536 | 5 900 |
+| après `Store::new` | 0 / 65 536 | 10 048 | 0 / 65 536 | 10 048 |
+| après `format` | — | — | 0 / 65 536 | 10 240 |
+| après `mount` | 8 192 / 57 344 | 10 368 | 8 192 / 57 344 | 10 240 |
+| après commit/clear/recommit | 8 192 / 57 344 | 10 976 | 8 192 / 57 344 | 10 976 |
+
+Usage heap courant à 0 à chaque sonde (tampon de montage libéré). Marges
+minimales : heap 57 344 o (87 %), pile 235 588 o (95 %).
+
+**ota-system** (prepare.py, variante sans défaut + patch, app
+`7d62f29dd0036fa5f8a6aacd481b9ade85b875b346d62ce9ec64387941485bd0`, bootloader,
+table, otadata usine et config.bin identiques au bilan #68) : heap 163 840 o,
+pile principale réservée 73 912 o. Installation usine après effacement
+(ota_0), puis upload de la même app vers ota_1 (`c71-mem-1`), activation et
+confirmation.
+
+| Point (cumulé depuis le boot) | heap courant | heap max / min libre | pile max / marge |
+| --- | --- | --- | --- |
+| début de `boot_task` | 0 | 0 / 163 840 | 15 980 / 57 932 |
+| après `mount` | 0 | 8 192 / 155 648 | 20 272 – 22 304 / 51 608 – 53 640 |
+| `boot: stable` | 104 | 8 296 / 155 544 | 23 312 / 50 600 |
+| `OTA ready` (Wi-Fi, TLS prêts) | 47 868 | 49 560 – 50 160 / 113 680 | 23 312 / 50 600 |
+| upload : écriture, digest flash et validation | 84 496 | 99 504 / 64 336 | 35 360 / 38 552 |
+| après publication OTM1 | 84 484 | 99 504 / 64 336 | 35 360 / 38 552 |
+| activation acceptée (avant reboot) | 84 412 | 99 504 / 64 336 | 35 360 / 38 552 |
+| reboot : `ota_1 PendingVerify` → `confirmed` | 104 | 8 296 / 155 544 | 23 536 / 50 376 |
+
+Marges minimales observées (pendant l'upload HTTPS de 1 051 056 o) : heap
+64 336 o libres (39 %), pile principale 38 552 o (52 %). Publication et
+activation n'élèvent aucun maximum. Les piles des tâches radio sont incluses
+dans l'usage heap mais leur marge propre n'est pas mesurée.
+
+Commandes : sonde `qual_mem.rs` incluse par `#[path]`, patchs de qualification
+appliqués sur `e6e274d` puis retirés (dépôt propre après build) ;
+config-manager compilé par la commande de la section 1 avec
+`--features esp32s3,exercise` puis `esptool elf2image --flash-mode dio
+--flash-size 4MB` ; ota-system par `prepare.py --chip esp32s3`. Écritures :
+app instrumentée à 0x50000 (région existante), puis 256 Kio de 0xFF à 0x9000
+(région vierge) ; ota-system par installation usine avec effacement, puis
+`client.py --activate`. Pendant cette mesure, deux premières associations Wi-Fi
+ont échoué (`DisassociatedDueToInactivity`) et ont été levées par un reset
+manuel : symptôme #72, non investigué ici. Aucune coupure pendant écriture
+(#70) n'a été provoquée.
+
+Traces, dumps, images et patchs archivés hors dépôt (identifiants Wi-Fi
+masqués) ; empreintes : sonde `8d5eb7d9…048e`, patch config-manager
+`b8f54033…f2be4`, patch ota-system `577b5763…87f4cc`.
+
+### Verdict du complément
+
+Sur ESP32-S3 : refus d'une région non reconnue **PASS** (code nominal) ;
+heap et pile principale mesurés avec marges positives sur les scénarios
+nominaux (code instrumenté), piles radio non mesurées. **C3 non exécuté** :
+#71 reste ouverte pour cette vérification.
