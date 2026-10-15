@@ -251,7 +251,7 @@ fn sense(key: u8, asc: u8) -> Vec<u8> {
 fn run(
     script: Vec<Result<Vec<u8>, EndpointError>>,
     disk: &mut impl ReadOnlyBlockDevice,
-    policy: &mut Policy,
+    policy: &mut impl ReadPolicy,
 ) -> (Result<(), Error>, Shared) {
     let shared = Rc::new(RefCell::new(Traffic {
         input: script.into(),
@@ -274,7 +274,7 @@ fn run(
     let _usb = builder.build();
     (block_on(class.run(disk, policy)), shared)
 }
-fn finished(commands: Vec<Vec<u8>>, disk: &mut Disk, policy: &mut Policy) -> Shared {
+fn finished(commands: Vec<Vec<u8>>, disk: &mut Disk, policy: &mut impl ReadPolicy) -> Shared {
     let mut script: Vec<_> = commands.into_iter().map(Ok).collect();
     script.push(Err(EndpointError::BufferOverflow));
     let (result, traffic) = run(script, disk, policy);
@@ -516,4 +516,71 @@ fn rolling_fat_msc_bytes_underrun_recovery_and_new_session() {
     assert_eq!(traffic.borrow().output, expected);
     assert!(window.borrow().session().is_none());
     assert_eq!(window.borrow().written(), 2560);
+}
+
+/// A policy can bound the wait of a whole READ(10) command: the class announces each command,
+/// and only READ(10) commands that pass the range check.
+#[test]
+fn read_commands_are_announced_so_a_policy_can_keep_one_budget_per_command() {
+    use ReadStatus::{Pending, Ready};
+    #[derive(Default)]
+    struct CommandBudget {
+        starts: usize,
+        used: usize,
+        decisions: Vec<(usize, bool)>,
+    }
+    impl ReadPolicy for CommandBudget {
+        fn command_started(&mut self) {
+            self.starts += 1;
+            self.used = 0;
+        }
+        fn unavailable(&mut self, _: ReadStatus, _: Duration) -> ReadAction {
+            self.used += 1;
+            // Two waits for the whole command, then zeroes at once; never per sector.
+            let wait = self.used <= 2;
+            self.decisions.push((self.starts, wait));
+            if wait {
+                ReadAction::RetryAfter(Duration::from_millis(1))
+            } else {
+                ReadAction::ZeroFill
+            }
+        }
+    }
+    let mut disk = Disk {
+        last: 100,
+        // Command 1 (4 blocks): block 0 waits twice then is zero-filled, blocks 1 and 2 are
+        // zero-filled without waiting, block 3 is ready. Command 2 (1 block): a fresh budget.
+        statuses: VecDeque::from([
+            Pending, Pending, Pending, Pending, Pending, Ready, Pending, Ready,
+        ]),
+        ..Default::default()
+    };
+    let mut policy = CommandBudget::default();
+    let traffic = finished(
+        vec![
+            command(1, 0, 0x00), // TEST UNIT READY: not a read
+            read(2, 2048, 0, 4),
+            read(3, 512, 1000, 1), // out of range: rejected before any wait
+            read(4, 512, 8, 1),
+        ],
+        &mut disk,
+        &mut policy,
+    );
+    assert_eq!(
+        policy.starts, 2,
+        "only the two READ(10) in range are announced"
+    );
+    assert_eq!(
+        policy.decisions,
+        vec![
+            (1, true),
+            (1, true),
+            (1, false),
+            (1, false),
+            (1, false),
+            (2, true)
+        ]
+    );
+    let out = &traffic.borrow().output;
+    assert_eq!(out.iter().filter(|p| p.starts_with(b"USBS")).count(), 4);
 }

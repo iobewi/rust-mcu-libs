@@ -50,6 +50,14 @@ pub enum ReadAction {
 
 /// Product-owned retry, timeout and stale-data policy.
 pub trait ReadPolicy {
+    /// Called at the start of every READ(10) command, before its first sector.
+    ///
+    /// A policy that must bound the wait of a whole command (the host aborts a command after
+    /// its own timeout, whatever the number of sectors it asked for) records the instant here
+    /// and compares it with the clock in [`unavailable`](Self::unavailable). The default does
+    /// nothing, so existing per-sector policies are unaffected.
+    fn command_started(&mut self) {}
+
     /// Called only for Pending or Expired; elapsed is measured from the first read of this sector.
     fn unavailable(&mut self, status: ReadStatus, elapsed: Duration) -> ReadAction;
 }
@@ -368,6 +376,7 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
                     } else {
                         let mut sector = [0u8; SECTOR_SIZE];
                         let mut sent_total = 0u32;
+                        policy.command_started();
 
                         for block in 0..blocks {
                             let block_lba = lba + block;
