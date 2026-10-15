@@ -25,6 +25,7 @@ Example for firmware binaries:
 `host-esp32s3-linked-bins` executes host tests/Clippy and links S3 release binaries. Use for the concrete dual-core native composition and its separately linked IWNI workload; it does not claim native execution on C3.
 
 - `host`: host unit tests and Clippy on all targets with warnings denied.
+- `esp32s3`: cross-compile an S3-only library, including the independent latest-Xtensa build when required by the event. Native OTG is absent on C3; do not advertise a C3 USB implementation.
 - `esp32`: cross-compile the library for ESP32-C3 and ESP32-S3. ESP32-S3 also receives an independent latest-Xtensa build.
 - `host-esp32`: execute host unit tests/Clippy without MCU features **and** cross-compile the same library for C3/S3. Use for adapters with host-testable production logic and optional MCU bindings.
 - `esp32-bins`: cross-compile all firmware binaries for ESP32-C3 and ESP32-S3, including the independent latest-Xtensa build.

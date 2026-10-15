@@ -9,7 +9,7 @@ import sys
 import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-ALLOWED = {"host", "esp32", "esp32-bins", "host-esp32", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins", "host-esp32s3-linked-bins"}
+ALLOWED = {"esp32s3", "host", "esp32", "esp32-bins", "host-esp32", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins", "host-esp32s3-linked-bins"}
 GLOBAL = {".github/", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
 
 def git(*args):
@@ -99,7 +99,7 @@ def discover(base=None, head="HEAD", full=False):
     matrix = []
     for name in sorted(selected):
         profile = profiles[name]
-        chips = ("host", "esp32s3") if profile == "host-esp32s3-linked-bins" else ("host",) if profile == "host" else (("host", "esp32c3", "esp32s3") if profile in ("host-esp32", "host-esp32-linked-bins") else ("esp32c3", "esp32s3"))
+        chips = ("esp32s3",) if profile == "esp32s3" else ("host", "esp32s3") if profile == "host-esp32s3-linked-bins" else ("host",) if profile == "host" else (("host", "esp32c3", "esp32s3") if profile in ("host-esp32", "host-esp32-linked-bins") else ("esp32c3", "esp32s3"))
         for chip in chips:
             matrix.append({"package": name, "chip": chip, "targets": "bins" if profile in ("esp32-bins", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins", "host-esp32s3-linked-bins") and chip != "host" else "lib", "profile": profile, "features": features[name]})
     return {"include": matrix}, selected, len(packages)
