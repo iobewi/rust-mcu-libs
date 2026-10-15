@@ -104,11 +104,13 @@ impl driver::Bus for Bus<'_> {
     }
 }
 
-/// Highest IN endpoint index of the S3 OTG FS core: an index the core does not implement reads as
-/// not enabled, so the loop is safe on every index.
+/// Highest IN endpoint index: esp-hal allocates the device state for 7 endpoints (0..=6), the same
+/// count `embassy-usb-synopsys-otg` iterates over.
 const LAST_IN_ENDPOINT: usize = 6;
-/// Upper bound on the wait for the core to confirm a disable; the core does it within microseconds.
-const DISABLE_SPINS: u32 = 100_000;
+/// Upper bound on the wait for the core to confirm a disable, inside a critical section: the core does
+/// it within microseconds, and the bound only keeps the worst case (an endpoint that never confirms)
+/// short, about a millisecond per endpoint.
+const DISABLE_SPINS: u32 = 10_000;
 
 /// Disable every non-control IN endpoint that still has a transfer armed (`EPENA`), the way
 /// `embassy-usb-synopsys-otg` does when VBUS is lost (SNAK + EPDIS, wait for EPDISD).
