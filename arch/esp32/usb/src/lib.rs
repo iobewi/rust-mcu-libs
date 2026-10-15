@@ -147,3 +147,19 @@ pub fn device(
         inner: EspDriver::new(Usb::new_fs(usb, dp, dm), out, Config::default()),
     }
 }
+
+/// Soft-connect (`true`) or soft-disconnect (`false`) the device from the bus.
+///
+/// This toggles `DCTL.SDIS`, the bit `embassy-usb-synopsys-otg` itself sets while it initialises the
+/// core: with it set the D+ pull-up is released and the host sees the device removed; clearing it
+/// presents the device again and the host resets the bus and re-enumerates. The USB device stack
+/// handles that reset like any other, so this is the way for a product to leave the bus while it has
+/// nothing valid to serve and come back later. Call it after [`device`] has been handed to the USB
+/// stack; it does not touch the endpoints (the bus-reset clean-up of [`Driver`] runs when the host
+/// resets the bus after reconnection).
+pub fn set_connected(connected: bool) {
+    // SAFETY: the register block of the OTG FS peripheral owned by the driver; the read-modify-write is
+    // inside a critical section, as the upstream driver does for the same register.
+    let regs = unsafe { Otg::from_ptr(USB_FS::PTR.cast_mut().cast::<()>()) };
+    critical_section::with(|_| regs.dctl().modify(|w| w.set_sdis(!connected)));
+}

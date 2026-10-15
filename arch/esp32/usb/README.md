@@ -47,3 +47,9 @@ chip is reset. Pulling the cable during a continuous read reproduces it every ti
 This is a workaround for that upstream behaviour; it is not a protocol feature and can be removed
 once the driver clears armed IN transfers on reset. It needs hardware to be exercised: host tests
 cannot reach these registers.
+
+## Leaving and rejoining the bus
+
+`set_connected(false)` soft-disconnects the device (the host sees it removed); `set_connected(true)`
+presents it again and the host re-enumerates. A product uses it when its backing data is gone and
+comes back later, instead of answering reads with data it does not have. Hardware only.
