@@ -2,6 +2,7 @@
 #![doc = include_str!("../README.md")]
 
 use core::mem::MaybeUninit;
+use core::sync::atomic::{AtomicU32, Ordering};
 
 use embassy_time::{Duration, Instant, Timer};
 use embassy_usb::{
@@ -80,15 +81,16 @@ const ASC_INVALID_OPCODE: u8 = 0x20;
 const ASC_LBA_OUT_OF_RANGE: u8 = 0x21;
 
 pub struct State<'a> {
-    control: MaybeUninit<Control>,
-    _lifetime: core::marker::PhantomData<&'a ()>,
+    control: MaybeUninit<Control<'a>>,
+    /// Bus resets seen by the class handler since power-up.
+    resets: AtomicU32,
 }
 
 impl<'a> State<'a> {
     pub const fn new() -> Self {
         Self {
             control: MaybeUninit::uninit(),
-            _lifetime: core::marker::PhantomData,
+            resets: AtomicU32::new(0),
         }
     }
 }
@@ -99,11 +101,16 @@ impl Default for State<'_> {
     }
 }
 
-struct Control {
+struct Control<'a> {
     interface: InterfaceNumber,
+    resets: &'a AtomicU32,
 }
 
-impl Handler for Control {
+impl Handler for Control<'_> {
+    fn reset(&mut self) {
+        self.resets.fetch_add(1, Ordering::Relaxed);
+    }
+
     fn control_out(&mut self, req: control::Request, _data: &[u8]) -> Option<OutResponse> {
         if (req.request_type, req.recipient, req.index)
             != (
@@ -203,6 +210,7 @@ pub struct MscClass<'d, D: Driver<'d>> {
     write_ep: D::EndpointIn,
     stats: ReadStats,
     identity: InquiryIdentity,
+    resets: &'d AtomicU32,
 }
 
 impl<'d, D: Driver<'d>> MscClass<'d, D> {
@@ -230,8 +238,11 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
 
         drop(function);
 
-        let control = state.control.write(Control {
+        let State { control, resets } = state;
+        let resets: &'d AtomicU32 = resets;
+        let control = control.write(Control {
             interface: interface_number,
+            resets,
         });
         builder.handler(control);
 
@@ -240,7 +251,14 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
             write_ep,
             stats: ReadStats::new(),
             identity,
+            resets,
         }
+    }
+
+    /// Number of USB bus resets seen by this class's handler. A command in flight is abandoned
+    /// when it changes: the host has reset the bus, abandoned that command and re-enumerated.
+    pub fn bus_reset_counter(&self) -> &'d AtomicU32 {
+        self.resets
     }
 
     pub async fn run<B: ReadOnlyBlockDevice, P: ReadPolicy>(
@@ -281,6 +299,7 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
         total_sectors: u32,
     ) -> Result<(), EndpointError> {
         let mut packet = [0u8; 64];
+        let resets_at_start = self.resets.load(Ordering::Relaxed);
         // (sense key, ASC) of the last failed command, reported once by REQUEST SENSE.
         let mut sense = (0u8, 0u8);
         // Diagnostics: non-READ(10) commands are not otherwise visible in the log.
@@ -397,7 +416,8 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
                                         }
                                         match policy.unavailable(status, waiting_since.elapsed()) {
                                             ReadAction::RetryAfter(delay) => {
-                                                Timer::after(delay).await
+                                                Timer::after(delay).await;
+                                                self.abandon_on_bus_reset(resets_at_start)?;
                                             }
                                             ReadAction::ZeroFill => break,
                                         }
@@ -405,6 +425,9 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
                                 }
                             }
 
+                            // A reset while waiting re-enabled the endpoints in a new
+                            // configuration: do not push this command's data into it.
+                            self.abandon_on_bus_reset(resets_at_start)?;
                             self.write_bytes(&sector).await?;
                             sent_total += SECTOR_SIZE as u32;
                         }
@@ -425,6 +448,15 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
             }
 
             self.send_csw(cbw.tag, residue, status).await?;
+        }
+    }
+
+    fn abandon_on_bus_reset(&self, resets_at_start: u32) -> Result<(), EndpointError> {
+        if self.resets.load(Ordering::Relaxed) == resets_at_start {
+            Ok(())
+        } else {
+            log::info!("msc: bus reset during a command: abandoning it");
+            Err(EndpointError::Disabled)
         }
     }
 

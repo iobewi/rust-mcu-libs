@@ -73,6 +73,15 @@ supported capacity boundary; fake-driver consumer dialogues exercise actual endp
 traffic and session callbacks. Supported-target compilation and physical USB-host evidence are required for
 complete qualification.
 
+## Bus reset during a command
+
+The class handler counts USB bus resets (`MscClass::bus_reset_counter`). A READ(10) that is
+waiting for data when the host resets the bus is abandoned at once: the host has abandoned that
+command and re-enumerated, the endpoints are enabled again in the new configuration, and pushing the
+old command's data and status there would desynchronise the new session and keep the class from
+reading the host's next command. The session ends as for an endpoint disable and restarts.
+Commands waiting on an endpoint are not affected: the endpoint returns `Disabled` by itself.
+
 ## Known limitations
 
 - Fixed 512-byte sectors, two bulk endpoints with 64-byte maximum packets, one

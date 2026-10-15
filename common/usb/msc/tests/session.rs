@@ -584,3 +584,64 @@ fn read_commands_are_announced_so_a_policy_can_keep_one_budget_per_command() {
     let out = &traffic.borrow().output;
     assert_eq!(out.iter().filter(|p| p.starts_with(b"USBS")).count(), 4);
 }
+
+/// The host resets the bus while a READ(10) is waiting for data, abandons that command and
+/// re-enumerates (the endpoints are enabled again in the new configuration). The class must drop the
+/// command at once instead of pushing its data into the new configuration, then serve the next one.
+#[test]
+fn bus_reset_while_waiting_abandons_the_command_and_serves_the_next_one() {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    struct ResetsOnFirstWait<'a> {
+        counter: &'a AtomicU32,
+        waits: usize,
+    }
+    impl ReadPolicy for ResetsOnFirstWait<'_> {
+        fn unavailable(&mut self, _: ReadStatus, _: Duration) -> ReadAction {
+            self.waits += 1;
+            if self.waits == 1 {
+                // What the class handler does on a bus reset.
+                self.counter.fetch_add(1, Ordering::Relaxed);
+            }
+            ReadAction::RetryAfter(Duration::from_millis(1))
+        }
+    }
+    let shared = Rc::new(RefCell::new(Traffic {
+        input: VecDeque::from([
+            Ok(read(1, 2048, 0, 4)),
+            Ok(command(2, 0, 0x00)),
+            Err(EndpointError::BufferOverflow),
+        ]),
+        ..Default::default()
+    }));
+    let mut state = State::new();
+    let mut config = [0; 256];
+    let mut bos = [0; 256];
+    let mut msos = [0; 256];
+    let mut control = [0; 64];
+    let mut builder = Builder::new(
+        FakeDriver(shared.clone()),
+        Config::new(0x1234, 0x5678),
+        &mut config,
+        &mut bos,
+        &mut msos,
+        &mut control,
+    );
+    let mut class = MscClass::new(&mut builder, &mut state, ID);
+    let _usb = builder.build();
+    let mut policy = ResetsOnFirstWait {
+        counter: class.bus_reset_counter(),
+        waits: 0,
+    };
+    let mut disk = Disk {
+        last: 100,
+        // Block 0 never becomes ready while the command waits.
+        statuses: VecDeque::from([ReadStatus::Pending; 8]),
+        ..Default::default()
+    };
+    let result = block_on(class.run(&mut disk, &mut policy));
+    assert_eq!(result, Err(Error::Endpoint(EndpointError::BufferOverflow)));
+    // Nothing of the abandoned command reached the host; the next command is answered normally.
+    assert_eq!(shared.borrow().output, vec![csw(2, 0, 0)]);
+    assert_eq!(disk.events, ["begin", "read:0", "end", "begin", "end"]);
+    assert_eq!(policy.waits, 1);
+}
