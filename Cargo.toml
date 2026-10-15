@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "arch/esp32/usb",
   "common/fs/block",
   "common/fs/fat16",
   "common/stream/rolling",

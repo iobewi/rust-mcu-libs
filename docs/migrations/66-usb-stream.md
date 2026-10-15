@@ -76,3 +76,26 @@ sont ceux du nouveau dépôt ; aucune infrastructure de l'ancien framework n'est
 
 Le lot portable fournit les briques ; l'adaptateur S3 est livré dans une PR séparée.
 La qualification USB physique et le portage de StreamBeWI restent à réaliser.
+
+## Vérification du lot ESP32-S3
+
+- Lot portable : PR #75, HEAD `9a3a22a` ; ce lot S3 est empilé dessus.
+- `iobewi-esp-usb` reprend le constructeur historique sans changement de pins,
+  de configuration OTG ou de type de pilote. `esp-hal` est optionnel et activé
+  uniquement par `esp32s3` ; aucune façade de démarrage Board/entry n'est portée.
+- `rustc +esp` : `1.98.1-nightly (183f762d6 2026-09-08)`, distribution 1.98.1.0 ;
+  `esp-hal` 1.2.2 et `embassy-usb-synopsys-otg` 0.4.0 effectivement compilés.
+- Compilation des cinq briques pour `xtensa-esp32s3-none-elf`, avec les features
+  `esp32s3 usb-debug` : PASS. Ce sont des contrôles de bibliothèques, sans
+  exécutable produit lié ni essai de PHY.
+- Nouveau profil déclaratif `esp32s3` : découverte des 55 crates PASS ;
+  l'adaptateur figure exactement une fois dans la matrice, sur S3 uniquement.
+  L'exécuteur MCU partagé n'a pas besoin de changement. Les autres profils et
+  les exigences de la CI sont conservés.
+- Tests Python existants des profils/link/image, Rustfmt et diff-check : PASS.
+- Aucun périphérique `/dev/ttyACM*` ou `/dev/ttyUSB*` présent : énumération,
+  débranchement/rebranchement réel, reset PHY et lecteur Metronic NON EXÉCUTÉS.
+
+Après les deux PR, #66 reste ouverte jusqu'à décision sur sa qualification
+matérielle. #67 porte le raccordement effectif de StreamBeWI ; aucun fichier
+produit ni OTA n'est modifié par ces lots.
