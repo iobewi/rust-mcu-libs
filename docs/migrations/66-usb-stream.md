@@ -50,3 +50,29 @@ annulée ou une attente illimitée imposée par la politique ne garantit pas ce 
 Le portage logiciel ne qualifie pas l'énumération physique, la PHY après reset,
 le lecteur Metronic ni une autre famille de MCU. Aucun changement OTA.
 Les résultats effectivement exécutés seront ajoutés après vérification.
+
+## Vérification du lot portable
+
+- Outils : `rustc 1.99.0 (b940084d7 2026-09-28)` sur x86_64 Linux.
+- Dépendances effectivement résolues : Embassy USB 0.6.0, USB driver 0.2.2,
+  Embassy time 0.5.1, log 0.4.34. Aucun Cargo.lock suivi.
+- Les 20 tests historiques passent : FAT16 6, rolling 4, MSC unitaires 5,
+  MSC dialogues 5. Un sixième dialogue ajoute l'assemblage rolling/FAT16/MSC,
+  vérifie les paquets de données, la sous-alimentation et une nouvelle session
+  après progression du producteur et bouclage de la fenêtre : PASS.
+- Exemples README exécutables FAT16/rolling et exemple MSC compilé par rustdoc : PASS.
+- Tests et Clippy strict de MSC avec `usb-debug` : PASS.
+- Clippy strict `--all-targets` des quatre crates, Rustfmt global et `git diff --check` : PASS.
+- Fixture golden : empreinte identique à celle de l'inventaire.
+- Comparaison des quatre implémentations avec la source : identiques hors
+  espaces/formatage et écarts listés ci-dessous ; les assertions historiques restent.
+
+Écarts sans changement de politique : `is_multiple_of` remplace les modulos
+équivalents (Clippy stable), `as_chunks` remplace `chunks_exact` dans le test FAT,
+`State::default()` délègue à `new()`, et les READMEs sont inclus dans rustdoc.
+Les nouveaux tests et les dépendances FAT/rolling/embassy-futures de MSC sont
+uniquement des dépendances de développement. Les chemins workspace et la CI
+sont ceux du nouveau dépôt ; aucune infrastructure de l'ancien framework n'est portée.
+
+Le lot portable fournit les briques ; l'adaptateur S3 est livré dans une PR séparée.
+La qualification USB physique et le portage de StreamBeWI restent à réaliser.
