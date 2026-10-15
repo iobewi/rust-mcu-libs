@@ -17,6 +17,9 @@ struct Traffic {
     input: VecDeque<Result<Vec<u8>, EndpointError>>,
     output: Vec<Vec<u8>>,
     enables: usize,
+    /// Number of OUT reads the class has issued, and a hook called before each one is answered.
+    reads: usize,
+    on_read: Option<Box<dyn FnMut(usize)>>,
 }
 type Shared = Rc<RefCell<Traffic>>;
 struct FakeDriver(Shared);
@@ -34,12 +37,15 @@ impl Endpoint for FakeEndpoint {
 }
 impl EndpointOut for FakeEndpoint {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, EndpointError> {
-        let packet = self
-            .traffic
-            .borrow_mut()
-            .input
-            .pop_front()
-            .expect("script exhausted")?;
+        let packet = {
+            let mut traffic = self.traffic.borrow_mut();
+            let index = traffic.reads;
+            traffic.reads += 1;
+            if let Some(hook) = traffic.on_read.as_mut() {
+                hook(index);
+            }
+            traffic.input.pop_front().expect("script exhausted")?
+        };
         assert!(packet.len() <= buf.len());
         buf[..packet.len()].copy_from_slice(&packet);
         Ok(packet.len())
@@ -644,4 +650,53 @@ fn bus_reset_while_waiting_abandons_the_command_and_serves_the_next_one() {
     assert_eq!(shared.borrow().output, vec![csw(2, 0, 0)]);
     assert_eq!(disk.events, ["begin", "read:0", "end", "begin", "end"]);
     assert_eq!(policy.waits, 1);
+}
+
+/// A bus reset that happened before a command must not abandon that command: the host reset the bus
+/// and then sent the command on the new bus. Only a reset during the command's own wait counts.
+#[test]
+fn a_bus_reset_before_a_command_does_not_abandon_it() {
+    use std::sync::atomic::Ordering;
+    let shared = Rc::new(RefCell::new(Traffic {
+        input: VecDeque::from([
+            Ok(read(1, 512, 0, 1)),
+            Ok(read(2, 512, 1, 1)),
+            Err(EndpointError::BufferOverflow),
+        ]),
+        ..Default::default()
+    }));
+    // Everything lives for the whole test so that the hook can hold the class's reset counter.
+    let state: &'static mut State<'static> = Box::leak(Box::new(State::new()));
+    let config: &'static mut [u8; 256] = Box::leak(Box::new([0; 256]));
+    let bos: &'static mut [u8; 256] = Box::leak(Box::new([0; 256]));
+    let msos: &'static mut [u8; 256] = Box::leak(Box::new([0; 256]));
+    let control: &'static mut [u8; 64] = Box::leak(Box::new([0; 64]));
+    let mut builder = Builder::new(
+        FakeDriver(shared.clone()),
+        Config::new(0x1234, 0x5678),
+        config,
+        bos,
+        msos,
+        control,
+    );
+    let mut class = MscClass::new(&mut builder, state, ID);
+    let _usb = builder.build();
+    let counter = class.bus_reset_counter();
+    // The host resets the bus after the first command and before it sends the second one.
+    shared.borrow_mut().on_read = Some(Box::new(move |index| {
+        if index == 1 {
+            counter.fetch_add(1, Ordering::Relaxed);
+        }
+    }));
+    let mut disk = Disk {
+        last: 100,
+        ..Default::default()
+    };
+    let result = block_on(class.run(&mut disk, &mut Policy::default()));
+    assert_eq!(result, Err(Error::Endpoint(EndpointError::BufferOverflow)));
+    // Both commands were served, in one session: nothing was abandoned.
+    let out = &shared.borrow().output;
+    assert_eq!(out.iter().filter(|p| p.starts_with(b"USBS")).count(), 2);
+    assert!(out.contains(&csw(2, 0, 0)));
+    assert_eq!(disk.events, ["begin", "read:0", "read:1", "end"]);
 }

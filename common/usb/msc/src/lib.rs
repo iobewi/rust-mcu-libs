@@ -299,7 +299,6 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
         total_sectors: u32,
     ) -> Result<(), EndpointError> {
         let mut packet = [0u8; 64];
-        let resets_at_start = self.resets.load(Ordering::Relaxed);
         // (sense key, ASC) of the last failed command, reported once by REQUEST SENSE.
         let mut sense = (0u8, 0u8);
         // Diagnostics: non-READ(10) commands are not otherwise visible in the log.
@@ -395,6 +394,9 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
                     } else {
                         let mut sector = [0u8; SECTOR_SIZE];
                         let mut sent_total = 0u32;
+                        // The reference is this command's own: a reset that happened before it (the
+                        // host then sent this command on the new bus) must not abandon it.
+                        let resets_at_command = self.resets.load(Ordering::Relaxed);
                         policy.command_started();
 
                         for block in 0..blocks {
@@ -417,7 +419,7 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
                                         match policy.unavailable(status, waiting_since.elapsed()) {
                                             ReadAction::RetryAfter(delay) => {
                                                 Timer::after(delay).await;
-                                                self.abandon_on_bus_reset(resets_at_start)?;
+                                                self.abandon_on_bus_reset(resets_at_command)?;
                                             }
                                             ReadAction::ZeroFill => break,
                                         }
@@ -427,7 +429,7 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
 
                             // A reset while waiting re-enabled the endpoints in a new
                             // configuration: do not push this command's data into it.
-                            self.abandon_on_bus_reset(resets_at_start)?;
+                            self.abandon_on_bus_reset(resets_at_command)?;
                             self.write_bytes(&sector).await?;
                             sent_total += SECTOR_SIZE as u32;
                         }
@@ -451,8 +453,8 @@ impl<'d, D: Driver<'d>> MscClass<'d, D> {
         }
     }
 
-    fn abandon_on_bus_reset(&self, resets_at_start: u32) -> Result<(), EndpointError> {
-        if self.resets.load(Ordering::Relaxed) == resets_at_start {
+    fn abandon_on_bus_reset(&self, resets_at_command: u32) -> Result<(), EndpointError> {
+        if self.resets.load(Ordering::Relaxed) == resets_at_command {
             Ok(())
         } else {
             log::info!("msc: bus reset during a command: abandoning it");

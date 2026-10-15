@@ -81,6 +81,8 @@ command and re-enumerated, the endpoints are enabled again in the new configurat
 old command's data and status there would desynchronise the new session and keep the class from
 reading the host's next command. The session ends as for an endpoint disable and restarts.
 Commands waiting on an endpoint are not affected: the endpoint returns `Disabled` by itself.
+The reference count is taken **per command**, as the command starts: a reset that happened before it (the
+host then sent the command on the new bus) does not abandon it.
 
 ## Known limitations
 
