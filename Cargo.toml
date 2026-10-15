@@ -1,5 +1,9 @@
 [workspace]
 members = [
+  "common/fs/block",
+  "common/fs/fat16",
+  "common/stream/rolling",
+  "common/usb/msc",
     "examples/firmware/ota-supervised/component",
     "examples/firmware/ota-supervised",
     "common/firmware/component/abi",
