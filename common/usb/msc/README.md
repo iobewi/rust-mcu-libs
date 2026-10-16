@@ -40,6 +40,11 @@ product, 4-byte revision). No identity is baked into the service.
 before the first read of each sector. `ZeroFill` sends the block contract's
 zero-filled sector and preserves successful-command semantics. No default retry,
 poll interval, timeout or stale-data policy is supplied.
+`ReadPolicy::command_started()` (default: no-op) is called once at the start of every
+READ(10) that passes the range check, before its first sector. A policy that must bound the wait
+of a whole command, because the host aborts a command after its own timeout whatever the number
+of sectors it asked for, records the instant there and applies its budget to the command instead
+of to each sector. `elapsed` keeps its per-sector meaning for policies that do not use it.
 
 `run` returns `Error::UnsupportedCapacity` before starting any session if the
 inclusive last LBA is `u32::MAX`, since READ FORMAT CAPACITIES cannot represent
@@ -67,6 +72,17 @@ Run `cargo fmt -p iobewi-usb-msc --check`, `cargo check -p iobewi-usb-msc` and
 supported capacity boundary; fake-driver consumer dialogues exercise actual endpoint
 traffic and session callbacks. Supported-target compilation and physical USB-host evidence are required for
 complete qualification.
+
+## Bus reset during a command
+
+The class handler counts USB bus resets (`MscClass::bus_reset_counter`). A READ(10) that is
+waiting for data when the host resets the bus is abandoned at once: the host has abandoned that
+command and re-enumerated, the endpoints are enabled again in the new configuration, and pushing the
+old command's data and status there would desynchronise the new session and keep the class from
+reading the host's next command. The session ends as for an endpoint disable and restarts.
+Commands waiting on an endpoint are not affected: the endpoint returns `Disabled` by itself.
+The reference count is taken **per command**, as the command starts: a reset that happened before it (the
+host then sent the command on the new bus) does not abandon it.
 
 ## Known limitations
 
