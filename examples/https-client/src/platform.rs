@@ -5,28 +5,62 @@ use core::sync::atomic::{AtomicU8, Ordering};
 
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 use embassy_time::{Duration, Instant, Timer, with_timeout};
 use embedded_io_async::Read;
 use esp_hal::timer::timg::TimerGroup;
 use example_https_client::{Expect, Failure, judge};
+use iobewi_config_space::storage::{EkvBackend, SpaceSpec, Store};
+use iobewi_config_space::{ConfigManager, ConfigSpace};
+use iobewi_esp_config_space::EspConfigFlash;
 use iobewi_esp_tls::embassy::{ClientConnectError, EspTlsDialer};
 use iobewi_esp_tls::mbedtls_rs::SessionError;
-use iobewi_esp_wifi::WifiManager;
 use iobewi_http_client::{Target, get, read_head};
 use iobewi_net_io::{Close, Connector};
 use iobewi_tls_roots as roots;
 use iobewi_tls_service::client::{ClientTlsError, StaticTrustConnector};
+use iobewi_wifi_manager::{LinkObserver, Sleep, WifiManager};
 use static_cell::StaticCell;
 
-/// The heap of StreamBeWI's firmware (`HEAP_BYTES`): the budget this client has to fit in.
-const HEAP_BYTES: usize = 96 * 1024;
+/// The heap of this run. 96 KiB is StreamBeWI's `HEAP_BYTES`, the budget this client has to
+/// fit in: the board run showed it does not (see README). Set at build time to measure the
+/// need: `IOBEWI_HEAP_KIB=192`.
+const HEAP_BYTES: usize = match option_env!("IOBEWI_HEAP_KIB") {
+    Some(kib) => parse_kib(kib) * 1024,
+    None => 96 * 1024,
+};
+
+const fn parse_kib(text: &str) -> usize {
+    let bytes = text.as_bytes();
+    let mut value = 0;
+    let mut i = 0;
+    while i < bytes.len() {
+        value = value * 10 + (bytes[i] - b'0') as usize;
+        i += 1;
+    }
+    value
+}
 const SOCKETS: usize = 5; // DHCP, DNS, SNTP, the HTTPS connection, one spare.
 
-const SSID: Option<&str> = option_env!("IOBEWI_STA_SSID");
-const PASSWORD: Option<&str> = option_env!("IOBEWI_STA_PASSWORD");
+/// The configuration manifest of the StreamBeWI board this is qualified on.
+///
+/// `Store::mount` checks the stored records against the manifest, so the region
+/// of a board already in service mounts only with its complete manifest. The
+/// example never formats: a blank or unmountable region stops it. The Wi-Fi
+/// credentials are the ones that region holds (provisioned with Improv Serial);
+/// none is built into the image.
+const SPACES: &[SpaceSpec] = &[
+    SpaceSpec::new("stations", 4096),
+    SpaceSpec::new("wifi", iobewi_wifi_manager::CONFIG_BUDGET.max_bytes()),
+    SpaceSpec::new("usb_boot", 5),
+    SpaceSpec::new("log", 1024),
+];
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 const READ_TIMEOUT: Duration = Duration::from_secs(8);
+/// The server the product streams from. Everything that needs a *valid* chain uses it, so that
+/// the public test site below is hit only by the cases that need a faulty certificate.
+const RADIO: &str = "https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3";
 const UA: &str = "iobewi-https-client/0.1";
 
 /// 2026-01-01T00:00:00Z: an SNTP answer below it is not a clock.
@@ -280,15 +314,8 @@ async fn qualify(stack: Stack<'static>, spawner: Spawner) {
         1024,
     )
     .await;
-    t.scenario(
-        "valid-radio",
-        ok,
-        &full,
-        bufs,
-        "https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3",
-        128 * 1024,
-    )
-    .await;
+    t.scenario("valid-radio", ok, &full, bufs, RADIO, 128 * 1024)
+        .await;
 
     // Refusals. Same server as the control, one fault each.
     t.scenario(
@@ -328,40 +355,25 @@ async fn qualify(stack: Stack<'static>, spawner: Spawner) {
     )
     .await;
     CLOCK.store(CLOCK_FUTURE, Ordering::Relaxed);
-    t.scenario(
-        "expired-clock-2099",
-        refused,
-        &full,
-        bufs,
-        "https://badssl.com/",
-        0,
-    )
-    .await;
-    CLOCK.store(CLOCK_PAST, Ordering::Relaxed);
-    t.scenario(
-        "not-yet-valid-clock-2020",
-        refused,
-        &full,
-        bufs,
-        "https://badssl.com/",
-        0,
-    )
-    .await;
-    CLOCK.store(CLOCK_REAL, Ordering::Relaxed);
-    t.scenario("valid-again", ok, &full, bufs, "https://badssl.com/", 1024)
+    t.scenario("expired-clock-2099", refused, &full, bufs, RADIO, 0)
         .await;
+    CLOCK.store(CLOCK_PAST, Ordering::Relaxed);
+    t.scenario("not-yet-valid-clock-2020", refused, &full, bufs, RADIO, 0)
+        .await;
+    CLOCK.store(CLOCK_REAL, Ordering::Relaxed);
+    t.scenario("valid-again", ok, &full, bufs, RADIO, 256).await;
 
     // Close and reconnect: the heap must come back to where it was.
     let before = esp_alloc::HEAP.stats().current_usage;
     for i in 0..10 {
         let mut name = String::from("reconnect-");
         name.push((b'0' + i) as char);
-        t.scenario(&name, ok, &full, bufs, "https://badssl.com/", 256)
-            .await;
+        t.scenario(&name, ok, &full, bufs, RADIO, 256).await;
     }
     let after = esp_alloc::HEAP.stats().current_usage;
     let drift = after as isize - before as isize;
-    let leak_ok = drift.unsigned_abs() <= 512;
+    // Only growth is a leak: the first handshakes warm caches and the usage may come down.
+    let leak_ok = drift <= 512;
     if leak_ok {
         t.pass += 1
     } else {
@@ -384,29 +396,109 @@ fn summary(t: &Tally) {
     );
 }
 
+struct Clock;
+impl Sleep for Clock {
+    async fn sleep_ms(&self, ms: u32) {
+        Timer::after(Duration::from_millis(ms.into())).await;
+    }
+}
+
+type Ready = Signal<NoopRawMutex, Stack<'static>>;
+
+struct Observer(&'static Ready);
+impl LinkObserver<Stack<'static>> for Observer {
+    fn ready(&mut self, network: Stack<'static>) {
+        log::info!("QUAL Wi-Fi ready");
+        self.0.signal(network);
+    }
+    fn link_down(&mut self) {
+        log::warn!("QUAL Wi-Fi link lost; the manager reconnects without reboot");
+    }
+}
+
+/// The Wi-Fi manager owns the transport for the whole run, in its own task: the
+/// reconnection (bounded backoff) is its job, not the example's. Composing it
+/// with the TLS handshakes in one task overflowed the S3 main stack (#72).
 #[embassy_executor::task]
-async fn main_task(wifi: esp_hal::peripherals::WIFI<'static>, spawner: Spawner) {
-    static RESOURCES: StaticCell<StackResources<SOCKETS>> = StaticCell::new();
-    let (Some(ssid), Some(password)) = (SSID, PASSWORD) else {
-        log::error!("set IOBEWI_STA_SSID and IOBEWI_STA_PASSWORD at build time");
-        return;
-    };
-    let mut manager =
-        WifiManager::<SOCKETS>::new(wifi, spawner, RESOURCES.init(StackResources::new()));
-    if !manager.connect(ssid, String::from(password)).await {
-        log::error!("Wi-Fi join failed");
+async fn wifi_task(
+    transport: iobewi_esp_wifi::WifiManager<SOCKETS>,
+    config: ConfigSpace<EkvBackend<'static, EspConfigFlash>>,
+    ready: &'static Ready,
+) {
+    if !iobewi_wifi_manager::is_provisioned(&config).await {
+        log::error!(
+            "QUAL no Wi-Fi credentials in the config partition: provision with Improv Serial"
+        );
         return;
     }
-    let Some(stack) = manager.network_handle() else {
-        log::error!("no network stack");
+    let mut manager = WifiManager::new(transport, config);
+    let result = manager.maintain(&Clock, &mut Observer(ready)).await;
+    log::error!("QUAL Wi-Fi manager stopped: {result:?}");
+}
+
+/// Proof of life and of the heap, every 5 s, from a task of its own.
+#[embassy_executor::task]
+async fn heartbeat() {
+    loop {
+        Timer::after(Duration::from_secs(5)).await;
+        crate::mem::report("alive");
+    }
+}
+
+#[embassy_executor::task]
+async fn main_task(
+    flash: esp_hal::peripherals::FLASH<'static>,
+    wifi: esp_hal::peripherals::WIFI<'static>,
+    spawner: Spawner,
+) {
+    spawner.spawn(heartbeat().unwrap());
+    crate::mem::report("task-start");
+    let shared = iobewi_esp_flash::init(flash);
+    let Ok(region) = EspConfigFlash::from_label(shared, "config").await else {
+        log::error!("QUAL config partition unavailable");
+        return;
+    };
+    match region.is_blank().await {
+        Ok(false) => {}
+        _ => {
+            log::error!("QUAL config partition blank or unreadable: refusing to format it");
+            return;
+        }
+    }
+    static STORE: StaticCell<Store<EspConfigFlash>> = StaticCell::new();
+    let Ok(store) = Store::new(region, esp_hal::rng::Rng::new().random(), SPACES) else {
+        log::error!("QUAL config manifest refused");
+        return;
+    };
+    let store = STORE.init(store);
+    crate::mem::report("store-new");
+    if let Err(error) = store.mount().await {
+        log::error!("QUAL config mount failed: {error:?}; not formatting");
+        return;
+    }
+    crate::mem::report("mounted");
+    let mut manager = ConfigManager::new(store.backend());
+    let Ok(wifi_space) = manager.claim("wifi", iobewi_wifi_manager::CONFIG_BUDGET) else {
+        log::error!("QUAL Wi-Fi config claim failed");
+        return;
+    };
+
+    static RESOURCES: StaticCell<StackResources<SOCKETS>> = StaticCell::new();
+    let transport = iobewi_esp_wifi::WifiManager::<SOCKETS>::new(
+        wifi,
+        spawner,
+        RESOURCES.init(StackResources::new()),
+    );
+    crate::mem::report("wifi-transport");
+    static READY: StaticCell<Ready> = StaticCell::new();
+    let ready = READY.init(Ready::new());
+    spawner.spawn(wifi_task(transport, wifi_space, ready).unwrap());
+    let Ok(stack) = with_timeout(Duration::from_secs(120), ready.wait()).await else {
+        log::error!("QUAL Wi-Fi not ready after 120 s");
         return;
     };
     stack.wait_config_up().await;
-    log::info!(
-        "QUAL net up ip={:?} heap={} KiB",
-        manager.ip(),
-        HEAP_BYTES / 1024
-    );
+    log::info!("QUAL net up heap={} KiB", HEAP_BYTES / 1024);
     qualify(stack, spawner).await;
     loop {
         Timer::after(Duration::from_secs(60)).await;
@@ -416,7 +508,8 @@ async fn main_task(wifi: esp_hal::peripherals::WIFI<'static>, spawner: Spawner) 
 
 pub fn boot() -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
-    iobewi_log::install(iobewi_esp_console::console_print, "example_https_client");
+    // The application target must be the binary's module path: other targets only log warnings.
+    iobewi_log::install(iobewi_esp_console::console_print, "https_client_esp32");
     esp_alloc::heap_allocator!(size: HEAP_BYTES);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
@@ -424,6 +517,6 @@ pub fn boot() -> ! {
     static EXECUTOR: StaticCell<esp_rtos::embassy::Executor> = StaticCell::new();
     let executor = EXECUTOR.init(esp_rtos::embassy::Executor::new());
     executor.run(|spawner: Spawner| {
-        spawner.spawn(main_task(peripherals.WIFI, spawner).unwrap());
+        spawner.spawn(main_task(peripherals.FLASH, peripherals.WIFI, spawner).unwrap());
     })
 }

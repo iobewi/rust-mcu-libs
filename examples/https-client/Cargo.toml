@@ -26,7 +26,11 @@ firmware = [
     "dep:iobewi-tls-service",
     "dep:iobewi-net-io",
     "dep:iobewi-http-client",
-    "dep:iobewi-wifi-core",
+    "dep:iobewi-wifi-manager",
+    "dep:iobewi-config-space",
+    "dep:iobewi-esp-config-space",
+    "dep:iobewi-esp-flash",
+    "dep:embassy-sync",
     "dep:esp-hal",
     "dep:esp-radio",
     "dep:esp-rtos",
@@ -48,6 +52,8 @@ esp32s3 = [
     "iobewi-esp-wifi/esp32s3",
     "iobewi-esp-console/esp32s3",
     "iobewi-esp-tls/esp32s3",
+    "iobewi-esp-config-space/esp32s3",
+    "iobewi-esp-flash/esp32s3",
 ]
 # What the TLS stack is built with. Each is a measurement axis, see README.
 rsa = ["iobewi-esp-tls?/rsa"]
@@ -67,7 +73,11 @@ iobewi-ntp = { path = "../../common/time/ntp", optional = true }
 iobewi-tls-service = { path = "../../common/net/tls/service", optional = true }
 iobewi-net-io = { path = "../../common/net/io", optional = true }
 iobewi-http-client = { path = "../../common/net/http/client", optional = true }
-iobewi-wifi-core = { path = "../../common/net/wifi/core", optional = true }
+iobewi-wifi-manager = { path = "../../common/net/wifi/manager", optional = true }
+iobewi-config-space = { path = "../../common/config/space", optional = true }
+iobewi-esp-config-space = { path = "../../arch/esp32/config/space", optional = true }
+iobewi-esp-flash = { path = "../../arch/esp32/flash", optional = true }
+embassy-sync = { version = "0.8.0", optional = true }
 esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"], optional = true }
 esp-rtos = { version = "=0.4.0", default-features = false, features = ["embassy", "esp-radio", "esp-alloc"], optional = true }
 esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "unstable"], optional = true }
