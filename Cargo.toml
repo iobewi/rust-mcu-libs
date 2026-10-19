@@ -38,6 +38,7 @@ members = [
   "common/crypto/core",
   "common/crypto/rng",
   "common/net/tls/core",
+  "common/net/tls/roots",
   "common/net/http/server",
   "common/net/io",
   "common/net/http/client",
