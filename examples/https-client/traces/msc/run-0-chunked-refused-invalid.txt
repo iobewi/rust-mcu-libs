@@ -1,0 +1,1500 @@
+# INVALID run kept as evidence: the first HTTPS path refused Transfer-Encoding: chunked, no data entered the window.
+[bench] MARK Q21-PHASE-P1-ref-http
+[bench] http POST /api/stations/select sent, answered in 75 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=58 sectors=464 max_sector_gap_ms=251 gaps_gt100ms=57 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=78 sectors=624 max_sector_gap_ms=253 gaps_gt100ms=77 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=98 sectors=784 max_sector_gap_ms=254 gaps_gt100ms=97 max_cmd_gap_ms=254 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=118 sectors=944 max_sector_gap_ms=252 gaps_gt100ms=117 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=138 sectors=1104 max_sector_gap_ms=252 gaps_gt100ms=137 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=158 sectors=1264 max_sector_gap_ms=251 gaps_gt100ms=157 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=178 sectors=1424 max_sector_gap_ms=252 gaps_gt100ms=177 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=198 sectors=1584 max_sector_gap_ms=253 gaps_gt100ms=197 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=218 sectors=1744 max_sector_gap_ms=251 gaps_gt100ms=217 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=238 sectors=1904 max_sector_gap_ms=251 gaps_gt100ms=237 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=258 sectors=2064 max_sector_gap_ms=252 gaps_gt100ms=257 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: live=1280123 consumed=1200251 lead=79872
+INFO - streambewi::stream: qual: dropping the connection after 60 s
+INFO - streambewi::stream: stream: connecting attempt=3 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=278 sectors=2224 max_sector_gap_ms=254 gaps_gt100ms=277 max_cmd_gap_ms=254 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=298 sectors=2384 max_sector_gap_ms=251 gaps_gt100ms=297 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=15 | msc: cmds=318 sectors=2544 max_sector_gap_ms=253 gaps_gt100ms=317 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=338 sectors=2704 max_sector_gap_ms=254 gaps_gt100ms=337 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=358 sectors=2864 max_sector_gap_ms=250 gaps_gt100ms=357 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=378 sectors=3024 max_sector_gap_ms=251 gaps_gt100ms=377 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=398 sectors=3184 max_sector_gap_ms=253 gaps_gt100ms=397 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=418 sectors=3344 max_sector_gap_ms=250 gaps_gt100ms=417 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=14 | msc: cmds=438 sectors=3504 max_sector_gap_ms=250 gaps_gt100ms=437 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=458 sectors=3664 max_sector_gap_ms=250 gaps_gt100ms=457 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=478 sectors=3824 max_sector_gap_ms=252 gaps_gt100ms=477 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=498 sectors=3984 max_sector_gap_ms=250 gaps_gt100ms=497 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: live=2287739 consumed=2207867 lead=79872
+INFO - streambewi::stream: qual: dropping the connection after 60 s
+INFO - streambewi::stream: stream: connecting attempt=4 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=518 sectors=4144 max_sector_gap_ms=253 gaps_gt100ms=517 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=538 sectors=4304 max_sector_gap_ms=251 gaps_gt100ms=537 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=16 | msc: cmds=558 sectors=4464 max_sector_gap_ms=254 gaps_gt100ms=557 max_cmd_gap_ms=254 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=578 sectors=4624 max_sector_gap_ms=259 gaps_gt100ms=577 max_cmd_gap_ms=259 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=599 sectors=4792 max_sector_gap_ms=265 gaps_gt100ms=598 max_cmd_gap_ms=265 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=619 sectors=4952 max_sector_gap_ms=250 gaps_gt100ms=618 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=639 sectors=5112 max_sector_gap_ms=251 gaps_gt100ms=638 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=659 sectors=5272 max_sector_gap_ms=250 gaps_gt100ms=658 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=19 | msc: cmds=679 sectors=5432 max_sector_gap_ms=251 gaps_gt100ms=678 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=699 sectors=5592 max_sector_gap_ms=253 gaps_gt100ms=698 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=719 sectors=5752 max_sector_gap_ms=253 gaps_gt100ms=718 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=739 sectors=5912 max_sector_gap_ms=251 gaps_gt100ms=738 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: live=3295355 consumed=3215483 lead=79872
+INFO - streambewi::stream: qual: dropping the connection after 60 s
+INFO - streambewi::stream: stream: connecting attempt=5 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=759 sectors=6072 max_sector_gap_ms=251 gaps_gt100ms=758 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=779 sectors=6232 max_sector_gap_ms=252 gaps_gt100ms=778 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=19 | msc: cmds=799 sectors=6392 max_sector_gap_ms=251 gaps_gt100ms=798 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=819 sectors=6552 max_sector_gap_ms=251 gaps_gt100ms=818 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=839 sectors=6712 max_sector_gap_ms=251 gaps_gt100ms=838 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=859 sectors=6872 max_sector_gap_ms=255 gaps_gt100ms=858 max_cmd_gap_ms=255 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=879 sectors=7032 max_sector_gap_ms=252 gaps_gt100ms=878 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=899 sectors=7192 max_sector_gap_ms=250 gaps_gt100ms=898 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 98688 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=919 sectors=7352 max_sector_gap_ms=260 gaps_gt100ms=918 max_cmd_gap_ms=260 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=939 sectors=7512 max_sector_gap_ms=251 gaps_gt100ms=938 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=959 sectors=7672 max_sector_gap_ms=250 gaps_gt100ms=958 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=979 sectors=7832 max_sector_gap_ms=250 gaps_gt100ms=978 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=999 sectors=7992 max_sector_gap_ms=250 gaps_gt100ms=998 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: live=4323343 consumed=4243579 lead=79764
+INFO - streambewi::stream: qual: dropping the connection after 60 s
+INFO - streambewi::stream: stream: connecting attempt=6 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=1019 sectors=8152 max_sector_gap_ms=250 gaps_gt100ms=1018 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 96984 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=1039 sectors=8312 max_sector_gap_ms=251 gaps_gt100ms=1038 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=1059 sectors=8472 max_sector_gap_ms=252 gaps_gt100ms=1058 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=1079 sectors=8632 max_sector_gap_ms=250 gaps_gt100ms=1078 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=1099 sectors=8792 max_sector_gap_ms=252 gaps_gt100ms=1098 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=1119 sectors=8952 max_sector_gap_ms=250 gaps_gt100ms=1118 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=1139 sectors=9112 max_sector_gap_ms=251 gaps_gt100ms=1138 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 68004 min_free 87660; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=19 | msc: cmds=1159 sectors=9272 max_sector_gap_ms=251 gaps_gt100ms=1158 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=1179 sectors=9432 max_sector_gap_ms=252 gaps_gt100ms=1178 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=1199 sectors=9592 max_sector_gap_ms=252 gaps_gt100ms=1198 max_cmd_gap_ms=252 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=1219 sectors=9752 max_sector_gap_ms=251 gaps_gt100ms=1218 max_cmd_gap_ms=251 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=1239 sectors=9912 max_sector_gap_ms=250 gaps_gt100ms=1238 max_cmd_gap_ms=250 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: live=5330999 consumed=5251195 lead=79804
+INFO - streambewi::stream: qual: dropping the connection after 60 s
+INFO - streambewi::stream: stream: connecting attempt=7 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+[bench] MARK Q21-PHASE-P2-https-initial
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=1259 sectors=10072 max_sector_gap_ms=254 gaps_gt100ms=1258 max_cmd_gap_ms=254 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: station: switching, disk off the bus (live=5369955)
+[bench] http POST /api/stations/select sent, answered in 80 ms
+INFO - streambewi::stream: stream: session end consumed=0 live=5369955
+INFO - streambewi::stream: stream: session start live=5369955
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::stream: station: selection persisted=true in 60 ms
+INFO - streambewi::stream: stream: connecting attempt=8 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 520 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73756 free 8164
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36852 free 36892
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 129304 min_free 26360; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=266 | msc: cmds=1278 sectors=10216 max_sector_gap_ms=331 gaps_gt100ms=1276 max_cmd_gap_ms=331 pending=82 zerofill=0 stalls=82 | tls: connects=1 max_connect_poll_ms=264 max_connect_total_ms=520 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+INFO - streambewi::stream: stream: connecting attempt=9 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5076 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5077 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5079 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5085 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5092 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5099 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5105 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5112 ms
+INFO - streambewi::stream: stream: TLS up in 591 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=265 | msc: cmds=1279 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5119 pending=986 zerofill=8 stalls=986 | tls: connects=2 max_connect_poll_ms=266 max_connect_total_ms=591 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5077 waits_gt1s=1
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=36 | msc: cmds=1280 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=1966 zerofill=16 stalls=1966 | tls: connects=2 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=2
+INFO - streambewi::stream: stream: connecting attempt=10 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 527 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=267 | msc: cmds=1281 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=2853 zerofill=24 stalls=2853 | tls: connects=3 max_connect_poll_ms=264 max_connect_total_ms=527 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=3
+INFO - streambewi::stream: stream: connecting attempt=11 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 524 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=269 | msc: cmds=1282 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=3739 zerofill=32 stalls=3739 | tls: connects=4 max_connect_poll_ms=266 max_connect_total_ms=524 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=4
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=35 | msc: cmds=1283 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=4719 zerofill=40 stalls=4719 | tls: connects=4 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=5
+INFO - streambewi::stream: stream: connecting attempt=12 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 547 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 75500 free 6420
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36812 free 36932
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 112312 free 41648 max_used 135352 min_free 20312; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=273 | msc: cmds=1284 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=5586 zerofill=48 stalls=5586 | tls: connects=5 max_connect_poll_ms=266 max_connect_total_ms=547 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=6
+INFO - streambewi::stream: stream: connecting attempt=13 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 527 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=270 | msc: cmds=1285 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=6464 zerofill=56 stalls=6464 | tls: connects=6 max_connect_poll_ms=270 max_connect_total_ms=527 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=7
+INFO - streambewi::stream: stream: connecting attempt=14 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5021 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5021 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5043 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5050 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5057 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=105 | msc: cmds=1286 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5064 pending=7404 zerofill=64 stalls=7404 | tls: connects=6 max_connect_poll_ms=99 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5021 waits_gt1s=8
+INFO - streambewi::stream: stream: TLS up in 604 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=271 | msc: cmds=1287 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=8322 zerofill=72 stalls=8322 | tls: connects=7 max_connect_poll_ms=269 max_connect_total_ms=604 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=9
+INFO - streambewi::stream: stream: connecting attempt=15 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 543 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1288 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=9203 zerofill=80 stalls=9203 | tls: connects=8 max_connect_poll_ms=270 max_connect_total_ms=543 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=10
+INFO - streambewi::stream: stream: connecting attempt=16 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 536 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=265 | msc: cmds=1289 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=10079 zerofill=88 stalls=10079 | tls: connects=9 max_connect_poll_ms=266 max_connect_total_ms=536 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=11
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73796 free 8124
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36812 free 36932
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 135352 min_free 20312; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=14 | msc: cmds=1289 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=0 pending=11053 zerofill=88 stalls=11053 | tls: connects=9 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=11
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5046 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5052 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5059 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5066 ms
+INFO - streambewi::stream: stream: connecting attempt=17 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 534 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=271 | msc: cmds=1290 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5073 pending=11927 zerofill=96 stalls=11927 | tls: connects=10 max_connect_poll_ms=269 max_connect_total_ms=534 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5026 waits_gt1s=12
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::stream: stream: connecting attempt=18 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 551 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=271 | msc: cmds=1291 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=12805 zerofill=104 stalls=12805 | tls: connects=11 max_connect_poll_ms=271 max_connect_total_ms=551 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=13
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=19 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=33 | msc: cmds=1292 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=13776 zerofill=112 stalls=13776 | tls: connects=11 max_connect_poll_ms=22 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=14
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5093 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5094 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5096 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5102 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5109 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5116 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5122 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5129 ms
+INFO - streambewi::stream: stream: TLS up in 598 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=267 | msc: cmds=1293 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5136 pending=14660 zerofill=120 stalls=14660 | tls: connects=12 max_connect_poll_ms=269 max_connect_total_ms=598 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5094 waits_gt1s=15
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5008 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5008 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5044 ms
+INFO - streambewi::stream: stream: connecting attempt=20 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 531 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1294 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5051 pending=15534 zerofill=128 stalls=15534 | tls: connects=13 max_connect_poll_ms=269 max_connect_total_ms=531 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5008 waits_gt1s=16
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: connecting attempt=21 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 548 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73796 free 8124
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36812 free 36932
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 135352 min_free 20312; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=270 | msc: cmds=1295 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=16410 zerofill=136 stalls=16410 | tls: connects=14 max_connect_poll_ms=267 max_connect_total_ms=548 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=17
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=33 | msc: cmds=1296 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=17385 zerofill=144 stalls=17385 | tls: connects=14 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=18
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=22 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 540 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1297 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=18261 zerofill=152 stalls=18261 | tls: connects=15 max_connect_poll_ms=270 max_connect_total_ms=540 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=19
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: connecting attempt=23 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 533 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=269 | msc: cmds=1298 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=19141 zerofill=160 stalls=19141 | tls: connects=16 max_connect_poll_ms=265 max_connect_total_ms=533 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=20
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=41 | msc: cmds=1299 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=20118 zerofill=168 stalls=20118 | tls: connects=16 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=21
+INFO - streambewi::stream: stream: connecting attempt=24 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 546 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5075 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5076 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5079 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5085 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5092 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5099 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5105 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5112 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=265 | msc: cmds=1300 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5119 pending=20997 zerofill=176 stalls=20997 | tls: connects=17 max_connect_poll_ms=267 max_connect_total_ms=546 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5076 waits_gt1s=22
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: connecting attempt=25 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 534 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73796 free 8124
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36812 free 36932
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 135352 min_free 20312; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=268 | msc: cmds=1301 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=21869 zerofill=184 stalls=21869 | tls: connects=18 max_connect_poll_ms=270 max_connect_total_ms=534 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=23
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::stream: stream: connecting attempt=26 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 538 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=265 | msc: cmds=1302 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=22751 zerofill=192 stalls=22751 | tls: connects=19 max_connect_poll_ms=265 max_connect_total_ms=538 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=24
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=42 | msc: cmds=1303 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=23724 zerofill=200 stalls=23724 | tls: connects=19 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=25
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::stream: stream: connecting attempt=27 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 544 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=266 | msc: cmds=1304 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=24604 zerofill=208 stalls=24604 | tls: connects=20 max_connect_poll_ms=268 max_connect_total_ms=544 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=26
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::stream: stream: connecting attempt=28 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 530 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1305 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=25487 zerofill=216 stalls=25487 | tls: connects=21 max_connect_poll_ms=270 max_connect_total_ms=530 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=27
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=32 | msc: cmds=1306 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=26462 zerofill=224 stalls=26462 | tls: connects=21 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=28
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=29 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 529 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73796 free 8124
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36812 free 36932
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=273 | msc: cmds=1307 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=27336 zerofill=232 stalls=27336 | tls: connects=22 max_connect_poll_ms=265 max_connect_total_ms=529 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=29
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=30 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 534 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=273 | msc: cmds=1308 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=28217 zerofill=240 stalls=28217 | tls: connects=23 max_connect_poll_ms=271 max_connect_total_ms=534 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=30
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=35 | msc: cmds=1309 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=29191 zerofill=248 stalls=29191 | tls: connects=23 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=31
+INFO - streambewi::stream: stream: connecting attempt=31 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 530 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1310 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=30069 zerofill=256 stalls=30069 | tls: connects=24 max_connect_poll_ms=270 max_connect_total_ms=530 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=32
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: connecting attempt=32 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 539 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=269 | msc: cmds=1311 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=30947 zerofill=264 stalls=30947 | tls: connects=25 max_connect_poll_ms=269 max_connect_total_ms=539 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=33
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::stream: stream: connecting attempt=33 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 554 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=268 | msc: cmds=1312 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=31823 zerofill=272 stalls=31823 | tls: connects=26 max_connect_poll_ms=266 max_connect_total_ms=554 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5005 waits_gt1s=34
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+[bench] MARK Q21-PHASE-P3-alternation
+INFO - streambewi::stream: station: switching, disk off the bus (live=5369955)
+INFO - streambewi::stream: station: selection persisted=true in 132 ms
+INFO - streambewi::stream: stream: connecting attempt=34 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::usb: usb: stall cycle superseded by a station change
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 232 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::stream: station: disk back after 1500 ms (live=5462187)
+TRACE - embassy_usb: usb: suspend
+INFO - streambewi::usb: usb: suspended=true
+INFO - streambewi::usb: usb: stream back, rejoining the bus
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=154 | msc: cmds=1313 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=32746 zerofill=280 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=35
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=47 | msc: cmds=1314 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5057 pending=33706 zerofill=288 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=36
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=43 | msc: cmds=1315 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=34669 zerofill=296 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=37
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=34 | msc: cmds=1316 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=35633 zerofill=304 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=38
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=43 | msc: cmds=1317 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=36592 zerofill=312 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=39
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=36 | msc: cmds=1318 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=37555 zerofill=320 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=40
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=37 | msc: cmds=1319 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=38509 zerofill=328 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=41
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=36 | msc: cmds=1320 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=39469 zerofill=336 stalls=32265 | tls: connects=26 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=42
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5008 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5014 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5021 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5028 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5034 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5041 ms
+INFO - streambewi::stream: station: switching, disk off the bus (live=6087163)
+INFO - streambewi::stream: station: selection persisted=true in 62 ms
+INFO - streambewi::stream: stream: connecting attempt=35 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 244 ms
+INFO - streambewi::stream: stream: TLS up in 536 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=268 | msc: cmds=1321 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5049 pending=40327 zerofill=344 stalls=32686 | tls: connects=27 max_connect_poll_ms=265 max_connect_total_ms=536 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=5006 waits_gt1s=43
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::stream: stream: connecting attempt=36 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 527 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=270 | msc: cmds=1322 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5056 pending=41213 zerofill=352 stalls=33572 | tls: connects=28 max_connect_poll_ms=268 max_connect_total_ms=527 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=44
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=40 | msc: cmds=1323 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=42188 zerofill=360 stalls=34547 | tls: connects=28 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=45
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: connecting attempt=37 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 530 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1324 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=43068 zerofill=368 stalls=35427 | tls: connects=29 max_connect_poll_ms=269 max_connect_total_ms=530 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=46
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::stream: stream: connecting attempt=38 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=91 | msc: cmds=1325 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=44012 zerofill=376 stalls=36371 | tls: connects=29 max_connect_poll_ms=97 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=47
+INFO - streambewi::stream: stream: TLS up in 578 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=274 | msc: cmds=1326 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=44928 zerofill=384 stalls=37287 | tls: connects=30 max_connect_poll_ms=270 max_connect_total_ms=578 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=48
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: connecting attempt=39 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 537 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=276 | msc: cmds=1327 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=45807 zerofill=392 stalls=38166 | tls: connects=31 max_connect_poll_ms=273 max_connect_total_ms=537 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=49
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::stream: stream: connecting attempt=40 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 530 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=272 | msc: cmds=1328 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=46688 zerofill=400 stalls=39047 | tls: connects=32 max_connect_poll_ms=269 max_connect_total_ms=530 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=50
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: station: switching, disk off the bus (live=6087163)
+INFO - streambewi::stream: station: selection persisted=true in 297 ms
+INFO - streambewi::stream: stream: connecting attempt=41 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::usb: usb: stall cycle superseded by a station change
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 394 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::stream: station: disk back after 1500 ms (live=6172835)
+TRACE - embassy_usb: usb: suspend
+INFO - streambewi::usb: usb: suspended=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=319 | msc: cmds=1329 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=47582 zerofill=408 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=51
+INFO - streambewi::usb: usb: stream back, rejoining the bus
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=44 | msc: cmds=1330 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5058 pending=48543 zerofill=416 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=52
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=41 | msc: cmds=1331 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=49504 zerofill=424 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=53
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=37 | msc: cmds=1332 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=50468 zerofill=432 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=54
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=42 | msc: cmds=1333 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=51435 zerofill=440 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=55
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=33 | msc: cmds=1334 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=52401 zerofill=448 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=56
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=41 | msc: cmds=1335 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=53362 zerofill=456 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=57
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=41 | msc: cmds=1336 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=54328 zerofill=464 stalls=39858 | tls: connects=32 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=58
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::stream: station: switching, disk off the bus (live=6815090)
+INFO - streambewi::stream: station: selection persisted=true in 63 ms
+INFO - streambewi::stream: stream: connecting attempt=42 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=94 | msc: cmds=1337 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=55284 zerofill=472 stalls=39860 | tls: connects=32 max_connect_poll_ms=22 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=59
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 253 ms
+INFO - streambewi::stream: stream: TLS up in 541 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=270 | msc: cmds=1338 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5057 pending=56163 zerofill=480 stalls=40739 | tls: connects=33 max_connect_poll_ms=267 max_connect_total_ms=541 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=60
+INFO - streambewi::stream: stream: connecting attempt=43 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5096 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5096 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5098 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5105 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5111 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5118 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5125 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5131 ms
+INFO - streambewi::stream: stream: TLS up in 568 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=260 | msc: cmds=1339 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5138 pending=57044 zerofill=488 stalls=41620 | tls: connects=34 max_connect_poll_ms=265 max_connect_total_ms=568 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5096 waits_gt1s=61
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=44 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 533 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=264 | msc: cmds=1340 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=57931 zerofill=496 stalls=42507 | tls: connects=35 max_connect_poll_ms=268 max_connect_total_ms=533 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=62
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=41 | msc: cmds=1341 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=58910 zerofill=504 stalls=43486 | tls: connects=35 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=63
+INFO - streambewi::stream: stream: connecting attempt=45 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5041 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5048 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5055 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5061 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5068 ms
+INFO - streambewi::stream: stream: TLS up in 576 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=269 | msc: cmds=1342 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5076 pending=59790 zerofill=512 stalls=44366 | tls: connects=36 max_connect_poll_ms=265 max_connect_total_ms=576 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5033 waits_gt1s=64
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: connecting attempt=46 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 534 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73796 free 8124
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36812 free 36932
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=270 | msc: cmds=1343 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=60669 zerofill=520 stalls=45245 | tls: connects=37 max_connect_poll_ms=269 max_connect_total_ms=534 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=65
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=33 | msc: cmds=1344 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=61643 zerofill=528 stalls=46219 | tls: connects=37 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=66
+INFO - streambewi::stream: stream: connecting attempt=47 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 529 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=274 | msc: cmds=1345 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=62520 zerofill=536 stalls=47096 | tls: connects=38 max_connect_poll_ms=271 max_connect_total_ms=529 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=67
+INFO - streambewi::stream: station: switching, disk off the bus (live=6815090)
+INFO - streambewi::stream: station: selection persisted=true in 110 ms
+INFO - streambewi::stream: stream: connecting attempt=48 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::usb: usb: stall cycle superseded by a station change
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 198 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+INFO - streambewi::stream: station: disk back after 1500 ms (live=6908303)
+TRACE - embassy_usb: usb: suspend
+INFO - streambewi::usb: usb: suspended=true
+INFO - streambewi::usb: usb: stream back, rejoining the bus
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=122 | msc: cmds=1346 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5058 pending=63446 zerofill=544 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=68
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=38 | msc: cmds=1347 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=64411 zerofill=552 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=69
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=37 | msc: cmds=1348 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=65381 zerofill=560 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=70
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=33 | msc: cmds=1349 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=66346 zerofill=568 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=71
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=35 | msc: cmds=1350 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=67313 zerofill=576 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=72
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=34 | msc: cmds=1351 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=68284 zerofill=584 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=73
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=38 | msc: cmds=1352 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=69248 zerofill=592 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=74
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=38 | msc: cmds=1353 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=70218 zerofill=600 stalls=47299 | tls: connects=38 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=75
+[bench] MARK Q21-PHASE-P4-bad-certificate
+INFO - streambewi::stream: station: switching, disk off the bus (live=7557850)
+INFO - streambewi::stream: station: selection persisted=true in 45 ms
+INFO - streambewi::stream: stream: connecting attempt=49 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 204 ms
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5226 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5229 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5236 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5242 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5249 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5256 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5262 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5269 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=219 | msc: cmds=1354 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5288 pending=71090 zerofill=608 stalls=47692 | tls: connects=39 max_connect_poll_ms=222 max_connect_total_ms=482 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5229 waits_gt1s=76
+INFO - streambewi::stream: stream: connecting attempt=50 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=51 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 81624 free 296
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 24112 free 49632
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 105736 free 49928 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=222 | msc: cmds=1355 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=71900 zerofill=616 stalls=48502 | tls: connects=41 max_connect_poll_ms=221 max_connect_total_ms=478 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=77
+INFO - streambewi::stream: stream: connecting attempt=52 url=https://51.158.98.229/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5080 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5081 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5083 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5089 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5096 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5103 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5109 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5116 ms
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=220 | msc: cmds=1356 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5124 pending=72798 zerofill=624 stalls=49400 | tls: connects=42 max_connect_poll_ms=224 max_connect_total_ms=511 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5081 waits_gt1s=78
+INFO - streambewi::stream: stream: connecting attempt=53 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=54 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=222 | msc: cmds=1357 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=73680 zerofill=632 stalls=50282 | tls: connects=43 max_connect_poll_ms=222 max_connect_total_ms=456 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=79
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::stream: stream: connecting attempt=55 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=226 | msc: cmds=1358 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=74516 zerofill=640 stalls=51118 | tls: connects=45 max_connect_poll_ms=224 max_connect_total_ms=482 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=80
+INFO - streambewi::stream: stream: connecting attempt=56 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=228 | msc: cmds=1359 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=75411 zerofill=648 stalls=52013 | tls: connects=46 max_connect_poll_ms=221 max_connect_total_ms=477 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=81
+INFO - streambewi::stream: stream: connecting attempt=57 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::stream: stream: connecting attempt=58 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=222 | msc: cmds=1360 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=76221 zerofill=656 stalls=52823 | tls: connects=48 max_connect_poll_ms=222 max_connect_total_ms=467 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=82
+INFO - streambewi::stream: stream: connecting attempt=59 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 63488 free 18432
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 63488 free 92176 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=222 | msc: cmds=1361 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=77117 zerofill=664 stalls=53719 | tls: connects=49 max_connect_poll_ms=221 max_connect_total_ms=458 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=83
+INFO - streambewi::stream: stream: connecting attempt=60 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: connecting attempt=61 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=224 | msc: cmds=1362 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=77929 zerofill=672 stalls=54531 | tls: connects=51 max_connect_poll_ms=223 max_connect_total_ms=466 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=84
+INFO - streambewi::stream: stream: connecting attempt=62 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=222 | msc: cmds=1363 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=78826 zerofill=680 stalls=55428 | tls: connects=52 max_connect_poll_ms=221 max_connect_total_ms=463 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=85
+INFO - streambewi::stream: stream: connecting attempt=63 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: connecting attempt=64 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=227 | msc: cmds=1364 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=79635 zerofill=688 stalls=56237 | tls: connects=54 max_connect_poll_ms=225 max_connect_total_ms=472 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=86
+INFO - streambewi::stream: stream: connecting attempt=65 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5042 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=217 | msc: cmds=1365 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5050 pending=80531 zerofill=696 stalls=57133 | tls: connects=55 max_connect_poll_ms=223 max_connect_total_ms=490 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5006 waits_gt1s=87
+INFO - streambewi::stream: stream: connecting attempt=66 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: connecting attempt=67 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=228 | msc: cmds=1366 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=81420 zerofill=704 stalls=58022 | tls: connects=56 max_connect_poll_ms=222 max_connect_total_ms=471 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=88
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::stream: stream: connecting attempt=68 url=https://51.158.98.229/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5007 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5014 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5027 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5034 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5041 ms
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 63488 free 18432
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 63488 free 92176 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=226 | msc: cmds=1367 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5048 pending=82250 zerofill=712 stalls=58852 | tls: connects=58 max_connect_poll_ms=223 max_connect_total_ms=508 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5005 waits_gt1s=89
+INFO - streambewi::stream: stream: connecting attempt=69 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=218 | msc: cmds=1368 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=83147 zerofill=720 stalls=59749 | tls: connects=59 max_connect_poll_ms=222 max_connect_total_ms=459 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=90
+INFO - streambewi::stream: stream: connecting attempt=70 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::stream: stream: connecting attempt=71 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=221 | msc: cmds=1369 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=83955 zerofill=728 stalls=60557 | tls: connects=61 max_connect_poll_ms=223 max_connect_total_ms=473 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=91
+INFO - streambewi::stream: stream: connecting attempt=72 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=224 | msc: cmds=1370 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=84851 zerofill=736 stalls=61453 | tls: connects=62 max_connect_poll_ms=222 max_connect_total_ms=460 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=92
+INFO - streambewi::stream: stream: connecting attempt=73 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::stream: stream: connecting attempt=74 url=https://51.158.98.229/fip-midfi.mp3
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=225 | msc: cmds=1371 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=85662 zerofill=744 stalls=62264 | tls: connects=64 max_connect_poll_ms=222 max_connect_total_ms=472 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=93
+INFO - streambewi::stream: stream: connecting attempt=75 url=https://51.158.98.229/fip-midfi.mp3
+[bench] MARK Q21-PHASE-P4b-recovery
+INFO - streambewi::stream: stream: secure connect error: TLS handshake failed: MbedtlsError(-9984 / 0x2700)
+INFO - streambewi::stream: station: switching, disk off the bus (live=7557850)
+INFO - streambewi::stream: station: selection persisted=true in 130 ms
+INFO - streambewi::stream: stream: connecting attempt=76 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::usb: usb: stall cycle superseded by a station change
+INFO - streambewi::usb: usb: stream stalled, leaving the bus
+[bench] http POST /api/stations/select sent, answered in 321 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5047 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5047 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5049 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5056 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5062 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5069 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5076 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5082 ms
+INFO - streambewi::stream: stream: session kept across the reconnection
+INFO - streambewi::usb: qual-sim: new session after a station change
+INFO - streambewi::stream: stream: TLS up in 605 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=264 | msc: cmds=1372 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5102 pending=86431 zerofill=752 stalls=63033 | tls: connects=66 max_connect_poll_ms=263 max_connect_total_ms=605 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5047 waits_gt1s=94
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73704 free 8216
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36904 free 36840
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=41 | msc: cmds=1373 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=87409 zerofill=760 stalls=64011 | tls: connects=66 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=95
+INFO - streambewi::stream: stream: connecting attempt=77 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 529 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=274 | msc: cmds=1374 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5042 pending=88292 zerofill=768 stalls=64894 | tls: connects=67 max_connect_poll_ms=266 max_connect_total_ms=529 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=96
+INFO - streambewi::stream: stream: connecting attempt=78 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 525 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=262 | msc: cmds=1375 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=89173 zerofill=776 stalls=65775 | tls: connects=68 max_connect_poll_ms=264 max_connect_total_ms=525 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=97
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=37 | msc: cmds=1376 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=90157 zerofill=784 stalls=66759 | tls: connects=68 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=98
+INFO - streambewi::stream: stream: connecting attempt=79 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 528 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=266 | msc: cmds=1377 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=91042 zerofill=792 stalls=67644 | tls: connects=69 max_connect_poll_ms=264 max_connect_total_ms=528 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=99
+INFO - streambewi::stream: stream: connecting attempt=80 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 536 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=270 | msc: cmds=1378 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=91924 zerofill=800 stalls=68526 | tls: connects=70 max_connect_poll_ms=268 max_connect_total_ms=536 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=100
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5010 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5017 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5030 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5037 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=38 | msc: cmds=1379 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5044 pending=92901 zerofill=808 stalls=69503 | tls: connects=70 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=101
+INFO - streambewi::stream: stream: connecting attempt=81 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 531 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=267 | msc: cmds=1380 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=93789 zerofill=816 stalls=70391 | tls: connects=71 max_connect_poll_ms=263 max_connect_total_ms=531 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=102
+INFO - streambewi::stream: stream: connecting attempt=82 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 535 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5022 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=266 | msc: cmds=1381 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=94668 zerofill=824 stalls=71270 | tls: connects=72 max_connect_poll_ms=264 max_connect_total_ms=535 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5000 waits_gt1s=103
+INFO - streambewi::stream: stream: connecting attempt=83 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5051 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5052 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5054 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5060 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5067 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5074 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5080 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5087 ms
+INFO - streambewi::stream: stream: TLS up in 572 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=262 | msc: cmds=1382 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5094 pending=95556 zerofill=832 stalls=72158 | tls: connects=73 max_connect_poll_ms=262 max_connect_total_ms=572 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5052 waits_gt1s=104
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5024 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=40 | msc: cmds=1383 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=96539 zerofill=840 stalls=73141 | tls: connects=73 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5002 waits_gt1s=105
+INFO - streambewi::stream: stream: connecting attempt=84 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 531 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+[bench] MARK Q21-PHASE-P5-https-10min
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5007 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5027 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=271 | msc: cmds=1384 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=97422 zerofill=848 stalls=74024 | tls: connects=74 max_connect_poll_ms=264 max_connect_total_ms=531 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5005 waits_gt1s=106
+INFO - streambewi::stream: stream: connecting attempt=85 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 529 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5000 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5001 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5009 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5016 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5023 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5036 ms
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73764 free 8156
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36844 free 36900
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=260 | msc: cmds=1385 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5043 pending=98303 zerofill=856 stalls=74905 | tls: connects=75 max_connect_poll_ms=262 max_connect_total_ms=529 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5001 waits_gt1s=107
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=37 | msc: cmds=1386 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=99283 zerofill=864 stalls=75885 | tls: connects=75 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=108
+INFO - streambewi::stream: stream: connecting attempt=86 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 535 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=273 | msc: cmds=1387 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=100166 zerofill=872 stalls=76768 | tls: connects=76 max_connect_poll_ms=265 max_connect_total_ms=534 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=109
+INFO - streambewi::stream: stream: connecting attempt=87 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 527 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5002 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5011 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=267 | msc: cmds=1388 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5045 pending=101048 zerofill=880 stalls=77650 | tls: connects=77 max_connect_poll_ms=266 max_connect_total_ms=527 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5003 waits_gt1s=110
+INFO - streambewi::stream: stream: connecting attempt=88 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 527 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5028 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5029 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5031 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5044 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5051 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5058 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5064 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=262 | msc: cmds=1389 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5072 pending=101933 zerofill=888 stalls=78535 | tls: connects=78 max_connect_poll_ms=263 max_connect_total_ms=527 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5028 waits_gt1s=111
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5019 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5026 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5039 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=37 | msc: cmds=1390 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5046 pending=102915 zerofill=896 stalls=79517 | tls: connects=78 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5004 waits_gt1s=112
+INFO - streambewi::stream: stream: connecting attempt=89 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 532 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 73764 free 8156
+INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 36844 free 36900
+INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 110608 free 45056 max_used 136840 min_free 18824; stack reserved 39608 max_used 28184 margin 11424; painted 37016 B
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5006 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5008 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5015 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5021 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5028 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5035 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5041 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=271 | msc: cmds=1391 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5049 pending=103794 zerofill=904 stalls=80396 | tls: connects=79 max_connect_poll_ms=263 max_connect_total_ms=532 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5006 waits_gt1s=113
+INFO - streambewi::stream: stream: connecting attempt=90 url=https://icecast.radiofrance.fr/fip-midfi.mp3
+INFO - streambewi::stream: stream: TLS up in 534 ms
+INFO - streambewi::stream: stream: HTTP status=200 content_length=None chunked=true
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5004 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5007 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5013 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5020 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5027 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5033 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5040 ms
+INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=271 | msc: cmds=1392 sectors=10216 max_sector_gap_ms=0 gaps_gt100ms=1276 max_cmd_gap_ms=5047 pending=104678 zerofill=912 stalls=81280 | tls: connects=80 max_connect_poll_ms=263 max_connect_total_ms=534 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=5005 waits_gt1s=114
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5003 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5005 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5012 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5018 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5025 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5032 ms
+WARN - streambewi::usb: usb: ZEROFILL status=Pending command_elapsed=5038 ms
+INFO - streambewi::stream: stream: connecting attempt=91 url=https://icecast.radiofrance.fr/fip-midfi.mp3
