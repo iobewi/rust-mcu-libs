@@ -60,7 +60,7 @@ Image size from `espflash save-image`, this example, release, `xtensa-esp32s3-no
 | `rsa`, `p384` | 868 448 | +18 416 |
 | `rsa`, `p384`, `x25519` (`public-pki`) | 870 832 | +20 800 |
 
-The five roots add 6 774 bytes of PEM (`iobewi-tls-roots::BUNDLE`), included in all rows. `.bss` is 523 796 bytes in all four builds (it includes the 96 KiB heap and the radio).
+The five roots add 8 028 bytes of PEM (`iobewi-tls-roots::BUNDLE`), included in all rows. `.bss` is 523 796 bytes in all four builds (it includes the 96 KiB heap and the radio).
 
 ### Heap, stack, handshake time, throughput
 
