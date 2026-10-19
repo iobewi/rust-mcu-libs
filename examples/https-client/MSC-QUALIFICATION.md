@@ -22,7 +22,7 @@ Board: Metronic 477144 chain, ESP32-S3 (DevKitC-1 class board with 8 MB PSRAM, *
 
 ### HTTPS, nominal (run A): 11 min 42 s with the real host
 
-No `ZEROFILL`, `Pending`, stall, `Expired` or panic. Host MSC counters at the end: `pending=0 zerofill=0 stalls=0`. One station change (HTTP to HTTPS) at the start: the product detaches the disk for 1 793 ms by design, the host re-enumerates (bus reset, new session) and the data resumes after about 9 s (largest gap between two served sectors: 4 324 ms); nothing else for the next 11.5 min. TLS up in 554 ms; executor lateness at that handshake 272 ms; body-read poll at most 24 ms.
+No `ZEROFILL`, `Pending`, stall, `Expired` or panic. Host MSC counters at the end: `pending=0 zerofill=0 stalls=0`. One station change (HTTP to HTTPS) at the start: the product detaches the disk for 1 793 ms by design, the host re-enumerates (bus reset, new session) and the largest gap between two served sectors is 4 324 ms; nothing else for the next 11.5 min. TLS up in 554 ms; executor lateness at that handshake 272 ms; body-read poll at most 24 ms.
 
 ### HTTPS, six controlled reconnections (run B), no station change, disk not detached
 
@@ -44,7 +44,7 @@ Three abrupt (session dropped without close) and three graceful (close-notify an
 
 ### HTTP, two reconnections (same image, no simulated reader)
 
-One abrupt (21:28:31) and one graceful (21:31:13), the same conditions. Back in 1.6 s and 2.0 s; `Pending`, `ZEROFILL`, stalls and `Expired` all 0; largest gap between sectors 234..259 ms; the lead is back at 81 920 B within a minute.
+One abrupt (21:28:31) and one graceful (21:31:13), the same conditions. Connected again (HTTP 200) 1.6 s and 2.4 s after the drop; `Pending`, `ZEROFILL`, stalls and `Expired` all 0; largest gap between sectors 234..259 ms; the lead is back at 81 920 B within a minute.
 
 ### The earlier `Expired` bursts (item 7)
 
