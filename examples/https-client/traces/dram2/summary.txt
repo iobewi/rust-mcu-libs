@@ -1,0 +1,9 @@
+main80-dram2-a: SUMMARY PASS pass=23 fail=0
+main80-dram2-b: SUMMARY PASS pass=23 fail=0
+main80-dram2-c: SUMMARY PASS pass=23 fail=0
+main96-dram2-a: SUMMARY PASS pass=23 fail=0
+main96-dram2-b: SUMMARY PASS pass=23 fail=0
+main96-dram2first-a: SUMMARY PASS pass=23 fail=0
+main96-dram2first-b: SUMMARY PASS pass=23 fail=0
+main80-dram2first-a: SUMMARY PASS pass=23 fail=0
+ALLDONE

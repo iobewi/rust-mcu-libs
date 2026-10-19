@@ -1,0 +1,163 @@
+DRAM2 boot: start=0x3fcdb700 len=73744 end=0x3fced710 align4=true fnv=0x40c7aa15 zero_words=185/18436 first_word=0x3fce37e1
+MEM task-start: region main size=81920 used=0 free=81920
+MEM task-start: region dram2 size=73744 used=0 free=73744
+MEM task-start: sampled_peak_total=0 sampled_peak_dram2=0
+MEM task-start: heap size=155664 used=0 free=155664 max_used=0; stack reserved=158576 max_used=11596 margin=146980
+RESULT mem-integrity PASS blocks=36 in_dram2=18 aligned=true disjoint=true intact_full=true main_used=78848 dram2_used=73728 | main_only: freed=18 refilled=18 landed_in_main=true intact=true | dram2_only: freed=18 refilled=18 landed_in_dram2=true intact=true | usage_base=0 usage_back=0 largest_free_kib=80
+MEM after-integrity: region main size=81920 used=452 free=81468
+MEM after-integrity: region dram2 size=73744 used=0 free=73744
+MEM after-integrity: sampled_peak_total=0 sampled_peak_dram2=0
+MEM after-integrity: heap size=155664 used=452 free=155212 max_used=152576; stack reserved=158576 max_used=12560 margin=146016
+MEM store-new: region main size=81920 used=0 free=81920
+MEM store-new: region dram2 size=73744 used=0 free=73744
+MEM store-new: sampled_peak_total=0 sampled_peak_dram2=0
+MEM store-new: heap size=155664 used=0 free=155664 max_used=152576; stack reserved=158576 max_used=15760 margin=142816
+MEM mounted: region main size=81920 used=0 free=81920
+MEM mounted: region dram2 size=73744 used=0 free=73744
+MEM mounted: sampled_peak_total=0 sampled_peak_dram2=0
+MEM mounted: heap size=155664 used=0 free=155664 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+MEM wifi-transport: region main size=81920 used=96 free=81824
+MEM wifi-transport: region dram2 size=73744 used=0 free=73744
+MEM wifi-transport: sampled_peak_total=0 sampled_peak_dram2=0
+MEM wifi-transport: heap size=155664 used=96 free=155568 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+MEM alive: region main size=81920 used=47152 free=34768
+MEM alive: region dram2 size=73744 used=0 free=73744
+MEM alive: sampled_peak_total=47636 sampled_peak_dram2=0
+MEM alive: heap size=155664 used=47152 free=108512 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+[bench] auto reset skipped: 5 in a row without OTA ready, check the board
+QUAL Wi-Fi ready
+QUAL net up heap=80 KiB
+MEM start: region main size=81920 used=47820 free=34100
+MEM start: region dram2 size=73744 used=0 free=73744
+MEM start: sampled_peak_total=49524 sampled_peak_dram2=0
+MEM start: heap size=155664 used=47820 free=107844 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+QUAL roots=5 bundle_bytes=8028
+RESULT clock-unsynced PASS expect=ClockUnsynced refused=clock-unsynced detail=ClockUnsynced url=https://badssl.com/
+MEM clock-unsynced: region main size=81920 used=51228 free=30692
+MEM clock-unsynced: region dram2 size=73744 used=0 free=73744
+MEM clock-unsynced: sampled_peak_total=49524 sampled_peak_dram2=0
+MEM clock-unsynced: heap size=155664 used=51228 free=104436 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT sntp PASS epoch=Some(1792433017) after_ms=1052
+RESULT valid-rsa PASS expect=Status(200) status=200 connect_ms=1858 head_ms=520 body=1778 body_ms=0 url=https://badssl.com/
+MEM valid-rsa: region main size=81920 used=48016 free=33904
+MEM valid-rsa: region dram2 size=73744 used=0 free=73744
+MEM valid-rsa: sampled_peak_total=109648 sampled_peak_dram2=28372
+MEM valid-rsa: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+MEM alive: region main size=81920 used=73580 free=8340
+MEM alive: region dram2 size=73744 used=16724 free=57020
+MEM alive: sampled_peak_total=109648 sampled_peak_dram2=28372
+MEM alive: heap size=155664 used=90304 free=65360 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT valid-ecdsa-p384 PASS expect=Status(200) status=200 connect_ms=4205 head_ms=119 body=684 body_ms=0 url=https://ecc384.badssl.com/
+MEM valid-ecdsa-p384: region main size=81920 used=48016 free=33904
+MEM valid-ecdsa-p384: region dram2 size=73744 used=0 free=73744
+MEM valid-ecdsa-p384: sampled_peak_total=109648 sampled_peak_dram2=28372
+MEM valid-ecdsa-p384: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT valid-radio PASS expect=Status(200) status=200 connect_ms=1426 head_ms=267 body=131237 body_ms=3096 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM valid-radio: region main size=81920 used=48016 free=33904
+MEM valid-radio: region dram2 size=73744 used=0 free=73744
+MEM valid-radio: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM valid-radio: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT wrong-host PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://wrong.host.badssl.com/
+MEM wrong-host: region main size=81920 used=48016 free=33904
+MEM wrong-host: region dram2 size=73744 used=8520 free=65224
+MEM wrong-host: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM wrong-host: heap size=155664 used=56536 free=99128 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT unknown-ca PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://badssl.com/
+MEM unknown-ca: region main size=81920 used=49720 free=32200
+MEM unknown-ca: region dram2 size=73744 used=6816 free=66928
+MEM unknown-ca: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM unknown-ca: heap size=155664 used=56536 free=99128 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT untrusted-root PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://untrusted-root.badssl.com/
+MEM untrusted-root: region main size=81920 used=48016 free=33904
+MEM untrusted-root: region dram2 size=73744 used=3408 free=70336
+MEM untrusted-root: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM untrusted-root: heap size=155664 used=51424 free=104240 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT self-signed PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://self-signed.badssl.com/
+MEM self-signed: region main size=81920 used=48016 free=33904
+MEM self-signed: region dram2 size=73744 used=0 free=73744
+MEM self-signed: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM self-signed: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16112 margin=142464
+RESULT expired-clock-2099 PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM expired-clock-2099: region main size=81920 used=48016 free=33904
+MEM expired-clock-2099: region dram2 size=73744 used=8520 free=65224
+MEM expired-clock-2099: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM expired-clock-2099: heap size=155664 used=56536 free=99128 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT not-yet-valid-clock-2020 PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM not-yet-valid-clock-2020: region main size=81920 used=48016 free=33904
+MEM not-yet-valid-clock-2020: region dram2 size=73744 used=8520 free=65224
+MEM not-yet-valid-clock-2020: sampled_peak_total=109648 sampled_peak_dram2=29964
+MEM not-yet-valid-clock-2020: heap size=155664 used=56536 free=99128 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT valid-again PASS expect=Status(200) status=200 connect_ms=1401 head_ms=283 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM valid-again: region main size=81920 used=49720 free=32200
+MEM valid-again: region dram2 size=73744 used=0 free=73744
+MEM valid-again: sampled_peak_total=109648 sampled_peak_dram2=30168
+MEM valid-again: heap size=155664 used=49720 free=102536 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+MEM alive: region main size=81920 used=73268 free=8652
+MEM alive: region dram2 size=73744 used=21928 free=51816
+MEM alive: sampled_peak_total=109648 sampled_peak_dram2=30448
+MEM alive: heap size=155664 used=95196 free=60468 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-0 PASS expect=Status(200) status=200 connect_ms=1410 head_ms=283 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-0: region main size=81920 used=48036 free=33884
+MEM reconnect-0: region dram2 size=73744 used=0 free=73744
+MEM reconnect-0: sampled_peak_total=109648 sampled_peak_dram2=30448
+MEM reconnect-0: heap size=155664 used=48036 free=102516 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-1 PASS expect=Status(200) status=200 connect_ms=1415 head_ms=256 body=1460 body_ms=33 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-1: region main size=81920 used=49740 free=32180
+MEM reconnect-1: region dram2 size=73744 used=0 free=73744
+MEM reconnect-1: sampled_peak_total=109648 sampled_peak_dram2=30448
+MEM reconnect-1: heap size=155664 used=49740 free=104220 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-2 PASS expect=Status(200) status=200 connect_ms=1406 head_ms=256 body=1460 body_ms=39 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-2: region main size=81920 used=51444 free=30476
+MEM reconnect-2: region dram2 size=73744 used=0 free=73744
+MEM reconnect-2: sampled_peak_total=109648 sampled_peak_dram2=30448
+MEM reconnect-2: heap size=155664 used=51444 free=102516 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-3 PASS expect=Status(200) status=200 connect_ms=1416 head_ms=259 body=1460 body_ms=36 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-3: region main size=81920 used=48036 free=33884
+MEM reconnect-3: region dram2 size=73744 used=0 free=73744
+MEM reconnect-3: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-3: heap size=155664 used=48036 free=107628 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-4 PASS expect=Status(200) status=200 connect_ms=1399 head_ms=268 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-4: region main size=81920 used=48036 free=33884
+MEM reconnect-4: region dram2 size=73744 used=0 free=73744
+MEM reconnect-4: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-4: heap size=155664 used=48036 free=105924 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-5 PASS expect=Status(200) status=200 connect_ms=1424 head_ms=250 body=1460 body_ms=37 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-5: region main size=81920 used=48036 free=33884
+MEM reconnect-5: region dram2 size=73744 used=0 free=73744
+MEM reconnect-5: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-5: heap size=155664 used=48036 free=107628 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-6 PASS expect=Status(200) status=200 connect_ms=1400 head_ms=266 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-6: region main size=81920 used=48036 free=33884
+MEM reconnect-6: region dram2 size=73744 used=0 free=73744
+MEM reconnect-6: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-6: heap size=155664 used=48036 free=102516 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-7 PASS expect=Status(200) status=200 connect_ms=1406 head_ms=274 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-7: region main size=81920 used=48036 free=33884
+MEM reconnect-7: region dram2 size=73744 used=0 free=73744
+MEM reconnect-7: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-7: heap size=155664 used=48036 free=104220 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-8 PASS expect=Status(200) status=200 connect_ms=1398 head_ms=281 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-8: region main size=81920 used=48036 free=33884
+MEM reconnect-8: region dram2 size=73744 used=0 free=73744
+MEM reconnect-8: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-8: heap size=155664 used=48036 free=105924 max_used=152576; stack reserved=158576 max_used=16800 margin=141776
+RESULT reconnect-9 PASS expect=Status(200) status=200 connect_ms=1422 head_ms=320 body=1460 body_ms=36 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-9: region main size=81920 used=49740 free=32180
+MEM reconnect-9: region dram2 size=73744 used=0 free=73744
+MEM reconnect-9: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM reconnect-9: heap size=155664 used=49740 free=104220 max_used=152576; stack reserved=158576 max_used=16912 margin=141664
+MEM alive: region main size=81920 used=48016 free=33904
+MEM alive: region dram2 size=73744 used=0 free=73744
+MEM alive: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM alive: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16912 margin=141664
+RESULT reconnect-heap PASS used_before=54832 used_immediately=51424 used_after_3s=48016 drift=-6816 (limit 512)
+MEM end: region main size=81920 used=48016 free=33904
+MEM end: region dram2 size=73744 used=0 free=73744
+MEM end: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM end: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16912 margin=141664
+MEM fragmentation: free=107648 largest_free_kib=72 (measured after the peak was logged)
+SUMMARY PASS pass=23 fail=0
+MEM alive: region main size=81920 used=48016 free=33904
+MEM alive: region dram2 size=73744 used=0 free=73744
+MEM alive: sampled_peak_total=109648 sampled_peak_dram2=30488
+MEM alive: heap size=155664 used=48016 free=107648 max_used=152576; stack reserved=158576 max_used=16912 margin=141664

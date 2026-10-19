@@ -370,6 +370,10 @@ async fn qualify(stack: Stack<'static>, spawner: Spawner) {
         name.push((b'0' + i) as char);
         t.scenario(&name, ok, &full, bufs, RADIO, 256).await;
     }
+    let immediate = esp_alloc::HEAP.stats().current_usage;
+    // Some buffers are released a little after the last close (an 8 520-byte block was seen
+    // lingering after a connection): a leak is what is still held after a rest.
+    Timer::after(Duration::from_secs(3)).await;
     let after = esp_alloc::HEAP.stats().current_usage;
     let drift = after as isize - before as isize;
     // Only growth is a leak: the first handshakes warm caches and the usage may come down.
@@ -380,7 +384,7 @@ async fn qualify(stack: Stack<'static>, spawner: Spawner) {
         t.fail += 1
     }
     log::info!(
-        "RESULT reconnect-heap {} used_before={before} used_after={after} drift={drift} (limit 512)",
+        "RESULT reconnect-heap {} used_before={before} used_immediately={immediate} used_after_3s={after} drift={drift} (limit 512)",
         if leak_ok { "PASS" } else { "FAIL" }
     );
     summary(&t);
@@ -440,9 +444,16 @@ async fn wifi_task(
 /// Proof of life and of the heap, every 5 s, from a task of its own.
 #[embassy_executor::task]
 async fn heartbeat() {
+    let mut ticks = 0u32;
     loop {
-        Timer::after(Duration::from_secs(5)).await;
-        crate::mem::report("alive");
+        let started = Instant::now();
+        Timer::after(Duration::from_millis(10)).await;
+        crate::mem::note_lateness_ms(started.elapsed().as_millis().saturating_sub(10) as u32);
+        crate::mem::sample();
+        ticks += 1;
+        if ticks % 500 == 0 {
+            crate::mem::report("alive");
+        }
     }
 }
 
@@ -452,8 +463,21 @@ async fn main_task(
     wifi: esp_hal::peripherals::WIFI<'static>,
     spawner: Spawner,
 ) {
-    spawner.spawn(heartbeat().unwrap());
     crate::mem::report("task-start");
+    #[cfg(all(feature = "dram2", not(feature = "no-memtest")))]
+    {
+        let (ok, detail) = crate::mem::dram2_integrity();
+        log::info!(
+            "RESULT mem-integrity {} {detail}",
+            if ok { "PASS" } else { "FAIL" }
+        );
+        if !ok {
+            log::error!("QUAL memory integrity failed: stopping before the radio starts");
+            return;
+        }
+        crate::mem::report("after-integrity");
+    }
+    spawner.spawn(heartbeat().unwrap());
     let shared = iobewi_esp_flash::init(flash);
     let Ok(region) = EspConfigFlash::from_label(shared, "config").await else {
         log::error!("QUAL config partition unavailable");
@@ -507,11 +531,49 @@ async fn main_task(
     }
 }
 
+/// Size of the second region: all of `dram2_seg` (0x3FCDB700..0x3FCED710). The linker fails if
+/// it does not fit; how much of it the allocator can hand out is measured, not assumed.
+#[cfg(feature = "dram2")]
+const DRAM2_BYTES: usize = 73_744;
+
+/// Add the DRAM the 2nd stage bootloader frees as a second, separate heap region. The two regions
+/// stay disjoint: the allocator tries the first region added, then the next.
+#[cfg(feature = "dram2")]
+fn add_dram2() {
+    use core::mem::MaybeUninit;
+    #[esp_hal::ram(reclaimed)]
+    static mut DRAM2: MaybeUninit<[u8; DRAM2_BYTES]> = MaybeUninit::uninit();
+    let start = core::ptr::addr_of_mut!(DRAM2) as *mut u8;
+    crate::mem::dram2_boot_probe(start as usize, DRAM2_BYTES);
+    // SAFETY: `DRAM2` is placed in `.dram2_uninit`, memory the bootloader no longer uses once the
+    // application runs; it is used by nothing else and handed over once, before any allocation
+    // from it.
+    unsafe {
+        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+            start,
+            DRAM2_BYTES,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
+    }
+}
+
+fn init_heap() {
+    #[cfg(feature = "dram2-first")]
+    add_dram2();
+    esp_alloc::heap_allocator!(size: HEAP_BYTES);
+    #[cfg(all(feature = "dram2", not(feature = "dram2-first")))]
+    add_dram2();
+}
+
 pub fn boot() -> ! {
-    let peripherals = esp_hal::init(esp_hal::Config::default());
+    #[cfg(feature = "cpu-max")]
+    let config = esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max());
+    #[cfg(not(feature = "cpu-max"))]
+    let config = esp_hal::Config::default();
+    let peripherals = esp_hal::init(config);
     // The application target must be the binary's module path: other targets only log warnings.
     iobewi_log::install(iobewi_esp_console::console_print, "https_client_esp32");
-    esp_alloc::heap_allocator!(size: HEAP_BYTES);
+    init_heap();
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 

@@ -60,6 +60,16 @@ rsa = ["iobewi-esp-tls?/rsa"]
 p384 = ["iobewi-esp-tls?/p384"]
 x25519 = ["iobewi-esp-tls?/x25519"]
 public-pki = ["rsa", "p384", "x25519"]
+# Experiment: a second heap region in the DRAM that the 2nd stage bootloader frees (`dram2_seg`).
+dram2 = []
+# With `dram2`: add that region before the main one, so that the radio, the network stack and the
+# crypto allocate there first (proves they work from it).
+dram2-first = ["dram2"]
+# With `dram2`: skip the integrity test, whose filling of the heap also sets the allocator's own
+# `max_used`; the run then gives the exact peak of the scenarios.
+no-memtest = []
+# Run the CPU at its maximum clock, as StreamBeWI does (`CpuClock::max()`); the default is slower.
+cpu-max = []
 
 [dependencies]
 iobewi-tls-roots = { path = "../../common/net/tls/roots" }
