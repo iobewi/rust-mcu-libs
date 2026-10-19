@@ -14,7 +14,7 @@ Process-wide ESP physical flash ownership and serialized raw access
 
 - `init(FLASH)` creates the process-wide flash owner and returns `&'static SharedFlash`.
 - `SharedFlash` is an asynchronous Embassy mutex around `EspFlash`.
-- `EspFlash` implements the synchronous `ReadNorFlash`, `NorFlash` and `MultiwriteNorFlash` traits. `storage()` exposes the underlying ESP driver while the caller holds exclusive access.
+- `EspFlash` implements the synchronous `ReadNorFlash`, `NorFlash` and `MultiwriteNorFlash` traits. `storage()` exposes the underlying ESP driver while the caller holds exclusive access. `NorFlash::write` programs with `FlashStorage::write_nor` (no implicit erase). The inherent `FlashStorage::write` is a sector read-modify-erase-write and is forbidden here: `clippy.toml` lists it in `disallowed-methods`, enforced only when clippy runs on the ESP target (`cargo +esp clippy ... --features esp32s3`); the CI job only runs `cargo check`.
 
 Package features and dependency declarations are canonical in `Cargo.toml`.
 

@@ -1,0 +1,3 @@
+disallowed-methods = [
+    { path = "esp_storage::FlashStorage::write", reason = "sector read-modify-erase-write, not NOR semantics: use write_nor" },
+]

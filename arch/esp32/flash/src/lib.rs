@@ -98,8 +98,12 @@ impl NorFlash for EspFlash {
         self.storage.erase(from, to)
     }
 
+    /// Programs words in place, without an implicit erase. `FlashStorage::write`
+    /// (the inherent method that a plain `self.storage.write` resolves to) is a
+    /// sector read-modify-erase-write: it breaks the `NorFlash` contract that EKV
+    /// and the otadata commit-last ordering rely on, and costs one sector erase per call.
     fn write(&mut self, offset: u32, bytes: &[u8]) -> Result<(), Self::Error> {
-        self.storage.write(offset, bytes)
+        self.storage.write_nor(offset, bytes)
     }
 }
 
