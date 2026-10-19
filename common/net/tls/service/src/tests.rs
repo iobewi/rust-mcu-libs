@@ -386,3 +386,45 @@ fn dial_failure_is_reported_verbatim_not_downgraded() {
     assert!(matches!(err, ClientTlsError::Connect(_)));
     assert_eq!(err.to_string(), "TLS handshake failed: bad certificate");
 }
+
+#[test]
+fn static_trust_connector_is_fail_closed_and_dials_with_its_own_roots() {
+    use crate::client::StaticTrustConnector;
+    static CLOCK: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+    fn clock() -> bool {
+        CLOCK.load(core::sync::atomic::Ordering::SeqCst)
+    }
+    let calls = Cell::new(0);
+    let (mut rx, mut tx) = ([0u8; 4], [0u8; 4]);
+    let make = |ca_pem, fail| StaticTrustConnector {
+        dialer: FakeDialer {
+            calls: &calls,
+            fail,
+        },
+        ca_pem,
+        clock_is_set: clock,
+    };
+
+    CLOCK.store(false, core::sync::atomic::Ordering::SeqCst);
+    let err = block_on(make("ROOTS", false).connect("radio.example", 443, &mut rx, &mut tx))
+        .err()
+        .unwrap();
+    assert!(matches!(err, ClientTlsError::ClockUnsynced));
+    assert_eq!(calls.get(), 0, "no dial before the clock is set");
+
+    CLOCK.store(true, core::sync::atomic::Ordering::SeqCst);
+    let err = block_on(make("", false).connect("radio.example", 443, &mut rx, &mut tx))
+        .err()
+        .unwrap();
+    assert!(matches!(err, ClientTlsError::NoCa));
+    assert_eq!(calls.get(), 0, "no dial without a CA");
+
+    assert!(block_on(make("ROOTS", false).connect("radio.example", 443, &mut rx, &mut tx)).is_ok());
+    assert_eq!(calls.get(), 1);
+    LAST_CA.with(|c| assert_eq!(*c.borrow(), "ROOTS"));
+
+    let err = block_on(make("ROOTS", true).connect("radio.example", 443, &mut rx, &mut tx))
+        .err()
+        .unwrap();
+    assert!(matches!(err, ClientTlsError::Connect(_)));
+}

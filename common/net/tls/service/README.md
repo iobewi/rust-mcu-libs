@@ -8,6 +8,7 @@ Portable `no_std` TLS identity and trust service, ported from `iobewi_old/net/tl
 - Validate X.509 material through an injected `iobewi-crypto-core::TlsCrypto` implementation.
 - Bootstrap a server identity only when none exists, without silently accepting corrupt stored material.
 - Provide a `SecureConnector` using `iobewi-net-tls-core::TlsDialer`, refusing network connection before clock synchronization or without a trusted CA.
+- Provide a `StaticTrustConnector` with the same policy for build-time trust anchors (for example `iobewi-tls-roots`), for clients of public servers that provision no CA; the config-space contract above is unchanged.
 
 ## Boundaries
 

@@ -28,6 +28,7 @@ members = [
   "common/net/mdns",
   "common/time/ntp",
   "examples/https-health",
+  "examples/https-client",
   "common/net/http/tls",
   "arch/esp32/crypto/rng",
   "arch/esp32/net/tcp",

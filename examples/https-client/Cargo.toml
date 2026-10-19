@@ -1,0 +1,80 @@
+[package]
+name = "example-https-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "https-client-esp32"
+path = "src/main.rs"
+required-features = ["firmware"]
+
+[features]
+default = []
+# ESP32-S3 only: this example is the reference and the measurement of an
+# outbound HTTPS client on that chip.
+firmware = [
+    "dep:log",
+    "dep:iobewi-log",
+    "dep:iobewi-esp-console",
+    "dep:iobewi-esp-wifi",
+    "dep:iobewi-esp-tls",
+    "dep:iobewi-time",
+    "dep:iobewi-ntp",
+    "dep:iobewi-tls-service",
+    "dep:iobewi-net-io",
+    "dep:iobewi-http-client",
+    "dep:iobewi-wifi-core",
+    "dep:esp-hal",
+    "dep:esp-radio",
+    "dep:esp-rtos",
+    "dep:esp-alloc",
+    "dep:esp-bootloader-esp-idf",
+    "dep:embassy-executor",
+    "dep:embassy-net",
+    "dep:embassy-time",
+    "dep:embedded-io-async",
+    "dep:static_cell",
+]
+esp32s3 = [
+    "firmware",
+    "esp-hal/esp32s3",
+    "esp-rtos/esp32s3",
+    "esp-radio/esp32s3",
+    "esp-alloc/esp32s3",
+    "esp-bootloader-esp-idf/esp32s3",
+    "iobewi-esp-wifi/esp32s3",
+    "iobewi-esp-console/esp32s3",
+    "iobewi-esp-tls/esp32s3",
+]
+# What the TLS stack is built with. Each is a measurement axis, see README.
+rsa = ["iobewi-esp-tls?/rsa"]
+p384 = ["iobewi-esp-tls?/p384"]
+x25519 = ["iobewi-esp-tls?/x25519"]
+public-pki = ["rsa", "p384", "x25519"]
+
+[dependencies]
+iobewi-tls-roots = { path = "../../common/net/tls/roots" }
+log = { version = "0.4", default-features = false, optional = true }
+iobewi-log = { path = "../../common/log/core", optional = true }
+iobewi-esp-console = { path = "../../arch/esp32/log/console", default-features = false, optional = true }
+iobewi-esp-wifi = { path = "../../arch/esp32/net/wifi", optional = true }
+iobewi-esp-tls = { path = "../../arch/esp32/net/tls", default-features = false, optional = true }
+iobewi-time = { path = "../../common/time/core", optional = true }
+iobewi-ntp = { path = "../../common/time/ntp", optional = true }
+iobewi-tls-service = { path = "../../common/net/tls/service", optional = true }
+iobewi-net-io = { path = "../../common/net/io", optional = true }
+iobewi-http-client = { path = "../../common/net/http/client", optional = true }
+iobewi-wifi-core = { path = "../../common/net/wifi/core", optional = true }
+esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"], optional = true }
+esp-rtos = { version = "=0.4.0", default-features = false, features = ["embassy", "esp-radio", "esp-alloc"], optional = true }
+esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "unstable"], optional = true }
+esp-alloc = { version = "~0.11", default-features = false, features = ["global-allocator", "compat", "internal-heap-stats"], optional = true }
+esp-bootloader-esp-idf = { version = "~0.6", default-features = false, optional = true }
+embassy-executor = { version = "0.10.0", default-features = false, optional = true }
+embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "dns", "medium-ethernet", "tcp"], optional = true }
+embassy-time = { version = "0.5.0", optional = true }
+embedded-io-async = { version = "0.7.0", optional = true }
+static_cell = { version = "2.1", optional = true }
