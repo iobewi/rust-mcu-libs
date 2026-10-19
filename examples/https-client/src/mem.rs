@@ -44,6 +44,23 @@ pub fn paint() {
     PAINT_TOP.store(top, Ordering::Relaxed);
 }
 
+/// Largest block the heap can still hand out, in KiB (binary search on 1 KiB steps up to the
+/// free total): a gap between this and `free` is fragmentation. It allocates transiently, so it
+/// raises the heap's `max_used`: it is called once, after the peak has been read.
+fn largest_free_kib() -> usize {
+    let free_kib = esp_alloc::HEAP.free() / 1024;
+    let fits = |kib: usize| {
+        let mut block = alloc::vec::Vec::<u8>::new();
+        block.try_reserve_exact(kib * 1024).is_ok()
+    };
+    let (mut lo, mut hi) = (0, free_kib);
+    while lo < hi {
+        let mid = (lo + hi).div_ceil(2);
+        if fits(mid) { lo = mid } else { hi = mid - 1 }
+    }
+    lo
+}
+
 /// Log heap and stack figures at a named point.
 pub fn report(label: &str) {
     let (end, start) = bounds();
@@ -63,10 +80,20 @@ pub fn report(label: &str) {
     };
     let h = esp_alloc::HEAP.stats();
     log::info!(
-        "MEM {label}: heap size={} used={} free={} max_used={}; stack reserved={reserved} max_used={used}{note}",
+        "MEM {label}: heap size={} used={} free={} max_used={}; stack reserved={reserved} max_used={used} margin={}{note}",
         h.size,
         h.current_usage,
         esp_alloc::HEAP.free(),
         h.max_usage,
+        reserved - used,
+    );
+}
+
+/// The end-of-run figure: the peak is already logged by `report`, this adds the largest free block.
+pub fn report_fragmentation() {
+    log::info!(
+        "MEM fragmentation: free={} largest_free_kib={} (measured after the peak was logged)",
+        esp_alloc::HEAP.free(),
+        largest_free_kib()
     );
 }

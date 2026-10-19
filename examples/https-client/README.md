@@ -67,40 +67,51 @@ The five roots add 8 028 bytes of PEM (`iobewi-tls-roots::BUNDLE`), included in 
 
 ### On the board (Metronic 477144, ESP32-S3 QFN56 v0.2, 8 MB embedded PSRAM, 4 MB flash)
 
-Image `public-pki`, Wi-Fi from the board's stored credentials, 2026-10-19. The board's `factory` and `config` partitions were backed up first and, after the runs, read back identical to the backup (SHA-256 equal); StreamBeWI was restored and boots.
+Image `public-pki`, Wi-Fi from the board's stored credentials, 2026-10-19. The board's `factory` and `config` partitions were backed up first; after the runs they read back identical to the backup (SHA-256 equal) and StreamBeWI boots. Raw console traces are in `traces/`. The PSRAM is not used: the design stays valid on S3 without it.
 
-**Results by heap size.** The same image logic, only `IOBEWI_HEAP_KIB` differs:
+**Reference: 160 KiB of heap** (the example's default). Four consecutive runs of the final scenario set: 23/23 each (`traces/board-160k-run1..4.txt`; run 4 is the one without the fragmentation probe's side effect on the peak).
 
-| Heap | Result | What failed |
+| Heap | Result | Notes |
 | --- | --- | --- |
-| 96 KiB (StreamBeWI's `HEAP_BYTES`) | **FAIL**, 8 pass / 15 fail | `valid-radio`: `MBEDTLS_ERR_X509_ALLOC_FAILED` (-0x2880), out of memory. `valid-rsa`, `valid-ecdsa-p384` and the 10 reconnections: `CertificateRejected` on servers whose chain is valid. The 6 refusal cases "passed" but proved nothing, since every certificate was refused. Heap peak 98 196 of 98 304 bytes |
-| 128 KiB | **FAIL**, 18 pass / 5 fail, twice, identical | the 5 cases against `badssl.com`'s RSA chains end in the 20 s connect timeout. Cause not established |
-| 160 KiB | **PASS** 23/23 | |
-| 192 KiB | **PASS** 23/23 | |
+| 96 KiB (StreamBeWI's `HEAP_BYTES` today) | **FAIL**, 8 pass / 15 fail | `valid-radio`: `MBEDTLS_ERR_X509_ALLOC_FAILED` (-0x2880). Valid chains then rejected. The 6 refusal cases "passed" but proved nothing, every certificate being refused. Peak 98 196 of 98 304 bytes. Earlier scenario layout, no trace saved |
+| 128 KiB | **inconclusive** | Earlier layout: FAIL twice, identically (5 `badssl.com` RSA cases end in the 20 s connect timeout, `traces/board-128k-run-earlier-layout-*.txt`). Final layout: PASS 23/23 once (`board-128k-run-current.txt`, peak 121 644 of 131 072 bytes = 93 %). Not reproducible, cause not established (the failing runs peaked at only 69 KiB when they stalled, and the same RSA servers connected later in the same runs): not adopted, a margin of 9 KiB is not one |
+| 160 KiB | **PASS** 23/23, four runs | |
+| 192 KiB | PASS 23/23, earlier layout | not needed: no measurement justifies it |
 
-The 160 and 192 KiB runs, and the 96 and 128 KiB ones, ran the earlier layout of the scenarios (`badssl.com` also used for the clock cases, the control and the 10 reconnections). The layout in this README (less load on `badssl.com`) compiles and is host-checked but **has not been run on the board**.
+**Memory at 160 KiB (run 4).**
 
-**Memory (192 KiB run).** Heap in use before any TLS: 47 868 bytes (Wi-Fi, network stack, config). Peak: 117 728 bytes at the first RSA handshake (TLS 1.2, ECDHE-RSA), 119 920 bytes with the Radio France stream (TLS 1.3). So TLS costs about 68 to 70 KiB of heap at peak on top of what the product already uses. After each connection the heap returns to 48 016 bytes. Over 10 close/reconnect cycles the drift is 0 bytes. Main stack high-water mark: 16 112 bytes during the handshakes, 16 800 bytes with the stream; the stack was 43.9 KiB at 192 KiB heap and 76.7 KiB at 160 KiB (heap and stack share the DRAM: a bigger heap shrinks the stack).
+| Point | Heap used | Peak so far |
+| --- | --- | --- |
+| Wi-Fi, network stack and config up, before any TLS | 49 524 B | 50 028 B |
+| After first RSA handshake (TLS 1.2, ECDHE-RSA) | 48 016 B | 117 728 B |
+| After Radio France stream (TLS 1.3) | 48 016 B | 119 400 B |
+| End of run | 48 016 B | **119 940 B** (73 % of 163 840) |
 
-**Timings (192 KiB run).** `connect` is DNS + TCP + TLS handshake together; the example does not separate them.
+TLS costs about 70 KiB of heap at peak on top of the 48 KiB the Wi-Fi, network and config already hold. The heap returns to 48 016 bytes after each connection and the drift over 10 close/reconnect cycles is 0 bytes. After a rejected certificate 8 520 bytes more stay in use until the next connection (56 536 B, seen after `wrong-host`, `unknown-ca`, `untrusted-root`, `expired-clock-2099`, `not-yet-valid-clock-2020`), then are released: bounded, not accumulating.
 
-| Case | connect | to response head | body |
+**Fragmentation.** At the end of the run 114 120 bytes are free and the largest block available is 111 KiB. The 16 KiB MbedTLS record buffer and the handshake structures were allocated and freed 23 times with no loss of contiguity.
+
+**Stack.** Main stack (the Embassy executor and its tasks): 76 672 bytes reserved at 160 KiB of heap, high-water mark 16 112 bytes during the handshakes and the stream, **margin 60 560 bytes**. A bigger heap shrinks the stack (shared DRAM): 109 440 reserved at 128 KiB, 43 904 at 192 KiB. The Wi-Fi manager runs in its own task, as in `ota-system`, where composing it with the TLS server in one task overflowed the S3 main stack. Radio-task stacks live in the heap and are not covered.
+
+**Timings (run 4, `connect` = DNS + TCP + TLS handshake together).**
+
+| Case | connect | + response head | body |
 | --- | --- | --- | --- |
-| RSA, TLS 1.2 (`badssl.com`) | 1 858 ms | +524 ms | |
-| ECDSA P-384 (`ecc384.badssl.com`) | 4 201 ms | +123 ms | |
-| Radio France, TLS 1.3 | 2 469 ms | +253 ms | 131 432 bytes in 3 170 ms (about 41 KB/s, a 128 kbit/s stream needs 16 KB/s) |
-| 10 reconnections (RSA) | 1 839 to 1 884 ms | +507 to +577 ms | |
+| RSA, TLS 1.2 (`badssl.com`) | 1 875 ms | 516 ms | |
+| ECDSA P-384 (`ecc384.badssl.com`) | 4 252 ms | 126 ms | |
+| Radio France, TLS 1.3 | 1 425 ms | 247 ms | 131 426 B in 3 109 ms (about 41 KB/s; 128 kbit/s needs 16 KB/s) |
+| 10 reconnections (Radio France) | 1 394 to 1 559 ms | 245 to 310 ms | |
 
-SNTP: first valid time 1.05 to 1.1 s after the network is up. The clock guard refused before any network activity (`clock-unsynced` PASS).
+SNTP: first valid time 1.05 s after the network is up. `clock-unsynced` refused before any network activity.
 
-Refusals (160 and 192 KiB): wrong host, unknown CA, untrusted root, self-signed, clock in 2099, clock in 2020 were all refused with the certificate-verification error, each against a server whose valid chain passed in the same run.
+**Refusals.** Wrong host, unknown CA, untrusted root, self-signed, clock in 2099, clock in 2020: all refused with the certificate-verification error, each against a server whose valid chain passed in the same run. Whether a refusal is a name, issuer or date fault is told by the control, not by the stack.
 
 ## Limits and findings
 
 - The default `iobewi-crypto-mbedtls` build is for the device's own server identity (P-256 ECDSA). It cannot verify any of the public servers above. `public-pki` is opt-in so that existing firmware does not pay for it.
 - `iobewi-tls-service`'s `SecureConnector` takes its CA from a config space, one PEM of at most 2 048 bytes. It was left alone; `StaticTrustConnector` is its fixed-trust counterpart.
 - The dialer parses the whole PEM bundle on **every** connection (`Certificate::new` in `connect_client`): this is a per-connection cost in time and heap that grows with the number of roots.
-- **StreamBeWI's 96 KiB heap does not hold this client.** Measured: about 120 KiB needed at peak, 160 KiB passes, 128 KiB does not reliably. The MbedTLS input record buffer is 16 384 bytes per session (`ssl-in-content-len-16384`). Raising the heap shrinks the stack (shared DRAM); the board has 8 MB of PSRAM that was not tried. Nothing was changed in StreamBeWI.
+- **StreamBeWI's 96 KiB heap does not hold this client.** Measured peak about 120 KiB for the client alone; 160 KiB is the reference, 128 KiB left unadopted. Raising the heap shrinks the stack (shared DRAM). The product's own figures with USB MSC and the stream running at the same time are not measured here: that is the integration's measurement. PSRAM: not used on purpose. Nothing was changed in StreamBeWI.
 - `iobewi-ntp` had no user before this example; on the board it synchronized in about 1 s.
 - A first Wi-Fi join often fails (`DisassociatedDueToInactivity`, the known #72); the bench's automatic EN reset retried until the join succeeded. Not a TLS matter.
 - Not measured: DNS, TCP and handshake separately; Wi-Fi/WAN loss and recovery; USB MSC during the handshake (this example has no USB); following a redirect or decoding a chunked body on the device.

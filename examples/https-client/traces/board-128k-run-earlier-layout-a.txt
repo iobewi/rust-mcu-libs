@@ -1,0 +1,84 @@
+MEM task-start: heap size=131072 used=0 free=131072 max_used=0; stack reserved=109440 max_used=11576
+MEM store-new: heap size=131072 used=0 free=131072 max_used=0; stack reserved=109440 max_used=15760
+MEM mounted: heap size=131072 used=0 free=131072 max_used=8192; stack reserved=109440 max_used=16112
+MEM wifi-transport: heap size=131072 used=96 free=130976 max_used=8192; stack reserved=109440 max_used=16112
+QUAL Wi-Fi ready
+QUAL net up heap=128 KiB
+MEM start: heap size=131072 used=47868 free=83204 max_used=50172; stack reserved=109440 max_used=16112
+QUAL roots=5 bundle_bytes=8028
+RESULT clock-unsynced PASS expect=ClockUnsynced refused=clock-unsynced detail=ClockUnsynced url=https://badssl.com/
+MEM clock-unsynced: heap size=131072 used=47868 free=83204 max_used=50172; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=47940 free=83132 max_used=50172; stack reserved=109440 max_used=16112
+RESULT sntp PASS epoch=Some(1792429865) after_ms=1054
+MEM alive: heap size=131072 used=67416 free=63656 max_used=69364; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67416 free=63656 max_used=69364; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67416 free=63656 max_used=69364; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67416 free=63656 max_used=69364; stack reserved=109440 max_used=16112
+RESULT valid-rsa FAIL expect=Status(200) refused=timeout detail=Timeout url=https://badssl.com/
+MEM valid-rsa: heap size=131072 used=48016 free=83056 max_used=69364; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=107592 free=23480 max_used=111848; stack reserved=109440 max_used=16112
+RESULT valid-ecdsa-p384 PASS expect=Status(200) status=200 connect_ms=7524 head_ms=133 body=684 body_ms=0 url=https://ecc384.badssl.com/
+MEM valid-ecdsa-p384: heap size=131072 used=48016 free=83056 max_used=111848; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=95176 free=35896 max_used=119920; stack reserved=109440 max_used=16112
+RESULT valid-radio PASS expect=Status(200) status=200 connect_ms=1416 head_ms=284 body=131747 body_ms=3003 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM valid-radio: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67428 free=63644 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67428 free=63644 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67428 free=63644 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=67428 free=63644 max_used=119920; stack reserved=109440 max_used=16112
+RESULT wrong-host FAIL expect=CertificateRejected refused=timeout detail=Timeout url=https://wrong.host.badssl.com/
+MEM wrong-host: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=51280 free=79792 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=51280 free=79792 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=51280 free=79792 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=51280 free=79792 max_used=119920; stack reserved=109440 max_used=16112
+RESULT unknown-ca FAIL expect=CertificateRejected refused=timeout detail=Timeout url=https://badssl.com/
+MEM unknown-ca: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90336 free=40736 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90336 free=40736 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90336 free=40736 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90336 free=40736 max_used=119920; stack reserved=109440 max_used=16112
+RESULT untrusted-root FAIL expect=CertificateRejected refused=timeout detail=Timeout url=https://untrusted-root.badssl.com/
+MEM untrusted-root: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90320 free=40752 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90320 free=40752 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90320 free=40752 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90320 free=40752 max_used=119920; stack reserved=109440 max_used=16112
+RESULT self-signed FAIL expect=CertificateRejected refused=timeout detail=Timeout url=https://self-signed.badssl.com/
+MEM self-signed: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+RESULT expired-clock-2099 PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://badssl.com/
+MEM expired-clock-2099: heap size=131072 used=49720 free=81352 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=91976 free=39096 max_used=119920; stack reserved=109440 max_used=16112
+RESULT not-yet-valid-clock-2020 PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://badssl.com/
+MEM not-yet-valid-clock-2020: heap size=131072 used=56536 free=74536 max_used=119920; stack reserved=109440 max_used=16112
+RESULT valid-again PASS expect=Status(200) status=200 connect_ms=2824 head_ms=519 body=1778 body_ms=0 url=https://badssl.com/
+MEM valid-again: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90292 free=40780 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-0 PASS expect=Status(200) status=200 connect_ms=1827 head_ms=521 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-0: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-1 PASS expect=Status(200) status=200 connect_ms=1831 head_ms=518 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-1: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=90292 free=40780 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-2 PASS expect=Status(200) status=200 connect_ms=2066 head_ms=554 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-2: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-3 PASS expect=Status(200) status=200 connect_ms=1846 head_ms=528 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-3: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=91996 free=39076 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-4 PASS expect=Status(200) status=200 connect_ms=1873 head_ms=535 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-4: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=91192 free=39880 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-5 PASS expect=Status(200) status=200 connect_ms=2863 head_ms=541 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-5: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-6 PASS expect=Status(200) status=200 connect_ms=2828 head_ms=504 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-6: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=109668 free=21404 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-7 PASS expect=Status(200) status=200 connect_ms=1835 head_ms=503 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-7: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-8 PASS expect=Status(200) status=200 connect_ms=1872 head_ms=511 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-8: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+MEM alive: heap size=131072 used=101148 free=29924 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-9 PASS expect=Status(200) status=200 connect_ms=1840 head_ms=508 body=1778 body_ms=0 url=https://badssl.com/
+MEM reconnect-9: heap size=131072 used=48036 free=83036 max_used=119920; stack reserved=109440 max_used=16112
+RESULT reconnect-heap PASS used_before=48016 used_after=48016 drift=0 (limit 512)
+MEM end: heap size=131072 used=48016 free=83056 max_used=119920; stack reserved=109440 max_used=16112
+SUMMARY FAIL pass=18 fail=5

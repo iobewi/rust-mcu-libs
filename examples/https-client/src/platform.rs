@@ -22,12 +22,12 @@ use iobewi_tls_service::client::{ClientTlsError, StaticTrustConnector};
 use iobewi_wifi_manager::{LinkObserver, Sleep, WifiManager};
 use static_cell::StaticCell;
 
-/// The heap of this run. 96 KiB is StreamBeWI's `HEAP_BYTES`, the budget this client has to
-/// fit in: the board run showed it does not (see README). Set at build time to measure the
-/// need: `IOBEWI_HEAP_KIB=192`.
+/// The heap of this run: 160 KiB, the smallest size measured to pass every scenario on the
+/// board (96 KiB, StreamBeWI's today, does not hold the client; 128 KiB is unreliable; see
+/// README). `IOBEWI_HEAP_KIB=<n>` at build time sets another size to measure.
 const HEAP_BYTES: usize = match option_env!("IOBEWI_HEAP_KIB") {
     Some(kib) => parse_kib(kib) * 1024,
-    None => 96 * 1024,
+    None => 160 * 1024,
 };
 
 const fn parse_kib(text: &str) -> usize {
@@ -388,6 +388,7 @@ async fn qualify(stack: Stack<'static>, spawner: Spawner) {
 
 fn summary(t: &Tally) {
     crate::mem::report("end");
+    crate::mem::report_fragmentation();
     log::info!(
         "SUMMARY {} pass={} fail={}",
         if t.fail == 0 { "PASS" } else { "FAIL" },
