@@ -1,0 +1,12 @@
+[package]
+name = "iobewi-tls-roots"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A small, auditable set of public root CA certificates (PEM) for verifying public HTTPS servers, as flash data"
+
+[dev-dependencies]
+sha2 = "0.10"
+base64 = "0.22"

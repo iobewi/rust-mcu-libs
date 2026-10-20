@@ -88,3 +88,49 @@ where
     B::Error: Debug,
 {
 }
+
+/// Secure outbound connector whose trust anchors are fixed at build time (for
+/// example `iobewi_tls_roots::BUNDLE`, to reach public servers) instead of
+/// being provisioned in a config space. Same fail-closed policy as
+/// [`SecureConnector`]: no dial before the clock is set, none without a CA.
+#[derive(Clone, Copy)]
+pub struct StaticTrustConnector<D> {
+    pub dialer: D,
+    pub ca_pem: &'static str,
+    pub clock_is_set: fn() -> bool,
+}
+
+impl<D: TlsDialer> Connector for StaticTrustConnector<D> {
+    type Error = ClientTlsError<D::Error>;
+    type Connection<'a>
+        = D::Connection<'a>
+    where
+        Self: 'a;
+
+    async fn connect<'a>(
+        &'a self,
+        host: &'a str,
+        port: u16,
+        rx: &'a mut [u8],
+        tx: &'a mut [u8],
+    ) -> Result<Self::Connection<'a>, Self::Error> {
+        if !(self.clock_is_set)() {
+            return Err(ClientTlsError::ClockUnsynced);
+        }
+        if self.ca_pem.is_empty() {
+            return Err(ClientTlsError::NoCa);
+        }
+        self.dialer
+            .dial(host, port, self.ca_pem, rx, tx)
+            .await
+            .map_err(ClientTlsError::Connect)
+    }
+
+    fn local_address(&self) -> Option<String> {
+        self.dialer.local_address()
+    }
+}
+
+/// As [`SecureConnector`]: the dialer verifies against `ca_pem`, and the clock
+/// and CA preconditions fail closed before any dial.
+impl<D: TlsDialer> SecureClientTransport for StaticTrustConnector<D> {}

@@ -1,0 +1,63 @@
+MEM task-start: heap size=163840 used=0 free=163840 largest_free_kib=160 max_used=0; stack reserved=76672 max_used=11592 margin=65080
+MEM store-new: heap size=163840 used=0 free=163840 largest_free_kib=160 max_used=163840; stack reserved=76672 max_used=15760 margin=60912
+MEM mounted: heap size=163840 used=0 free=163840 largest_free_kib=160 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+MEM wifi-transport: heap size=163840 used=96 free=163744 largest_free_kib=159 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+MEM alive: heap size=163840 used=47200 free=116640 largest_free_kib=113 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+QUAL Wi-Fi ready
+QUAL net up heap=160 KiB
+MEM start: heap size=163840 used=47868 free=115972 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+QUAL roots=5 bundle_bytes=8028
+RESULT clock-unsynced PASS expect=ClockUnsynced refused=clock-unsynced detail=ClockUnsynced url=https://badssl.com/
+MEM clock-unsynced: heap size=163840 used=49572 free=114268 largest_free_kib=111 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+MEM alive: heap size=163840 used=47940 free=115900 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT sntp PASS epoch=Some(1792430698) after_ms=1053
+RESULT valid-rsa PASS expect=Status(200) status=200 connect_ms=1875 head_ms=516 body=1778 body_ms=0 url=https://badssl.com/
+MEM valid-rsa: heap size=163840 used=48016 free=115824 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+MEM alive: heap size=163840 used=107592 free=56248 largest_free_kib=54 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT valid-ecdsa-p384 PASS expect=Status(200) status=200 connect_ms=4252 head_ms=126 body=684 body_ms=0 url=https://ecc384.badssl.com/
+MEM valid-ecdsa-p384: heap size=163840 used=51424 free=112416 largest_free_kib=109 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+MEM alive: heap size=163840 used=95176 free=68664 largest_free_kib=50 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT valid-radio PASS expect=Status(200) status=200 connect_ms=1425 head_ms=247 body=131426 body_ms=3109 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM valid-radio: heap size=163840 used=48016 free=115824 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT wrong-host PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://wrong.host.badssl.com/
+MEM wrong-host: heap size=163840 used=56536 free=107304 largest_free_kib=53 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT unknown-ca PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://badssl.com/
+MEM unknown-ca: heap size=163840 used=56536 free=107304 largest_free_kib=70 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT untrusted-root PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://untrusted-root.badssl.com/
+MEM untrusted-root: heap size=163840 used=56536 free=107304 largest_free_kib=51 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT self-signed PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://self-signed.badssl.com/
+MEM self-signed: heap size=163840 used=48016 free=115824 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT expired-clock-2099 PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM expired-clock-2099: heap size=163840 used=56536 free=107304 largest_free_kib=42 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+MEM alive: heap size=163840 used=75972 free=87868 largest_free_kib=42 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT not-yet-valid-clock-2020 PASS expect=CertificateRejected refused=certificate-rejected detail=CertificateRejected url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM not-yet-valid-clock-2020: heap size=163840 used=56536 free=107304 largest_free_kib=56 max_used=163840; stack reserved=76672 max_used=16112 margin=60560
+RESULT valid-again PASS expect=Status(200) status=200 connect_ms=1399 head_ms=265 body=1460 body_ms=32 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM valid-again: heap size=163840 used=48016 free=115824 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16800 margin=59872
+RESULT reconnect-0 PASS expect=Status(200) status=200 connect_ms=1559 head_ms=245 body=1460 body_ms=35 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-0: heap size=163840 used=53148 free=110692 largest_free_kib=107 max_used=163840; stack reserved=76672 max_used=16800 margin=59872
+MEM alive: heap size=163840 used=98884 free=64956 largest_free_kib=60 max_used=163840; stack reserved=76672 max_used=16800 margin=59872
+RESULT reconnect-1 PASS expect=Status(200) status=200 connect_ms=1416 head_ms=304 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-1: heap size=163840 used=49740 free=114100 largest_free_kib=110 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-2 PASS expect=Status(200) status=200 connect_ms=1407 head_ms=279 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-2: heap size=163840 used=48036 free=115804 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-3 PASS expect=Status(200) status=200 connect_ms=1420 head_ms=272 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-3: heap size=163840 used=48036 free=115804 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+MEM alive: heap size=163840 used=98884 free=64956 largest_free_kib=58 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-4 PASS expect=Status(200) status=200 connect_ms=1401 head_ms=281 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-4: heap size=163840 used=48036 free=115804 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-5 PASS expect=Status(200) status=200 connect_ms=1404 head_ms=250 body=1460 body_ms=33 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-5: heap size=163840 used=49740 free=114100 largest_free_kib=111 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-6 PASS expect=Status(200) status=200 connect_ms=1416 head_ms=250 body=1460 body_ms=32 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-6: heap size=163840 used=48036 free=115804 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+MEM alive: heap size=163840 used=92068 free=71772 largest_free_kib=67 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-7 PASS expect=Status(200) status=200 connect_ms=1397 head_ms=251 body=1460 body_ms=42 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-7: heap size=163840 used=48036 free=115804 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-8 PASS expect=Status(200) status=200 connect_ms=1407 head_ms=310 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-8: heap size=163840 used=48036 free=115804 largest_free_kib= max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-9 PASS expect=Status(200) status=200 connect_ms=1394 head_ms=270 body=1479 body_ms=0 url=https://icecast.radiofrance.fr/monpetitfranceinter-midfi.mp3
+MEM reconnect-9: heap size=163840 used=48036 free=115804 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+RESULT reconnect-heap PASS used_before=48016 used_after=48016 drift=0 (limit 512)
+MEM end: heap size=163840 used=48016 free=115824 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760
+SUMMARY PASS pass=23 fail=0
+MEM alive: heap size=163840 used=48016 free=115824 largest_free_kib=112 max_used=163840; stack reserved=76672 max_used=16912 margin=59760

@@ -1,0 +1,500 @@
+# Image qual,qual-sim,https,dram2 with QUAL_DROP_SECS=60 and a real host (Metronic) reading while a SIMULATED reader reads the same session. HTTP station. Expired bursts after each forced drop.
+
+20:32:51.056 [bench] MARK Q21-PHASE-P5-https-10min
+20:32:51.307 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=8775 sectors=48254 max_sector_gap_ms=229 gaps_gt100ms=4010 max_cmd_gap_ms=236 pending=529 zerofill=240 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:32:56.214 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=8835 sectors=48574 max_sector_gap_ms=229 gaps_gt100ms=4034 max_cmd_gap_ms=229 pending=529 zerofill=240 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=1 waits_gt1s=1
+20:33:01.250 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=13 | msc: cmds=8893 sectors=48886 max_sector_gap_ms=248 gaps_gt100ms=4055 max_cmd_gap_ms=248 pending=529 zerofill=240 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:02.454 INFO - streambewi::stream: stream: live=16150600 consumed=16070904 lead=79696
+20:33:03.475 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:33:03.475 INFO - streambewi::stream: stream: connecting attempt=17 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:33:03.867 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:33:06.207 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=8953 sectors=49206 max_sector_gap_ms=210 gaps_gt100ms=4080 max_cmd_gap_ms=210 pending=529 zerofill=240 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:06.435 INFO - iobewi_usb_msc: msc: progress reads=3072 blocks=11853 bytes=6068736 lba=0..12131
+20:33:07.860 INFO - iobewi_usb_msc: msc: unavailable sector lba=12176 status=Expired
+20:33:08.101 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:33:08.101 INFO - iobewi_usb_msc: msc: unavailable sector lba=12177 status=Expired
+20:33:08.101 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:33:08.101 INFO - iobewi_usb_msc: msc: unavailable sector lba=12178 status=Expired
+20:33:08.101 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:33:08.101 INFO - iobewi_usb_msc: msc: unavailable sector lba=12179 status=Expired
+20:33:08.101 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:33:08.101 INFO - iobewi_usb_msc: msc: unavailable sector lba=12180 status=Expired
+20:33:08.101 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:33:08.101 INFO - iobewi_usb_msc: msc: unavailable sector lba=12184 status=Expired
+20:33:08.419 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:33:08.419 INFO - iobewi_usb_msc: msc: unavailable sector lba=12185 status=Expired
+20:33:08.419 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:33:08.419 INFO - iobewi_usb_msc: msc: unavailable sector lba=12186 status=Expired
+20:33:08.419 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=22 ms
+20:33:08.419 INFO - iobewi_usb_msc: msc: unavailable sector lba=12187 status=Expired
+20:33:08.419 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:33:08.419 INFO - iobewi_usb_msc: msc: unavailable sector lba=12188 status=Expired
+20:33:08.419 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:33:11.183 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=9015 sectors=49524 max_sector_gap_ms=250 gaps_gt100ms=4100 max_cmd_gap_ms=250 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:16.197 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=9075 sectors=49844 max_sector_gap_ms=235 gaps_gt100ms=4120 max_cmd_gap_ms=244 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:20.740 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:33:21.733 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:33:21.733 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:33:21.733 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=9133 sectors=50156 max_sector_gap_ms=176 gaps_gt100ms=4142 max_cmd_gap_ms=183 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:26.253 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=9193 sectors=50476 max_sector_gap_ms=233 gaps_gt100ms=4162 max_cmd_gap_ms=241 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:31.312 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=9251 sectors=50788 max_sector_gap_ms=207 gaps_gt100ms=4184 max_cmd_gap_ms=210 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:36.229 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=9311 sectors=51108 max_sector_gap_ms=248 gaps_gt100ms=4204 max_cmd_gap_ms=250 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:38.666 INFO - iobewi_usb_msc: msc: progress reads=3328 blocks=12877 bytes=6593024 lba=0..13184
+20:33:41.203 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=9371 sectors=51425 max_sector_gap_ms=218 gaps_gt100ms=4229 max_cmd_gap_ms=223 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:46.221 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=9429 sectors=51740 max_sector_gap_ms=248 gaps_gt100ms=4249 max_cmd_gap_ms=250 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:50.764 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:33:51.038 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:33:51.038 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:33:52.143 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=9489 sectors=52060 max_sector_gap_ms=227 gaps_gt100ms=4272 max_cmd_gap_ms=231 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:33:56.286 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=9547 sectors=52372 max_sector_gap_ms=234 gaps_gt100ms=4294 max_cmd_gap_ms=234 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:01.331 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=9607 sectors=52692 max_sector_gap_ms=246 gaps_gt100ms=4315 max_cmd_gap_ms=248 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:03.943 INFO - streambewi::stream: stream: live=17157312 consumed=17078520 lead=78792
+20:34:04.196 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:34:04.867 INFO - streambewi::stream: stream: connecting attempt=18 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:34:05.450 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:34:06.285 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=9665 sectors=53004 max_sector_gap_ms=220 gaps_gt100ms=4340 max_cmd_gap_ms=220 pending=539 zerofill=250 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:07.116 INFO - iobewi_usb_msc: msc: unavailable sector lba=14066 status=Expired
+20:34:07.116 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=15 ms
+20:34:07.116 INFO - iobewi_usb_msc: msc: unavailable sector lba=14067 status=Expired
+20:34:07.116 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=22 ms
+20:34:07.116 INFO - iobewi_usb_msc: msc: unavailable sector lba=14068 status=Expired
+20:34:07.116 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=35 ms
+20:34:07.357 INFO - iobewi_usb_msc: msc: unavailable sector lba=14074 status=Expired
+20:34:07.357 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:34:07.357 INFO - iobewi_usb_msc: msc: unavailable sector lba=14075 status=Expired
+20:34:07.357 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=22 ms
+20:34:07.357 INFO - iobewi_usb_msc: msc: unavailable sector lba=14076 status=Expired
+20:34:07.357 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=29 ms
+20:34:11.056 INFO - iobewi_usb_msc: msc: progress reads=3584 blocks=13901 bytes=7117312 lba=0..14208
+20:34:11.275 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=9727 sectors=53326 max_sector_gap_ms=250 gaps_gt100ms=4360 max_cmd_gap_ms=250 pending=545 zerofill=256 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:16.250 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=9787 sectors=53646 max_sector_gap_ms=229 gaps_gt100ms=4386 max_cmd_gap_ms=249 pending=545 zerofill=256 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:20.789 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:34:21.021 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:34:21.021 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:34:21.021 INFO - iobewi_usb_msc: msc: unavailable sector lba=14515 status=Expired
+20:34:21.021 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:34:21.021 INFO - iobewi_usb_msc: msc: unavailable sector lba=14516 status=Expired
+20:34:21.021 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=18 ms
+20:34:21.425 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=17 | msc: cmds=9845 sectors=53956 max_sector_gap_ms=229 gaps_gt100ms=4407 max_cmd_gap_ms=229 pending=547 zerofill=258 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:25.381 INFO - iobewi_usb_msc: msc: unavailable sector lba=14657 status=Expired
+20:34:25.630 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:34:25.630 INFO - iobewi_usb_msc: msc: unavailable sector lba=14658 status=Expired
+20:34:25.630 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:34:25.630 INFO - iobewi_usb_msc: msc: unavailable sector lba=14659 status=Expired
+20:34:25.630 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=21 ms
+20:34:25.630 INFO - iobewi_usb_msc: msc: unavailable sector lba=14660 status=Expired
+20:34:25.630 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:34:26.304 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=9909 sectors=54288 max_sector_gap_ms=241 gaps_gt100ms=4428 max_cmd_gap_ms=241 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:31.404 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=9969 sectors=54608 max_sector_gap_ms=244 gaps_gt100ms=4448 max_cmd_gap_ms=249 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:36.304 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=10027 sectors=54920 max_sector_gap_ms=186 gaps_gt100ms=4470 max_cmd_gap_ms=186 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:41.251 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=10087 sectors=55240 max_sector_gap_ms=240 gaps_gt100ms=4490 max_cmd_gap_ms=249 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:43.165 INFO - iobewi_usb_msc: msc: progress reads=3840 blocks=14925 bytes=7641600 lba=0..15253
+20:34:46.263 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=10145 sectors=55552 max_sector_gap_ms=193 gaps_gt100ms=4514 max_cmd_gap_ms=200 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:50.792 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:34:51.026 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:34:51.026 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:34:51.325 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=19 | msc: cmds=10205 sectors=55872 max_sector_gap_ms=247 gaps_gt100ms=4534 max_cmd_gap_ms=247 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:34:56.322 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=10265 sectors=56192 max_sector_gap_ms=199 gaps_gt100ms=4561 max_cmd_gap_ms=206 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:01.404 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=10323 sectors=56504 max_sector_gap_ms=245 gaps_gt100ms=4580 max_cmd_gap_ms=249 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:05.634 INFO - streambewi::stream: stream: live=18169576 consumed=18090232 lead=79344
+20:35:05.858 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:35:06.328 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=10383 sectors=56824 max_sector_gap_ms=219 gaps_gt100ms=4606 max_cmd_gap_ms=223 pending=551 zerofill=262 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:06.614 INFO - streambewi::stream: stream: connecting attempt=19 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:35:07.022 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:35:10.864 INFO - iobewi_usb_msc: msc: unavailable sector lba=16114 status=Expired
+20:35:11.108 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:35:11.108 INFO - iobewi_usb_msc: msc: unavailable sector lba=16115 status=Expired
+20:35:11.108 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:35:11.108 INFO - iobewi_usb_msc: msc: unavailable sector lba=16116 status=Expired
+20:35:11.108 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:35:11.108 INFO - iobewi_usb_msc: msc: unavailable sector lba=16122 status=Expired
+20:35:11.108 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:35:11.108 INFO - iobewi_usb_msc: msc: unavailable sector lba=16123 status=Expired
+20:35:11.108 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=10 ms
+20:35:11.108 INFO - iobewi_usb_msc: msc: unavailable sector lba=16124 status=Expired
+20:35:11.348 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:35:11.348 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=10443 sectors=57138 max_sector_gap_ms=247 gaps_gt100ms=4626 max_cmd_gap_ms=248 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:15.660 INFO - iobewi_usb_msc: msc: progress reads=4096 blocks=15949 bytes=8165888 lba=0..16306
+20:35:16.313 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=10504 sectors=57458 max_sector_gap_ms=240 gaps_gt100ms=4646 max_cmd_gap_ms=244 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:20.839 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:35:21.090 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:35:21.090 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:35:21.348 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=10564 sectors=57778 max_sector_gap_ms=168 gaps_gt100ms=4669 max_cmd_gap_ms=181 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:26.424 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=10623 sectors=58090 max_sector_gap_ms=241 gaps_gt100ms=4688 max_cmd_gap_ms=251 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:31.443 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=10683 sectors=58410 max_sector_gap_ms=213 gaps_gt100ms=4714 max_cmd_gap_ms=218 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:36.363 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=10741 sectors=58722 max_sector_gap_ms=242 gaps_gt100ms=4733 max_cmd_gap_ms=250 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:41.341 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=10801 sectors=59042 max_sector_gap_ms=221 gaps_gt100ms=4759 max_cmd_gap_ms=225 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:46.377 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=10861 sectors=59365 max_sector_gap_ms=247 gaps_gt100ms=4782 max_cmd_gap_ms=250 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:48.174 INFO - iobewi_usb_msc: msc: progress reads=4352 blocks=16965 bytes=8686080 lba=0..17322
+20:35:50.891 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:35:52.413 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:35:52.413 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:35:52.413 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=13 | msc: cmds=10920 sectors=59682 max_sector_gap_ms=220 gaps_gt100ms=4805 max_cmd_gap_ms=225 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:35:56.415 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=10980 sectors=59999 max_sector_gap_ms=245 gaps_gt100ms=4826 max_cmd_gap_ms=245 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:01.509 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=11038 sectors=60314 max_sector_gap_ms=231 gaps_gt100ms=4846 max_cmd_gap_ms=239 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:06.391 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=11098 sectors=60634 max_sector_gap_ms=219 gaps_gt100ms=4872 max_cmd_gap_ms=219 pending=557 zerofill=268 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:06.647 INFO - iobewi_usb_msc: msc: unavailable sector lba=17899 status=Expired
+20:36:06.647 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:36:06.647 INFO - iobewi_usb_msc: msc: unavailable sector lba=17900 status=Expired
+20:36:06.647 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=11 ms
+20:36:06.891 INFO - iobewi_usb_msc: msc: unavailable sector lba=17908 status=Expired
+20:36:06.891 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=7 ms
+20:36:07.122 INFO - streambewi::stream: stream: live=19177720 consumed=19097848 lead=79872
+20:36:07.122 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:36:08.077 INFO - streambewi::stream: stream: connecting attempt=20 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:36:10.289 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:36:11.363 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=11160 sectors=60959 max_sector_gap_ms=232 gaps_gt100ms=4896 max_cmd_gap_ms=232 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:16.378 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=11220 sectors=61279 max_sector_gap_ms=186 gaps_gt100ms=4917 max_cmd_gap_ms=186 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:20.362 INFO - iobewi_usb_msc: msc: progress reads=4608 blocks=17989 bytes=9210368 lba=0..18375
+20:36:20.858 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:36:21.107 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:36:21.107 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:36:21.400 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=18 | msc: cmds=11278 sectors=61591 max_sector_gap_ms=244 gaps_gt100ms=4937 max_cmd_gap_ms=244 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:26.437 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=11338 sectors=61911 max_sector_gap_ms=191 gaps_gt100ms=4961 max_cmd_gap_ms=191 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:31.478 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=11396 sectors=62223 max_sector_gap_ms=246 gaps_gt100ms=4981 max_cmd_gap_ms=249 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:36.446 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=11456 sectors=62543 max_sector_gap_ms=179 gaps_gt100ms=5007 max_cmd_gap_ms=184 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:41.512 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=11516 sectors=62863 max_sector_gap_ms=245 gaps_gt100ms=5027 max_cmd_gap_ms=249 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:46.564 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=11574 sectors=63175 max_sector_gap_ms=217 gaps_gt100ms=5049 max_cmd_gap_ms=222 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:50.988 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:36:51.219 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:36:51.219 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:36:51.478 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=16 | msc: cmds=11634 sectors=63495 max_sector_gap_ms=236 gaps_gt100ms=5069 max_cmd_gap_ms=250 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:36:53.215 INFO - iobewi_usb_msc: msc: progress reads=4864 blocks=19013 bytes=9734656 lba=0..19399
+20:36:56.435 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=11692 sectors=63807 max_sector_gap_ms=223 gaps_gt100ms=5094 max_cmd_gap_ms=227 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:01.423 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=11752 sectors=64127 max_sector_gap_ms=250 gaps_gt100ms=5114 max_cmd_gap_ms=250 pending=560 zerofill=271 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:01.668 INFO - iobewi_usb_msc: msc: unavailable sector lba=19660 status=Expired
+20:37:01.668 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=1 ms
+20:37:01.938 INFO - iobewi_usb_msc: msc: unavailable sector lba=19668 status=Expired
+20:37:01.938 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:37:06.519 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=11812 sectors=64445 max_sector_gap_ms=233 gaps_gt100ms=5137 max_cmd_gap_ms=242 pending=562 zerofill=273 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:07.876 INFO - iobewi_usb_msc: msc: unavailable sector lba=19860 status=Expired
+20:37:08.117 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:37:10.297 INFO - streambewi::stream: stream: live=20212472 consumed=20130552 lead=81920
+20:37:10.553 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:37:11.299 INFO - streambewi::stream: stream: connecting attempt=21 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:37:12.371 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=11874 sectors=64772 max_sector_gap_ms=250 gaps_gt100ms=5157 max_cmd_gap_ms=250 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:12.371 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:37:16.402 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=11934 sectors=65092 max_sector_gap_ms=221 gaps_gt100ms=5178 max_cmd_gap_ms=226 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:20.915 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:37:21.690 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:37:21.690 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:37:21.690 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=19 | msc: cmds=11992 sectors=65404 max_sector_gap_ms=188 gaps_gt100ms=5204 max_cmd_gap_ms=195 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:25.382 INFO - iobewi_usb_msc: msc: progress reads=5120 blocks=20037 bytes=10258944 lba=0..20433
+20:37:26.515 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=12052 sectors=65724 max_sector_gap_ms=243 gaps_gt100ms=5224 max_cmd_gap_ms=250 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:31.540 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=12110 sectors=66036 max_sector_gap_ms=204 gaps_gt100ms=5248 max_cmd_gap_ms=208 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:36.433 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=12170 sectors=66356 max_sector_gap_ms=243 gaps_gt100ms=5268 max_cmd_gap_ms=246 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:41.400 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=12228 sectors=66668 max_sector_gap_ms=215 gaps_gt100ms=5295 max_cmd_gap_ms=219 pending=563 zerofill=274 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:45.603 INFO - iobewi_usb_msc: msc: unavailable sector lba=21062 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:37:45.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=21063 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=7 ms
+20:37:45.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=21064 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=21 ms
+20:37:45.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=21065 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:37:45.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=21066 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:37:45.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=21067 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=10 ms
+20:37:45.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=21068 status=Expired
+20:37:45.828 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=23 ms
+20:37:46.077 INFO - iobewi_usb_msc: msc: unavailable sector lba=21076 status=Expired
+20:37:46.077 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=31 ms
+20:37:46.466 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=12290 sectors=66988 max_sector_gap_ms=249 gaps_gt100ms=5315 max_cmd_gap_ms=250 pending=571 zerofill=282 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:50.923 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:37:51.765 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:37:51.765 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:37:51.765 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=16 | msc: cmds=12349 sectors=67302 max_sector_gap_ms=242 gaps_gt100ms=5336 max_cmd_gap_ms=243 pending=571 zerofill=282 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:56.621 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=12408 sectors=67620 max_sector_gap_ms=214 gaps_gt100ms=5362 max_cmd_gap_ms=214 pending=571 zerofill=282 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:37:56.902 INFO - iobewi_usb_msc: msc: unavailable sector lba=21427 status=Expired
+20:37:57.872 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=7 ms
+20:37:57.872 INFO - iobewi_usb_msc: msc: unavailable sector lba=21428 status=Expired
+20:37:57.872 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=16 ms
+20:37:57.872 INFO - iobewi_usb_msc: msc: progress reads=5376 blocks=21061 bytes=10783232 lba=0..21457
+20:38:01.464 INFO - iobewi_usb_msc: msc: unavailable sector lba=21570 status=Expired
+20:38:01.713 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:38:01.713 INFO - iobewi_usb_msc: msc: unavailable sector lba=21571 status=Expired
+20:38:01.713 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:38:01.713 INFO - iobewi_usb_msc: msc: unavailable sector lba=21572 status=Expired
+20:38:01.713 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:38:01.713 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=12468 sectors=67935 max_sector_gap_ms=246 gaps_gt100ms=5383 max_cmd_gap_ms=246 pending=576 zerofill=287 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:01.713 INFO - iobewi_usb_msc: msc: unavailable sector lba=21579 status=Expired
+20:38:01.713 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=4 ms
+20:38:01.713 INFO - iobewi_usb_msc: msc: unavailable sector lba=21580 status=Expired
+20:38:01.713 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=11 ms
+20:38:06.508 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=12528 sectors=68253 max_sector_gap_ms=221 gaps_gt100ms=5406 max_cmd_gap_ms=227 pending=578 zerofill=289 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:11.438 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=12588 sectors=68573 max_sector_gap_ms=234 gaps_gt100ms=5427 max_cmd_gap_ms=234 pending=578 zerofill=289 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:11.703 INFO - iobewi_usb_msc: msc: unavailable sector lba=21898 status=Expired
+20:38:11.703 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:38:11.703 INFO - iobewi_usb_msc: msc: unavailable sector lba=21899 status=Expired
+20:38:11.703 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:38:11.703 INFO - iobewi_usb_msc: msc: unavailable sector lba=21900 status=Expired
+20:38:11.703 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:38:11.949 INFO - streambewi::stream: stream: live=21220543 consumed=21141752 lead=78791
+20:38:11.949 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:38:11.949 INFO - iobewi_usb_msc: msc: unavailable sector lba=21902 status=Expired
+20:38:11.949 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=1 ms
+20:38:12.962 INFO - streambewi::stream: stream: connecting attempt=22 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:38:13.383 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:38:16.456 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=12648 sectors=68889 max_sector_gap_ms=246 gaps_gt100ms=5452 max_cmd_gap_ms=246 pending=582 zerofill=293 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:20.947 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:38:21.981 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:38:21.981 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:38:21.981 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=17 | msc: cmds=12708 sectors=69209 max_sector_gap_ms=213 gaps_gt100ms=5472 max_cmd_gap_ms=213 pending=582 zerofill=293 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:22.230 INFO - iobewi_usb_msc: msc: unavailable sector lba=22236 status=Expired
+20:38:22.230 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:38:22.468 INFO - iobewi_usb_msc: msc: unavailable sector lba=22240 status=Expired
+20:38:22.468 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=13 ms
+20:38:22.468 INFO - iobewi_usb_msc: msc: unavailable sector lba=22241 status=Expired
+20:38:22.468 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=24 ms
+20:38:22.468 INFO - iobewi_usb_msc: msc: unavailable sector lba=22242 status=Expired
+20:38:22.468 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:38:22.468 INFO - iobewi_usb_msc: msc: unavailable sector lba=22243 status=Expired
+20:38:22.468 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:38:22.468 INFO - iobewi_usb_msc: msc: unavailable sector lba=22244 status=Expired
+20:38:22.468 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=26 ms
+20:38:26.525 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=12770 sectors=69531 max_sector_gap_ms=244 gaps_gt100ms=5492 max_cmd_gap_ms=246 pending=588 zerofill=299 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=2 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:29.780 INFO - iobewi_usb_msc: msc: progress reads=5632 blocks=22085 bytes=11307520 lba=0..22488
+20:38:31.578 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=12828 sectors=69843 max_sector_gap_ms=217 gaps_gt100ms=5518 max_cmd_gap_ms=223 pending=588 zerofill=299 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:36.487 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=12888 sectors=70163 max_sector_gap_ms=245 gaps_gt100ms=5538 max_cmd_gap_ms=245 pending=588 zerofill=299 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:41.466 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=12947 sectors=70476 max_sector_gap_ms=223 gaps_gt100ms=5562 max_cmd_gap_ms=228 pending=588 zerofill=299 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:46.482 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=13006 sectors=70795 max_sector_gap_ms=234 gaps_gt100ms=5583 max_cmd_gap_ms=234 pending=588 zerofill=299 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:46.708 INFO - iobewi_usb_msc: msc: unavailable sector lba=23019 status=Expired
+20:38:46.708 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=16 ms
+20:38:46.708 INFO - iobewi_usb_msc: msc: unavailable sector lba=23020 status=Expired
+20:38:46.708 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=27 ms
+20:38:46.998 INFO - iobewi_usb_msc: msc: unavailable sector lba=23025 status=Expired
+20:38:46.998 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:38:46.998 INFO - iobewi_usb_msc: msc: unavailable sector lba=23026 status=Expired
+20:38:46.998 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:38:46.998 INFO - iobewi_usb_msc: msc: unavailable sector lba=23027 status=Expired
+20:38:46.998 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:38:46.998 INFO - iobewi_usb_msc: msc: unavailable sector lba=23028 status=Expired
+20:38:46.998 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:38:50.965 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:38:51.251 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:38:51.251 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:38:51.544 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=15 | msc: cmds=13070 sectors=71125 max_sector_gap_ms=238 gaps_gt100ms=5605 max_cmd_gap_ms=238 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:38:56.586 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=13128 sectors=71437 max_sector_gap_ms=230 gaps_gt100ms=5625 max_cmd_gap_ms=247 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:01.633 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=13188 sectors=71757 max_sector_gap_ms=215 gaps_gt100ms=5647 max_cmd_gap_ms=225 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:02.108 INFO - iobewi_usb_msc: msc: progress reads=5888 blocks=23109 bytes=11831808 lba=0..23540
+20:39:06.516 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=13246 sectors=72069 max_sector_gap_ms=230 gaps_gt100ms=5667 max_cmd_gap_ms=230 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:11.500 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=13306 sectors=72389 max_sector_gap_ms=227 gaps_gt100ms=5690 max_cmd_gap_ms=234 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:13.576 INFO - streambewi::stream: stream: live=22233336 consumed=22153464 lead=79872
+20:39:13.829 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:39:14.583 INFO - streambewi::stream: stream: connecting attempt=23 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:39:15.303 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:39:16.505 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=13364 sectors=72701 max_sector_gap_ms=224 gaps_gt100ms=5713 max_cmd_gap_ms=224 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:20.978 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:39:21.248 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:39:21.248 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:39:21.546 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=13424 sectors=73021 max_sector_gap_ms=244 gaps_gt100ms=5733 max_cmd_gap_ms=250 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:26.582 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=13484 sectors=73338 max_sector_gap_ms=177 gaps_gt100ms=5761 max_cmd_gap_ms=182 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:31.621 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=13542 sectors=73653 max_sector_gap_ms=250 gaps_gt100ms=5780 max_cmd_gap_ms=250 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:34.728 INFO - iobewi_usb_msc: msc: progress reads=6144 blocks=24133 bytes=12356096 lba=0..24564
+20:39:36.577 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=13602 sectors=73973 max_sector_gap_ms=199 gaps_gt100ms=5807 max_cmd_gap_ms=206 pending=594 zerofill=305 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:40.331 INFO - iobewi_usb_msc: msc: unavailable sector lba=24737 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24738 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24739 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24740 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24745 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=1 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24746 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=10 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24747 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=21 ms
+20:39:40.863 INFO - iobewi_usb_msc: msc: unavailable sector lba=24748 status=Expired
+20:39:40.863 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=34 ms
+20:39:41.535 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=11 | msc: cmds=13664 sectors=74290 max_sector_gap_ms=242 gaps_gt100ms=5826 max_cmd_gap_ms=250 pending=602 zerofill=313 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:46.570 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=13722 sectors=74605 max_sector_gap_ms=250 gaps_gt100ms=5845 max_cmd_gap_ms=250 pending=602 zerofill=313 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:51.025 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:39:51.260 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:39:51.260 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:39:51.588 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=17 | msc: cmds=13782 sectors=74925 max_sector_gap_ms=217 gaps_gt100ms=5872 max_cmd_gap_ms=222 pending=602 zerofill=313 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:39:54.883 INFO - iobewi_usb_msc: msc: unavailable sector lba=25202 status=Expired
+20:39:56.051 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=7 ms
+20:39:56.051 INFO - iobewi_usb_msc: msc: unavailable sector lba=25203 status=Expired
+20:39:56.051 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=15 ms
+20:39:56.051 INFO - iobewi_usb_msc: msc: unavailable sector lba=25204 status=Expired
+20:39:56.051 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=27 ms
+20:39:56.638 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=13844 sectors=75250 max_sector_gap_ms=236 gaps_gt100ms=5891 max_cmd_gap_ms=247 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:01.685 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=13904 sectors=75570 max_sector_gap_ms=219 gaps_gt100ms=5918 max_cmd_gap_ms=226 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:06.592 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=13962 sectors=75882 max_sector_gap_ms=244 gaps_gt100ms=5938 max_cmd_gap_ms=249 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:06.880 INFO - iobewi_usb_msc: msc: progress reads=6400 blocks=25157 bytes=12880384 lba=0..25592
+20:40:11.593 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14022 sectors=76202 max_sector_gap_ms=237 gaps_gt100ms=5962 max_cmd_gap_ms=247 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:15.317 INFO - streambewi::stream: stream: live=23244639 consumed=23165176 lead=79463
+20:40:15.579 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:40:16.342 INFO - streambewi::stream: stream: connecting attempt=24 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:40:17.212 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14082 sectors=76523 max_sector_gap_ms=241 gaps_gt100ms=5984 max_cmd_gap_ms=250 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:17.212 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:40:21.051 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:40:21.313 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:40:21.313 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:40:21.624 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=12 | msc: cmds=14141 sectors=76842 max_sector_gap_ms=219 gaps_gt100ms=6006 max_cmd_gap_ms=223 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:26.671 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=14201 sectors=77162 max_sector_gap_ms=245 gaps_gt100ms=6026 max_cmd_gap_ms=252 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:31.719 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14261 sectors=77482 max_sector_gap_ms=199 gaps_gt100ms=6050 max_cmd_gap_ms=199 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:36.625 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=14319 sectors=77794 max_sector_gap_ms=250 gaps_gt100ms=6070 max_cmd_gap_ms=250 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:39.202 INFO - iobewi_usb_msc: msc: progress reads=6656 blocks=26181 bytes=13404672 lba=0..26628
+20:40:41.585 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=14379 sectors=78114 max_sector_gap_ms=185 gaps_gt100ms=6095 max_cmd_gap_ms=190 pending=605 zerofill=316 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:43.828 INFO - iobewi_usb_msc: msc: unavailable sector lba=26770 status=Expired
+20:40:44.323 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=16 ms
+20:40:44.323 INFO - iobewi_usb_msc: msc: unavailable sector lba=26771 status=Expired
+20:40:44.323 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=30 ms
+20:40:44.323 INFO - iobewi_usb_msc: msc: unavailable sector lba=26772 status=Expired
+20:40:44.323 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=38 ms
+20:40:46.617 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=14439 sectors=78431 max_sector_gap_ms=244 gaps_gt100ms=6121 max_cmd_gap_ms=243 pending=608 zerofill=319 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:51.050 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:40:51.302 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:40:51.302 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:40:51.302 INFO - iobewi_usb_msc: msc: unavailable sector lba=27001 status=Expired
+20:40:51.302 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:40:51.302 INFO - iobewi_usb_msc: msc: unavailable sector lba=27002 status=Expired
+20:40:51.302 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:40:51.302 INFO - iobewi_usb_msc: msc: unavailable sector lba=27003 status=Expired
+20:40:51.302 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:40:51.302 INFO - iobewi_usb_msc: msc: unavailable sector lba=27004 status=Expired
+20:40:51.302 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:40:51.580 INFO - iobewi_usb_msc: msc: unavailable sector lba=27009 status=Expired
+20:40:51.580 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:40:51.580 INFO - iobewi_usb_msc: msc: unavailable sector lba=27010 status=Expired
+20:40:51.580 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:40:51.580 INFO - iobewi_usb_msc: msc: unavailable sector lba=27011 status=Expired
+20:40:51.580 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:40:51.580 INFO - iobewi_usb_msc: msc: unavailable sector lba=27012 status=Expired
+20:40:51.580 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=33 ms
+20:40:51.837 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=14 | msc: cmds=14503 sectors=78759 max_sector_gap_ms=238 gaps_gt100ms=6140 max_cmd_gap_ms=242 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:40:56.737 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=14562 sectors=79074 max_sector_gap_ms=245 gaps_gt100ms=6160 max_cmd_gap_ms=250 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:01.774 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14621 sectors=79391 max_sector_gap_ms=197 gaps_gt100ms=6184 max_cmd_gap_ms=201 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:06.632 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14681 sectors=79711 max_sector_gap_ms=241 gaps_gt100ms=6204 max_cmd_gap_ms=244 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:11.207 INFO - iobewi_usb_msc: msc: progress reads=6912 blocks=27205 bytes=13928960 lba=0..27669
+20:41:11.921 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14739 sectors=80023 max_sector_gap_ms=215 gaps_gt100ms=6229 max_cmd_gap_ms=219 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:16.715 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=14799 sectors=80343 max_sector_gap_ms=241 gaps_gt100ms=6249 max_cmd_gap_ms=243 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:16.979 INFO - streambewi::stream: stream: live=24254712 consumed=24172792 lead=81920
+20:41:16.979 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:41:18.161 INFO - streambewi::stream: stream: connecting attempt=25 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:41:18.410 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:41:21.048 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:41:21.296 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:41:21.296 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:41:21.686 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=14857 sectors=80655 max_sector_gap_ms=232 gaps_gt100ms=6272 max_cmd_gap_ms=242 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:26.749 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=14917 sectors=80975 max_sector_gap_ms=184 gaps_gt100ms=6301 max_cmd_gap_ms=183 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:31.796 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=12 | msc: cmds=14977 sectors=81295 max_sector_gap_ms=247 gaps_gt100ms=6321 max_cmd_gap_ms=248 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:37.153 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=15035 sectors=81607 max_sector_gap_ms=194 gaps_gt100ms=6346 max_cmd_gap_ms=200 pending=616 zerofill=327 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:40.074 INFO - iobewi_usb_msc: msc: unavailable sector lba=28570 status=Expired
+20:41:40.322 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:41:40.322 INFO - iobewi_usb_msc: msc: unavailable sector lba=28571 status=Expired
+20:41:40.322 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:41:40.322 INFO - iobewi_usb_msc: msc: unavailable sector lba=28572 status=Expired
+20:41:40.322 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=21 ms
+20:41:41.673 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=15095 sectors=81924 max_sector_gap_ms=246 gaps_gt100ms=6367 max_cmd_gap_ms=246 pending=619 zerofill=330 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:43.763 INFO - iobewi_usb_msc: msc: progress reads=7168 blocks=28229 bytes=14453248 lba=0..28693
+20:41:46.090 INFO - iobewi_usb_msc: msc: unavailable sector lba=28762 status=Expired
+20:41:46.330 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=1 ms
+20:41:46.330 INFO - iobewi_usb_msc: msc: unavailable sector lba=28763 status=Expired
+20:41:46.330 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:41:46.330 INFO - iobewi_usb_msc: msc: unavailable sector lba=28764 status=Expired
+20:41:46.330 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:41:46.572 INFO - iobewi_usb_msc: msc: unavailable sector lba=28772 status=Expired
+20:41:46.572 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=11 ms
+20:41:46.812 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=15157 sectors=82248 max_sector_gap_ms=238 gaps_gt100ms=6387 max_cmd_gap_ms=246 pending=623 zerofill=334 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:51.091 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:41:51.656 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:41:51.656 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:41:51.895 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=15215 sectors=82560 max_sector_gap_ms=182 gaps_gt100ms=6412 max_cmd_gap_ms=186 pending=623 zerofill=334 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:41:55.137 INFO - iobewi_usb_msc: msc: unavailable sector lba=29050 status=Expired
+20:41:55.379 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:41:55.379 INFO - iobewi_usb_msc: msc: unavailable sector lba=29051 status=Expired
+20:41:55.379 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=9 ms
+20:41:55.379 INFO - iobewi_usb_msc: msc: unavailable sector lba=29052 status=Expired
+20:41:55.379 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:41:55.594 INFO - iobewi_usb_msc: msc: unavailable sector lba=29059 status=Expired
+20:41:55.594 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=7 ms
+20:41:55.594 INFO - iobewi_usb_msc: msc: unavailable sector lba=29060 status=Expired
+20:41:55.594 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=16 ms
+20:41:56.770 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=8 | msc: cmds=15277 sectors=82883 max_sector_gap_ms=237 gaps_gt100ms=6432 max_cmd_gap_ms=245 pending=628 zerofill=339 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:01.817 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=9 | msc: cmds=15335 sectors=83195 max_sector_gap_ms=200 gaps_gt100ms=6458 max_cmd_gap_ms=208 pending=628 zerofill=339 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:06.102 INFO - iobewi_usb_msc: msc: unavailable sector lba=29403 status=Expired
+20:42:06.587 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=6 ms
+20:42:06.587 INFO - iobewi_usb_msc: msc: unavailable sector lba=29404 status=Expired
+20:42:06.587 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=13 ms
+20:42:06.587 INFO - iobewi_usb_msc: msc: unavailable sector lba=29410 status=Expired
+20:42:06.587 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=0 ms
+20:42:06.587 INFO - iobewi_usb_msc: msc: unavailable sector lba=29411 status=Expired
+20:42:06.587 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=8 ms
+20:42:06.587 INFO - iobewi_usb_msc: msc: unavailable sector lba=29412 status=Expired
+20:42:06.587 WARN - streambewi::usb: usb: ZEROFILL status=Expired command_elapsed=20 ms
+20:42:06.818 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=10 | msc: cmds=15397 sectors=83518 max_sector_gap_ms=245 gaps_gt100ms=6478 max_cmd_gap_ms=249 pending=633 zerofill=344 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:11.724 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=15455 sectors=83830 max_sector_gap_ms=174 gaps_gt100ms=6499 max_cmd_gap_ms=174 pending=633 zerofill=344 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:15.833 INFO - iobewi_usb_msc: msc: progress reads=7424 blocks=29253 bytes=14977536 lba=0..29747
+20:42:16.720 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=15515 sectors=84150 max_sector_gap_ms=242 gaps_gt100ms=6519 max_cmd_gap_ms=247 pending=633 zerofill=344 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:18.441 INFO - streambewi::stream: stream: live=25263352 consumed=25181432 lead=81920
+20:42:18.676 INFO - streambewi::stream: qual: dropping the connection after 60 s
+20:42:19.424 INFO - streambewi::stream: stream: connecting attempt=26 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:42:19.829 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:42:21.110 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55272 free 26648
+20:42:21.584 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:42:21.584 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55272 free 100392 max_used 132464 min_free 23200; stack reserved 39088 max_used 28200 margin 10888; painted 36496 B
+20:42:21.829 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=16 | msc: cmds=15573 sectors=84462 max_sector_gap_ms=193 gaps_gt100ms=6546 max_cmd_gap_ms=211 pending=633 zerofill=344 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:26.819 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=15635 sectors=84790 max_sector_gap_ms=236 gaps_gt100ms=6566 max_cmd_gap_ms=245 pending=633 zerofill=344 stalls=57 | tls: connects=3 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=1
+20:42:32.001 INFO - streambewi::usb: provisioning: CONFIGURED
+20:42:32.001 INFO - streambewi::usb: stream: waiting for the prebuffer written=0 consumed=0
+20:42:36.615 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=593 | msc: cmds=0 sectors=0 max_sector_gap_ms=0 gaps_gt100ms=0 max_cmd_gap_ms=0 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:42:37.622 WARN - iobewi_wifi_manager: wifi: connect failed, backoff 1000 ms
+20:42:40.284 INFO - streambewi::stream: net: got IP 192.168.100.109/24
+20:42:40.284 INFO - streambewi::stream: stream: connecting attempt=1 url=http://icecast.radiofrance.fr/fip-midfi.mp3
+20:42:41.462 INFO - streambewi::stream: stream: HTTP status=200 content_length=None
+20:42:42.602 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=0 sectors=0 max_sector_gap_ms=0 gaps_gt100ms=0 max_cmd_gap_ms=0 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:42:42.602 INFO - streambewi::stream: stream: live=66958 consumed=0 lead=66958
+20:42:42.602 INFO - streambewi::stream: stream: session start live=73202
+20:42:42.602 INFO - streambewi::usb: qual-sim: simulated reader started at the audio rate
+20:42:42.602 INFO - streambewi::usb: stream: prebuffer bytes=76078
+20:42:42.602 INFO - streambewi::usb: usb: enabling MSC for Metronic
+20:42:42.602 TRACE - embassy_usb::builder: USB: config_descriptor used: 32
+20:42:42.602 TRACE - embassy_usb::builder: USB: bos_descriptor used: 12
+20:42:42.602 TRACE - embassy_usb::builder: USB: msos_descriptor used: 0
+20:42:42.602 TRACE - embassy_usb::builder: USB: control_buf size: 64
+20:42:42.602 TRACE - embassy_usb: usb: power detected
+20:42:42.602 INFO - streambewi::usb: usb: enabled=true
+20:42:42.602 TRACE - embassy_usb: usb: reset
+20:42:42.602 INFO - streambewi::usb: usb: bus reset
+20:42:42.602 TRACE - embassy_usb: control request: Request { direction: In, request_type: Standard, recipient: Device, request: 6, value: 256, index: 0, length: 18 }
+20:42:42.602 TRACE - embassy_usb: control request: Request { direction: Out, request_type: Standard, recipient: Device, request: 5, value: 2, index: 0, length: 0 }
+20:42:42.602 TRACE - embassy_usb:   control out data: []
+20:42:42.602 INFO - streambewi::usb: usb: addressed=2
+20:42:42.602 TRACE - embassy_usb: control request: Request { direction: In, request_type: Standard, recipient: Device, request: 6, value: 512, index: 0, length: 9 }
+20:42:42.602 TRACE - embassy_usb: control request: Request { direction: In, request_type: Standard, recipient: Device, request: 6, value: 512, index: 0, length: 32 }
+20:42:42.602 TRACE - embassy_usb: control request: Request { direction: Out, request_type: Standard, recipient: Device, request: 9, value: 1, index: 0, length: 0 }
+20:42:42.602 TRACE - embassy_usb:   control out data: []
+20:42:42.602 DEBUG - embassy_usb: SET_CONFIGURATION: configured
+20:42:42.602 INFO - streambewi::usb: usb: configured=true
+20:42:42.602 INFO - streambewi::stream: stream: session start live=87832
+20:42:42.602 INFO - iobewi_usb_msc: msc: connected
+20:42:42.602 TRACE - embassy_usb: control request: Request { direction: In, request_type: Class, recipient: Interface, request: 254, value: 0, index: 0, length: 1 }
+20:42:42.602 INFO - iobewi_usb_msc: msc: get max lun
+20:42:42.602 INFO - iobewi_usb_msc: msc: cmd op=0x12 xfer=36 tag=3813474814
+20:42:42.602 INFO - iobewi_usb_msc: msc: cmd op=0x00 xfer=0 tag=3830252030
+20:42:42.602 INFO - iobewi_usb_msc: msc: cmd op=0x25 xfer=8 tag=3847029246
+20:42:44.071 INFO - streambewi::stream: stream: REBASE on re-read of sector 0 base Some(22296) -> Some(56856) live=122392
+20:42:46.656 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=40 | msc: cmds=80 sectors=254 max_sector_gap_ms=253 gaps_gt100ms=18 max_cmd_gap_ms=253 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:42:51.786 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=184 sectors=566 max_sector_gap_ms=224 gaps_gt100ms=42 max_cmd_gap_ms=107 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:42:56.771 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=289 sectors=886 max_sector_gap_ms=238 gaps_gt100ms=62 max_cmd_gap_ms=108 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:42:58.350 INFO - iobewi_usb_msc: msc: progress reads=256 blocks=592 bytes=303104 lba=0..708
+20:43:01.731 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55312 free 26608
+20:43:01.967 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:43:01.967 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55312 free 100352 max_used 64636 min_free 91028; stack reserved 39088 max_used 26956 margin 12132; painted 36496 B
+20:43:01.967 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=15 | msc: cmds=365 sectors=1202 max_sector_gap_ms=236 gaps_gt100ms=86 max_cmd_gap_ms=203 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:06.691 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=7 | msc: cmds=424 sectors=1518 max_sector_gap_ms=236 gaps_gt100ms=105 max_cmd_gap_ms=236 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:11.666 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=3 | msc: cmds=484 sectors=1838 max_sector_gap_ms=241 gaps_gt100ms=126 max_cmd_gap_ms=245 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:16.676 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=4 | msc: cmds=542 sectors=2150 max_sector_gap_ms=221 gaps_gt100ms=149 max_cmd_gap_ms=222 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:21.739 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=602 sectors=2470 max_sector_gap_ms=244 gaps_gt100ms=169 max_cmd_gap_ms=244 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:26.790 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=5 | msc: cmds=660 sectors=2782 max_sector_gap_ms=205 gaps_gt100ms=192 max_cmd_gap_ms=204 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:30.687 INFO - iobewi_usb_msc: msc: progress reads=512 blocks=1610 bytes=824320 lba=0..1724
+20:43:31.750 INFO - streambewi::qual: qual-mem periodic: region0 size 81920 used 55312 free 26608
+20:43:31.995 INFO - streambewi::qual: qual-mem periodic: region1 size 73744 used 0 free 73744
+20:43:31.995 INFO - streambewi::qual: qual-mem periodic: heap size 155664 used 55312 free 100352 max_used 66340 min_free 89324; stack reserved 39088 max_used 26956 margin 12132; painted 36496 B
+20:43:31.995 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=19 | msc: cmds=720 sectors=3102 max_sector_gap_ms=244 gaps_gt100ms=212 max_cmd_gap_ms=245 pending=0 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=1 | sim_reader: max_sector_wait_ms=0 waits_gt1s=0
+20:43:36.693 INFO - streambewi::qual: qual-sched 5s: executor_lateness_ms=6 | msc: cmds=778 sectors=3414 max_sector_gap_ms=189 gaps_gt100ms=236 max_cmd_gap_ms=190 pending=23 zerofill=0 stalls=0 | tls: connects=0 max_connect_poll_ms=0 max_connect_total_ms=0 max_read_poll_ms=0 | sim_reader: max_sector_wait_ms=68 waits_gt1s=0

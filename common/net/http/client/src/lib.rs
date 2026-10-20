@@ -2,12 +2,17 @@
 
 //! Outbound HTTP/1.1 primitives over any connected async transport.
 //! TLS connection setup and certificate policy belong to the platform adapter.
+//! `get`/`read_head` give a stream's response head and leave the body to the
+//! caller; `Target` parses URLs and applies the redirect policy.
 //! Knows nothing about an HTTP server, `picoserve` or any listener.
 
 extern crate alloc;
 
 #[cfg(test)]
 mod testutil;
+
+mod get;
+pub use get::{Head, HeadError, Target, TargetError, get, read_head};
 
 /// Outbound WebSocket upgrade and frame handling (feature `websocket`).
 #[cfg(feature = "websocket")]

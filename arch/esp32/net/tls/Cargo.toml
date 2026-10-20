@@ -26,6 +26,12 @@ esp32c3 = ["embassy-net", "portable-atomic/unsafe-assume-single-core", "dep:stat
 # `xtensa-esp32s3-elf-gcc` cross-compiler directly and never calls
 # `Config::target()` with the problematic triple at all.
 esp32s3 = ["embassy-net", "dep:static_cell", "dep:iobewi-esp-entropy", "iobewi-esp-entropy/esp32s3", "iobewi-esp-entropy/rand-core", "iobewi-crypto-mbedtls/use-gcc"]
+# Forwarded to iobewi-crypto-mbedtls (see there): validate public RSA/P-384
+# chains and negotiate X25519, for an outbound client of public servers.
+rsa = ["iobewi-crypto-mbedtls/rsa"]
+p384 = ["iobewi-crypto-mbedtls/p384"]
+x25519 = ["iobewi-crypto-mbedtls/x25519"]
+public-pki = ["iobewi-crypto-mbedtls/public-pki"]
 embassy-net = ["dep:embassy-net", "dep:embassy-time", "dep:embedded-io-async", "dep:iobewi-net-io", "dep:iobewi-net-tls-core", "dep:iobewi-esp-tcp", "dep:log"]
 
 [dependencies]
