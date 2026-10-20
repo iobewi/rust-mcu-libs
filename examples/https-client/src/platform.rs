@@ -144,7 +144,7 @@ async fn fetch(
 
     get(
         &mut stream,
-        &target.host,
+        &target.authority(),
         &target.path,
         &[("User-Agent", UA), ("Icy-MetaData", "0")],
     )

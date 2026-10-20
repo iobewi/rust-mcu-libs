@@ -116,4 +116,4 @@ SNTP: first valid time 1.05 s after the network is up. `clock-unsynced` refused 
 - A first Wi-Fi join often fails (`DisassociatedDueToInactivity`, the known #72); the bench's automatic EN reset retried until the join succeeded. Not a TLS matter.
 - Not measured: DNS, TCP and handshake separately; Wi-Fi/WAN loss and recovery; USB MSC during the handshake (this example has no USB); following a redirect or decoding a chunked body on the device.
 - `https-health`'s CI profile only does `cargo check`; the binary does not link (no `build.rs` with `-Tlinkall.x`). This example links in CI (`host-esp32s3-linked-bins`). Not fixed here.
-- The root fingerprints other than ISRG Root X1 were not compared with their CAs' publications (see `iobewi-tls-roots`).
+- The five root fingerprints were compared with their CAs' own publications (see `iobewi-tls-roots`).

@@ -15,6 +15,8 @@ const MAX_LOCATION: usize = 256;
 
 /// Write a `GET` request (HTTP/1.1, `Connection: close`) and flush it.
 ///
+/// `host` is the value of the `Host` header: for a non-default port it must
+/// include it (`host:8000`), which [`Target::authority`] gives.
 /// `headers` are extra `(name, value)` pairs; CR/LF in any field is refused.
 pub async fn get<S>(
     session: &mut S,
@@ -71,7 +73,8 @@ pub enum HeadError<E> {
     Closed,
     /// The head does not fit in the buffer.
     TooLarge,
-    /// The head is not HTTP, or its `Location` is too long.
+    /// The head is not HTTP, has more than 24 headers, a `Location` that is too
+    /// long, or a `Transfer-Encoding` other than a single `chunked`.
     Malformed,
 }
 
@@ -115,6 +118,7 @@ pub async fn read_head<S: Read>(
         body_start,
         filled,
     };
+    let mut transfer_encodings = 0;
     for h in response.headers.iter() {
         let Ok(value) = core::str::from_utf8(h.value) else {
             continue;
@@ -123,13 +127,24 @@ pub async fn read_head<S: Read>(
         if h.name.eq_ignore_ascii_case("content-length") {
             head.content_length = value.parse().ok();
         } else if h.name.eq_ignore_ascii_case("transfer-encoding") {
-            head.chunked = value.to_ascii_lowercase().contains("chunked");
+            // Only a lone `chunked` is understood. Several headers, another
+            // coding or a list is refused rather than guessed: a body framed
+            // differently from what the caller decodes would desynchronise it.
+            transfer_encodings += 1;
+            if transfer_encodings > 1 || !value.eq_ignore_ascii_case("chunked") {
+                return Err(HeadError::Malformed);
+            }
+            head.chunked = true;
         } else if h.name.eq_ignore_ascii_case("location") {
             if value.len() > MAX_LOCATION || value.contains(['\r', '\n']) {
                 return Err(HeadError::Malformed);
             }
             head.location = Some(String::from(value));
         }
+    }
+    // Chunked framing wins over any `Content-Length` (RFC 9112 6.3).
+    if head.chunked {
+        head.content_length = None;
     }
     Ok(head)
 }
@@ -167,6 +182,8 @@ impl Target {
         if rest.chars().any(|c| c.is_ascii_control() || c == ' ') {
             return Err(TargetError::Malformed);
         }
+        // A fragment is never sent to the server.
+        let rest = rest.split('#').next().unwrap_or(rest);
         let (authority, path) = match rest.find(['/', '?']) {
             Some(i) if rest.as_bytes()[i] == b'/' => (&rest[..i], &rest[i..]),
             Some(i) => (&rest[..i], &rest[i..]), // query without path
@@ -199,6 +216,15 @@ impl Target {
         })
     }
 
+    /// The `Host` header value: the port only when it is not the scheme's default.
+    pub fn authority(&self) -> String {
+        if self.port == if self.tls { 443 } else { 80 } {
+            self.host.clone()
+        } else {
+            format!("{}:{}", self.host, self.port)
+        }
+    }
+
     /// The target a `Location` designates, seen from `self`.
     ///
     /// Absolute URLs and absolute paths (`/x`) are followed; a relative path
@@ -211,6 +237,7 @@ impl Target {
             if location.chars().any(|c| c.is_ascii_control() || c == ' ') {
                 return Err(TargetError::Malformed);
             }
+            let location = location.split('#').next().unwrap_or(location);
             return Ok(Self {
                 path: String::from(location),
                 ..self.clone()
@@ -287,8 +314,56 @@ mod tests {
         let head = block_on(read_head(&mut d, &mut buf)).unwrap();
         assert_eq!(head.status, 302);
         assert_eq!(head.location.as_deref(), Some("https://b.example/x"));
-        assert_eq!(head.content_length, Some(0));
+        // Chunked framing wins over Content-Length.
+        assert_eq!(head.content_length, None);
         assert!(head.chunked);
+    }
+
+    #[test]
+    fn only_a_lone_chunked_transfer_encoding_is_understood() {
+        let mut buf = [0u8; 256];
+        for ok in ["chunked", "Chunked", " chunked "] {
+            let raw = format!("HTTP/1.1 200 OK\r\nTransfer-Encoding: {ok}\r\n\r\n");
+            assert!(
+                block_on(read_head(&mut peer(raw.as_bytes()), &mut buf))
+                    .unwrap()
+                    .chunked
+            );
+        }
+        for bad in [
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n\r\n",
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n",
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip\r\n\r\n",
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n\r\n",
+        ] {
+            assert_eq!(
+                block_on(read_head(&mut peer(bad.as_bytes()), &mut buf)),
+                Err(HeadError::Malformed),
+                "{bad}"
+            );
+        }
+    }
+
+    #[test]
+    fn host_carries_the_port_only_when_it_is_not_the_default() {
+        let auth = |u: &str| Target::parse(u).unwrap().authority();
+        assert_eq!(auth("https://a.example/"), "a.example");
+        assert_eq!(auth("https://a.example:443/"), "a.example");
+        assert_eq!(auth("https://a.example:8443/x"), "a.example:8443");
+        assert_eq!(auth("http://a.example:8000"), "a.example:8000");
+        assert_eq!(auth("http://a.example:443/"), "a.example:443");
+        assert_eq!(auth("https://a.example:80/"), "a.example:80");
+    }
+
+    #[test]
+    fn a_fragment_is_dropped_and_never_sent() {
+        let t = Target::parse("https://a.example/live.mp3?x=1#top").unwrap();
+        assert_eq!(t.path, "/live.mp3?x=1");
+        assert_eq!(Target::parse("https://a.example#f").unwrap().path, "/");
+        assert_eq!(Target::parse("https://a.example:81#f").unwrap().port, 81);
+        let r = t.redirect("/next#frag").unwrap();
+        assert_eq!(r.path, "/next");
+        assert_eq!(t.redirect("https://b.example/y#z").unwrap().path, "/y");
     }
 
     #[test]
