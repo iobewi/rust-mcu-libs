@@ -12,7 +12,7 @@ extern crate alloc;
 mod testutil;
 
 mod get;
-pub use get::{Head, HeadError, Target, TargetError, get, read_head};
+pub use get::{Head, HeadError, MAX_HEADERS, Target, TargetError, get, read_head};
 
 /// Outbound WebSocket upgrade and frame handling (feature `websocket`).
 #[cfg(feature = "websocket")]
