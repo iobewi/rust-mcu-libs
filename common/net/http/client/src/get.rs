@@ -13,6 +13,13 @@ use embedded_io_async::{Read, Write};
 /// Longest `Location` kept; a longer one is refused rather than truncated.
 const MAX_LOCATION: usize = 256;
 
+/// Most response headers parsed; one more is [`HeadError::TooManyHeaders`].
+///
+/// Real servers send more than a minimal Icecast does (a CDN or a `Set-Cookie`
+/// plus CORS plus `icy-*` set reaches the 20s, a rich one 26). The table lives on
+/// the stack for the parse only: 16 bytes per entry on a 32-bit target.
+pub const MAX_HEADERS: usize = 48;
+
 /// Write a `GET` request (HTTP/1.1, `Connection: close`) and flush it.
 ///
 /// `host` is the value of the `Host` header: for a non-default port it must
@@ -73,8 +80,11 @@ pub enum HeadError<E> {
     Closed,
     /// The head does not fit in the buffer.
     TooLarge,
-    /// The head is not HTTP, has more than 24 headers, a `Location` that is too
-    /// long, or a `Transfer-Encoding` other than a single `chunked`.
+    /// More than [`MAX_HEADERS`] headers: refused, never truncated, so that
+    /// a framing or `Location` header past the limit cannot go unseen.
+    TooManyHeaders,
+    /// The head is not HTTP, a `Location` is too long, or a `Transfer-Encoding`
+    /// is other than a single `chunked`.
     Malformed,
 }
 
@@ -104,10 +114,11 @@ pub async fn read_head<S: Read>(
         }
     };
 
-    let mut parsed = [httparse::EMPTY_HEADER; 24];
+    let mut parsed = [httparse::EMPTY_HEADER; MAX_HEADERS];
     let mut response = httparse::Response::new(&mut parsed);
     match response.parse(&buf[..body_start]) {
         Ok(httparse::Status::Complete(_)) => {}
+        Err(httparse::Error::TooManyHeaders) => return Err(HeadError::TooManyHeaders),
         _ => return Err(HeadError::Malformed),
     }
     let mut head = Head {
@@ -406,6 +417,110 @@ mod tests {
             )),
             Err(HeadError::Malformed)
         );
+    }
+
+    /// A complete head with `n` filler headers, the interesting ones last.
+    fn head_with(n: usize, tail: &str) -> Vec<u8> {
+        let mut v = b"HTTP/1.1 200 OK\r\n".to_vec();
+        for i in 0..n {
+            v.extend_from_slice(format!("X-{i}: v\r\n").as_bytes());
+        }
+        v.extend_from_slice(tail.as_bytes());
+        v.extend_from_slice(b"\r\n");
+        v
+    }
+
+    #[test]
+    fn the_header_limit_is_exact_and_refused_beyond_it() {
+        let mut buf = [0u8; 4096];
+        // Fillers plus the one `Content-Length` that closes the list.
+        for (fillers, expected) in [
+            (23, Ok(())),                                  // 24 headers: the old limit
+            (25, Ok(())),                                  // 26 (walmradio)
+            (MAX_HEADERS - 1, Ok(())),                     // 48
+            (MAX_HEADERS, Err(HeadError::TooManyHeaders)), // 49
+            (MAX_HEADERS + 30, Err(HeadError::TooManyHeaders)),
+        ] {
+            let bytes = head_with(fillers, "Content-Length: 7\r\n");
+            let got = block_on(read_head(&mut peer(&bytes), &mut buf));
+            match expected {
+                Ok(()) => assert_eq!(got.unwrap().content_length, Some(7), "{fillers}"),
+                Err(e) => assert_eq!(got, Err(e), "{fillers}"),
+            }
+        }
+    }
+
+    #[test]
+    fn a_header_past_the_limit_is_never_silently_dropped() {
+        // Framing hidden after the limit must not be skipped: the whole head is
+        // refused instead of read as a body-less or length-less response.
+        let mut buf = [0u8; 4096];
+        let bytes = head_with(MAX_HEADERS, "Transfer-Encoding: chunked\r\n");
+        assert_eq!(
+            block_on(read_head(&mut peer(&bytes), &mut buf)),
+            Err(HeadError::TooManyHeaders)
+        );
+        // At the limit, a trailing `Location` and framing are still seen.
+        let bytes = head_with(
+            MAX_HEADERS - 2,
+            "Location: /next\r\nTransfer-Encoding: chunked\r\n",
+        );
+        let head = block_on(read_head(&mut peer(&bytes), &mut buf)).unwrap();
+        assert_eq!(head.location.as_deref(), Some("/next"));
+        assert!(head.chunked);
+    }
+
+    #[test]
+    fn a_head_larger_than_the_buffer_stays_too_large_whatever_its_headers() {
+        // Few headers but too big for the buffer, and many headers in a buffer
+        // that cannot hold them: both are `TooLarge`, not a parse error.
+        let big = format!("X-Big: {}\r\n", "a".repeat(600));
+        let bytes = head_with(3, &big);
+        let mut small = [0u8; 256];
+        assert_eq!(
+            block_on(read_head(&mut peer(&bytes), &mut small)),
+            Err(HeadError::TooLarge)
+        );
+        let bytes = head_with(MAX_HEADERS + 10, "");
+        let mut small = [0u8; 256];
+        assert_eq!(
+            block_on(read_head(&mut peer(&bytes), &mut small)),
+            Err(HeadError::TooLarge)
+        );
+        // The same many-header head fits and is refused for its count, not its size.
+        let mut room = [0u8; 2048];
+        assert_eq!(
+            block_on(read_head(&mut peer(&bytes), &mut room)),
+            Err(HeadError::TooManyHeaders)
+        );
+    }
+
+    #[test]
+    fn existing_protections_hold_with_many_headers() {
+        let mut buf = [0u8; 4096];
+        // Duplicate or non-chunked Transfer-Encoding, long Location: still refused.
+        let dup = head_with(
+            30,
+            "Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n",
+        );
+        assert_eq!(
+            block_on(read_head(&mut peer(&dup), &mut buf)),
+            Err(HeadError::Malformed)
+        );
+        let gzip = head_with(30, "Transfer-Encoding: gzip, chunked\r\n");
+        assert_eq!(
+            block_on(read_head(&mut peer(&gzip), &mut buf)),
+            Err(HeadError::Malformed)
+        );
+        let long = head_with(30, &format!("Location: /{}\r\n", "a".repeat(MAX_LOCATION)));
+        assert_eq!(
+            block_on(read_head(&mut peer(&long), &mut buf)),
+            Err(HeadError::Malformed)
+        );
+        // Chunked still wins over Content-Length.
+        let both = head_with(30, "Content-Length: 5\r\nTransfer-Encoding: chunked\r\n");
+        let h = block_on(read_head(&mut peer(&both), &mut buf)).unwrap();
+        assert!(h.chunked && h.content_length.is_none());
     }
 
     #[test]
