@@ -4,6 +4,12 @@
 Enable `esp32s3` and compile for `xtensa-esp32s3-none-elf`. Other chips are not
 implemented; without that feature the crate is empty and does not pull in esp-hal.
 
+The pins are fixed by the chip: with the internal PHY of the ESP32-S3, D+ is GPIO20 and D- is
+GPIO19, whatever a board's connector labels say. They are not selectable, which is why the
+signature takes the concrete `GPIO20` and `GPIO19` types. The ESP32-C3 has no USB OTG controller
+(only USB Serial/JTAG on GPIO18/GPIO19), so there is nothing to port there. See
+[ESP32 GPIO reference](../../../docs/hardware/esp32-gpio.md).
+
 `device(USB_FS, GPIO20, GPIO19, out)` consumes the peripheral and D+/D- pins,
 borrows a caller-owned static OUT buffer and returns the upstream Embassy-compatible
 `esp_hal::usb::otg::embassy_usb_device::Driver<'static>`. No allocation is added.

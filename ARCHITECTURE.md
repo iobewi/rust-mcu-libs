@@ -103,6 +103,15 @@ Rules:
 5. ConfigSpace selects EKV in common; architecture adapters implement its NOR Flash contract. Future RP/Teensy ports must validate their actual geometry against the persisted profile.
 6. Chip feature flags do not replace correct target triple, linker setup, runtime configuration or hardware qualification.
 
+## Hardware resource ownership
+
+The application, through its board composition, owns the hardware resources. It takes the `esp-hal` peripherals and GPIO once and moves each one into the component that needs it; a component never selects a pin on its own behalf and no pin number lives in a reusable crate.
+
+1. Reuse the `esp-hal` types. A pin is a distinct moved value, so a double assignment fails to compile; do not add a parallel mapping layer or a board-profile catalogue to this repository.
+2. Accept `impl PeripheralOutput`/`PeripheralInput` where the chip can route the signal, and the concrete pin type only where the hardware fixes it (for example the ESP32-S3 USB PHY on GPIO19/GPIO20).
+3. State a component's pin requirements and chip limits in its README.
+4. Keep SoC capabilities, board wiring and application choice separate. The SoC and board facts, and example compositions for ESP32-S3 and ESP32-C3, are in [docs/hardware/esp32-gpio.md](docs/hardware/esp32-gpio.md).
+
 ## Configuration: one backend, multiple spaces
 
 Example flow:
