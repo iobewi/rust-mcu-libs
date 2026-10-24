@@ -1,0 +1,26 @@
+[package]
+name = "example-ws2812"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.95"
+license.workspace = true
+publish = false
+autobins = false
+
+[[bin]]
+name = "ws2812"
+path = "src/main.rs"
+required-features = ["firmware"]
+
+[features]
+default = []
+firmware = []
+# ESP32-S3-DevKitC-1 v1.1 wires the RGB LED to GPIO38 instead of GPIO48 (v1.0).
+devkitc-1-v1-1 = []
+esp32c3 = ["firmware", "esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3", "iobewi-esp-ws2812/esp32c3"]
+esp32s3 = ["firmware", "esp-hal/esp32s3", "esp-bootloader-esp-idf/esp32s3", "iobewi-esp-ws2812/esp32s3"]
+
+[dependencies]
+iobewi-esp-ws2812 = { path = "../../arch/esp32/ws2812" }
+esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"] }
+esp-bootloader-esp-idf = { version = "~0.6", default-features = false }
