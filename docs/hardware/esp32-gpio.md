@@ -2,7 +2,7 @@
 
 Reference for issue #77. It documents what the SoC imposes, what a board wires, and how an
 application hands typed resources to library components. It is documentation only: there is no
-GPIO crate, no board profile and no mapping API in this repository, and none is planned.
+GPIO crate, no board profile and no mapping API in this repository, and this issue introduces none.
 
 Sources and what was checked:
 
