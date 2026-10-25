@@ -6,6 +6,7 @@ members = [
   "common/indicator",
   "common/state",
   "examples/indicator",
+  "examples/state-indicator",
   "common/fs/block",
   "common/fs/fat16",
   "common/stream/rolling",
