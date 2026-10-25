@@ -1,0 +1,11 @@
+[package]
+name = "iobewi-indicator"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable light patterns for one LED: fixed, blink, pulse, computed from a caller-provided time"
+
+[dependencies]
+smart-leds-trait = "0.3"
