@@ -4,6 +4,7 @@ members = [
   "arch/esp32/ws2812",
   "examples/ws2812",
   "common/indicator",
+  "common/state",
   "examples/indicator",
   "common/fs/block",
   "common/fs/fat16",
