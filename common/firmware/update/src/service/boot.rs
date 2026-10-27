@@ -16,7 +16,7 @@ use crate::{Action, BackendOutcome};
 /// each can be classified and implemented where it belongs, and the bundle
 /// stays a blanket implementation (the service functions keep one bound):
 ///
-/// * [`BootState`] -- physical boot status and the durable EWBT writes
+/// * [`BootState`] -- physical boot status and the durable boot metadata writes
 ///   (`firmware/boot` logic executed by a platform storage adapter);
 /// * [`BootSelfCheck`] -- the storage self-check at boot;
 /// * [`BootWatchdog`] -- the pending-verify watchdog (primitive in a

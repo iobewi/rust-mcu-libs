@@ -55,6 +55,8 @@ jobs:
         run: python3 .github/scripts/test_discover_ci.py
       - name: Validate OTA gate logic
         run: python3 .github/scripts/test_ota_gate.py
+      - name: Reject the retired boot-metadata identifier
+        run: python3 .github/scripts/check_retired_terms.py
       - name: Reject tracked Cargo.lock files
         run: |
           if git ls-files | grep -E '(^|/)Cargo\.lock$'; then

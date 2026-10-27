@@ -12,8 +12,11 @@ Boot must remain able to invalidate that record when the image cannot boot.
 
 The executable clears flashboot watchdog bits, initializes esp-hal, validates
 the full table, plans boot, writes the transitions, copies validated RAM
-segments, maps DROM/IROM and jumps. Failure halts. EWBT record magic and OTM1/2
-bytes remain unchanged; standard ESP-IDF boot does not implement this contract.
+segments, maps DROM/IROM and jumps. Failure halts. The `otadata` record format is version 2 (magic `BOOT`);
+OTM1/2 bytes are unchanged. `otadata` that is neither blank nor a valid record
+halts (reason 3) instead of being re-seeded: see
+`docs/firmware/boot-metadata-reprovisioning.md`. Standard ESP-IDF boot does not
+implement this contract.
 
 ## Building
 
