@@ -4,7 +4,7 @@ Les métadonnées de boot sont au format **version 2** (magic `BOOT`, voir [tran
 
 ## À savoir avant d'agir
 
-- **L'OTA applicative ne met jamais à jour le bootloader** (0x0) ni `otadata`. Le reprovisionnement est un flash physique (USB/UART), à faire une fois par appareil.
+- **L'OTA applicative actuelle ne met pas à jour le bootloader** (0x0). Elle ne met pas non plus `otadata` au nouveau format : le bootloader et l'application modifient `otadata` dans le cadre normal des transitions d'activation, de confirmation et de rollback, mais uniquement au format v2 déjà en place. Le passage au format v2 n'est donc **pas une migration OTA automatique** : il exige une intervention physique (USB/UART) sur le bootloader et sur les métadonnées incompatibles, à faire une fois par appareil.
 - **Ordre impératif : bootloader d'abord, `otadata` ensuite.** Un ancien bootloader qui lirait un `otadata` v2 le jugerait corrompu et réensemencerait le slot 0 sans prévenir, ce qui peut démarrer un firmware plus ancien que celui confirmé. Un nouveau bootloader sur un ancien `otadata` s'arrête au contraire explicitement.
 - Le reprovisionnement **ne touche pas** à la configuration (`config`), à `wl_meta` ni aux images : il écrit uniquement le bootloader et `otadata`.
 - Un retour arrière vers un ancien bootloader après écriture de la version 2 n'est pas supporté.
