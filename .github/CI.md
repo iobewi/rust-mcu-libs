@@ -103,3 +103,37 @@ limit. The firmware/ota-system reference uses it to catch unresolved timer,
 allocator, runtime and linker symbols that a cargo check would miss.
 
 `host-esp32-linked-bins` combines host unit tests/strict Clippy without MCU features with actual C3/S3 release binary links. Firmware dependencies must be optional, enabled by the MCU/firmware features. The OTA reference uses this to execute its request-admission tests without weakening target link gates.
+
+## Validation domains: general CI and firmware/OTA CI
+
+Two workflows share one Cargo workspace, one `ci.json` vocabulary and the same scripts:
+
+| Workflow | Final gate (required-check name) | Scope |
+|---|---|---|
+| `rust-mcu.yml` | `Affected crate validation` | every package outside the firmware/OTA domain |
+| `firmware-ota.yml` | `Firmware OTA validation` | `common/firmware/**`, `arch/esp32/firmware/**`, `examples/firmware/**` and `tools/component-pack` (the OTA component packer, which depends only on firmware crates) |
+
+`discover_ci.py --domain firmware-ota|general|all` (default `all`) partitions the workspace by directory (`FIRMWARE_OTA_DIRS`). **Selection is computed on the whole workspace first** (changed members plus Cargo's reverse dependency graph) and only then restricted to the domain. A change in a shared crate (flash, crypto, net-io, config-space...) therefore selects its consumers in both domains and triggers both workflows; a firmware-only or non-firmware-only change triggers only its own domain's jobs. Global files (`.github/`, `Cargo.lock`, `rust-toolchain.toml`, `.cargo/`, root docs) and unknown root files select every package, so both workflows validate in full. Both workflows run on every pull request (no `paths` filter), so a required gate is never left pending.
+
+Checks specific to the OTA domain run only in `firmware-ota.yml`:
+
+- `cargo test --release -p iobewi-firmware-boot` (exhaustive transactional boot fault injection);
+- `iobewi-firmware-update` tests and strict Clippy with `runtime`, then `runtime config-space`;
+- the `esp32-bootloader` profile (link, `esptool` image, 32768-byte gate) and `test_compile_mcu.py`;
+- the linked-binary profiles of the OTA reference firmware, on ESP32-C3 and ESP32-S3 (pinned Xtensa on pull requests, pinned and latest otherwise).
+
+The workflow runs nightly (03:47 UTC, full) and on `workflow_dispatch` (full). `test_discover_ci.py` checks the domain partition and the selection scenarios; `test_ota_gate.py` checks the gate logic (success, failure, cancellation, skipped-by-mistake, discovery failure, empty matrix).
+
+### Gate semantics
+
+`Firmware OTA validation` always runs. It fails unless discovery and rustfmt succeeded, discovery outputs are well-formed, every selected job succeeded, and every unselected job was skipped (a failed or cancelled job is never accepted as "not selected"). An empty selection is accepted on pull requests and pushes (nothing OTA is affected) but is an error on scheduled and manual full runs. `Affected crate validation` keeps its name and semantics for the general domain.
+
+### Branch protection
+
+Required status checks are a repository setting and are not changed by these workflows. When the OTA workflow is introduced, add `Firmware OTA validation` as a required check next to `Affected crate validation`. Keep both: each reflects only its own domain. Do not require the individual matrix job names.
+
+A green CI proves host tests, Clippy and compilation/link of the selected crates. It is not a hardware qualification (real power cuts, flash wear, Secure Boot).
+
+### Migration status
+
+The OTA-specific checks (boot fault injection, `firmware-update` feature sets, bootloader image gate and its `test_compile_mcu.py` self-test, OTA reference firmware links) run only in `firmware-ota.yml`. `rust-mcu.yml` discovers with `--domain general` and no longer schedules any OTA crate. Sections above that describe the single-workflow behaviour apply to each workflow within its own domain.

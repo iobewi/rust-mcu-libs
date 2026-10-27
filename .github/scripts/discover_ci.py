@@ -10,6 +10,13 @@ import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ALLOWED = {"esp32s3", "host", "esp32", "esp32-bins", "host-esp32", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins", "host-esp32s3-linked-bins"}
+# Validation domains partition the workspace: firmware/OTA packages are
+# identified by directory (plus the component packer, whose only dependencies are
+# firmware crates), everything else is "general". Selection (including
+# reverse dependencies) is always computed on the whole workspace and only then
+# split, so a shared dependency change selects consumers in both domains.
+FIRMWARE_OTA_DIRS = ("common/firmware/", "arch/esp32/firmware/", "examples/firmware/", "tools/component-pack")
+DOMAINS = ("all", "firmware-ota", "general")
 GLOBAL = {".github/", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
 
 def git(*args):
@@ -25,6 +32,11 @@ def workspace_members_only(base):
         workspace['workspace'].pop('members', None)
         workspace['workspace'].pop('default-members', None)
     return old == new
+
+def in_domain(directory, domain):
+    if domain == "all":
+        return True
+    return directory.startswith(FIRMWARE_OTA_DIRS) == (domain == "firmware-ota")
 
 def select(changed, packages, reverse, base=None):
     affected = set()
@@ -48,7 +60,7 @@ def select(changed, packages, reverse, base=None):
                 pending.append(consumer)
     return affected
 
-def discover(base=None, head="HEAD", full=False):
+def load_workspace():
     workspace = tomllib.loads((ROOT / "Cargo.toml").read_text())
     members = workspace["workspace"]["members"]
     profiles, packages, features = {}, {}, {}
@@ -91,18 +103,29 @@ def discover(base=None, head="HEAD", full=False):
     if set(ids.values()) != set(packages):
         raise ValueError("workspace packages missing from Cargo metadata")
 
+    return packages, profiles, features, reverse
+
+def discover(base=None, head="HEAD", full=False, domain="all"):
+    packages, profiles, features, reverse = load_workspace()
     if full or not base:
         selected = set(packages)
     else:
         changed = git("diff", "--name-only", "--no-renames", base, head).splitlines()
         selected = select(changed, packages, reverse, base)
+    owned = {name for name, directory in packages.items() if in_domain(directory, domain)}
+    if not owned:
+        raise ValueError(f"domain {domain} owns no workspace package")
+    if full and not (selected & owned):
+        raise ValueError(f"full validation of domain {domain} selected nothing")
+    selected = selected & owned
+    count = len(owned)
     matrix = []
     for name in sorted(selected):
         profile = profiles[name]
         chips = ("esp32s3",) if profile == "esp32s3" else ("host", "esp32s3") if profile == "host-esp32s3-linked-bins" else ("host",) if profile == "host" else (("host", "esp32c3", "esp32s3") if profile in ("host-esp32", "host-esp32-linked-bins") else ("esp32c3", "esp32s3"))
         for chip in chips:
             matrix.append({"package": name, "chip": chip, "targets": "bins" if profile in ("esp32-bins", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins", "host-esp32s3-linked-bins") and chip != "host" else "lib", "profile": profile, "features": features[name]})
-    return {"include": matrix}, selected, len(packages)
+    return {"include": matrix}, selected, count
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -110,9 +133,10 @@ if __name__ == "__main__":
     parser.add_argument("--base")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--full", action="store_true")
+    parser.add_argument("--domain", choices=DOMAINS, default="all")
     args = parser.parse_args()
     try:
-        result, selected, count = discover(args.base, args.head, args.full)
+        result, selected, count = discover(args.base, args.head, args.full, args.domain)
         encoded = json.dumps(result, separators=(",", ":"))
         xtensa = {"include": [item for item in result["include"] if item["chip"] == "esp32s3"]}
         print(f"Selected {len(selected)}/{count} crates: {', '.join(sorted(selected))}")
