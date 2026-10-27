@@ -43,14 +43,14 @@ jobs:
           BASE_PUSH: ${{ github.event.before }}
         run: |
           if [[ "$EVENT" == "pull_request" ]]; then
-            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PR"
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PR" --domain general
           elif [[ "$EVENT" == "push" && "$BASE_PUSH" != "0000000000000000000000000000000000000000" && -n "$BASE_PUSH" ]]; then
-            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PUSH"
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PUSH" --domain general
           else
-            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --full
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --full --domain general
           fi
-      - name: Validate boot image size gate
-        run: python3 .github/scripts/test_compile_mcu.py
+      - name: Validate CI domain partition and selection scenarios
+        run: python3 .github/scripts/test_discover_ci.py
       - name: Reject tracked Cargo.lock files
         run: |
           if git ls-files | grep -E '(^|/)Cargo\.lock$'; then
@@ -90,16 +90,6 @@ jobs:
           PKG: ${{ matrix.package }}
           FEATURES: ${{ matrix.features }}
         run: cargo clippy -p "$PKG" --features "$FEATURES" --all-targets -- -D warnings
-      - name: Transactional boot exhaustive fault injection
-        if: matrix.package == 'iobewi-firmware-boot'
-        run: cargo test --release -p iobewi-firmware-boot
-      - name: Firmware OTA runtime feature tests and Clippy
-        if: matrix.package == 'iobewi-firmware-update'
-        run: |
-          cargo test -p iobewi-firmware-update --features runtime
-          cargo clippy -p iobewi-firmware-update --features runtime --all-targets -- -D warnings
-          cargo test -p iobewi-firmware-update --features 'runtime config-space'
-          cargo clippy -p iobewi-firmware-update --features 'runtime config-space' --all-targets -- -D warnings
       - name: Optional WebSocket feature tests and Clippy
         if: matrix.package == 'iobewi-http-client'
         run: |

@@ -133,3 +133,7 @@ The workflow runs nightly (03:47 UTC, full) and on `workflow_dispatch` (full). `
 Required status checks are a repository setting and are not changed by these workflows. When the OTA workflow is introduced, add `Firmware OTA validation` as a required check next to `Affected crate validation`. Keep both: each reflects only its own domain. Do not require the individual matrix job names.
 
 A green CI proves host tests, Clippy and compilation/link of the selected crates. It is not a hardware qualification (real power cuts, flash wear, Secure Boot).
+
+### Migration status
+
+The OTA-specific checks (boot fault injection, `firmware-update` feature sets, bootloader image gate and its `test_compile_mcu.py` self-test, OTA reference firmware links) run only in `firmware-ota.yml`. `rust-mcu.yml` discovers with `--domain general` and no longer schedules any OTA crate. Sections above that describe the single-workflow behaviour apply to each workflow within its own domain.
