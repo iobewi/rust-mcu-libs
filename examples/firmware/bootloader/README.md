@@ -25,7 +25,8 @@ for S3 (xtensa-esp32s3-none-elf), with -Z build-std=core,alloc,
 --profile bootloader, -p iobewi-esp-bootloader, --bins and --features esp32c3 or
 esp32s3. S3 linking requires Xtensa GCC on PATH.
 
-esptool 5.5.0 elf2image packages the ELF. Boot image is flashed at **0**, table
+esptool 5.5.0 elf2image packages the ELF (ESP32-S3: `--flash-mode dio`, the default QIO
+image is not loadable by the ROM and the CI rejects it). Boot image is flashed at **0**, table
 at **0x8000**; do not use an ESP32 classic 0x1000 offset. The declarative CI
 esp32-bootloader profile links, packages, inspects the ESP checksum/footer and
 rejects empty images or images above 32768 bytes. Historical S3 ROM/cache/stack

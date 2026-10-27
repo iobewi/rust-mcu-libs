@@ -32,7 +32,11 @@ Il faut désigner le slot qui contient l'image à conserver (`ota_0` = 0, `ota_1
 # bootloader (profil de la CI), puis image ESP et contrôle de taille (< 0x8000 octets)
 cargo +nightly build -p iobewi-esp-bootloader --features esp32s3 --profile bootloader \
     -Z build-std=core,alloc --target xtensa-esp32s3-none-elf   # toolchain +esp pour l'S3
-python3 -m esptool --chip esp32s3 elf2image --flash-size 16MB --output bootloader.bin <elf>
+python3 -m esptool --chip esp32s3 elf2image --flash-mode dio --flash-size 16MB --output bootloader.bin <elf>
+
+# --flash-mode dio est obligatoire sur ESP32-S3 : le QIO par défaut d'elf2image n'est pas
+# chargeable par la ROM (« ets_loader.c 78 », boucle de reset, observé sur banc le 2026-10-27).
+# Contrôle : l'octet 2 de bootloader.bin doit valoir 0x02.
 
 # otadata : entrée Valid pour le slot choisi, 0x2000 octets, générée par le vrai codec
 cargo run -p iobewi-esp-boot --example factory_otadata -- otadata.bin <0|1>
@@ -51,7 +55,8 @@ Ne pas inverser les deux étapes (voir plus haut). Pour un appareil neuf, la pro
 
 ## 4. Vérifier
 
-Au premier démarrage, le journal doit montrer `boot: otadata at 0xd000`, un plan `slot=<n> seq=<n+1>` sans écriture, puis le démarrage de l'application sans `HALT`. Après un cycle d'activation, de confirmation et de redémarrage, relire `otadata` : les deux entrées portent `424f4f54` (« BOOT ») à l'offset 4 et `02000000` à l'offset 8.
+Le journal du bootloader sort sur l'USB-Serial-JTAG natif (feature `jtag-serial`), pas sur l'UART du pont CH343 : sur ce dernier, on ne voit que la ROM puis l'application.
+Au premier démarrage, le journal du bootloader doit montrer `boot: otadata at 0xd000`, un plan `slot=<n> seq=<n+1>` sans écriture, puis le démarrage de l'application sans `HALT`. Après un cycle d'activation, de confirmation et de redémarrage, relire `otadata` : les deux entrées portent `424f4f54` (« BOOT ») à l'offset 4 et `02000000` à l'offset 8.
 
 ## Limites
 

@@ -46,9 +46,14 @@ def compile_selected(packages, chip):
                 for binary in binaries:
                     elf = Path(metadata["target_directory"])/target/"bootloader"/binary["name"]
                     image = elf.with_suffix(".bin")
+                    # elf2image defaults to QIO, which the ESP32-S3 ROM cannot load after the
+                    # first segment on the qualification board (ets_loader.c 78, reset loop).
+                    mode = ["--flash-mode", "dio"] if chip == "esp32s3" else []
                     subprocess.run([sys.executable, "-m", "esptool", "--chip", chip,
-                                    "elf2image", "--flash-size", "16MB", "--output", str(image), str(elf)], check=True)
+                                    "elf2image", *mode, "--flash-size", "16MB", "--output", str(image), str(elf)], check=True)
                     check_size(image)
+                    if chip == "esp32s3" and image.read_bytes()[2] != 2:
+                        raise ValueError("ESP32-S3 boot image must use flash mode DIO (header byte 2 == 2)")
                     subprocess.run([sys.executable,"-m","esptool","--chip",chip,"image-info",str(image)],check=True)
         finally:
             print("::endgroup::", flush=True)
