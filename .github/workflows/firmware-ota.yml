@@ -1,0 +1,196 @@
+name: Firmware OTA CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '47 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-ota-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      host_matrix: ${{ steps.matrix.outputs.host_matrix }}
+      mcu_matrix: ${{ steps.matrix.outputs.mcu_matrix }}
+      has_host: ${{ steps.matrix.outputs.has_host }}
+      has_mcu: ${{ steps.matrix.outputs.has_mcu }}
+      esp32c3_packages: ${{ steps.matrix.outputs.esp32c3_packages }}
+      esp32s3_packages: ${{ steps.matrix.outputs.esp32s3_packages }}
+      has_esp32c3: ${{ steps.matrix.outputs.has_esp32c3 }}
+      has_esp32s3: ${{ steps.matrix.outputs.has_esp32s3 }}
+      xtensa_matrix: ${{ steps.matrix.outputs.xtensa_matrix }}
+      has_jobs: ${{ steps.matrix.outputs.has_jobs }}
+      has_xtensa: ${{ steps.matrix.outputs.has_xtensa }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate workspace and discover crate CI
+        id: matrix
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_PR: ${{ github.event.pull_request.base.sha }}
+          BASE_PUSH: ${{ github.event.before }}
+        run: |
+          if [[ "$EVENT" == "pull_request" ]]; then
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PR" --domain firmware-ota
+          elif [[ "$EVENT" == "push" && "$BASE_PUSH" != "0000000000000000000000000000000000000000" && -n "$BASE_PUSH" ]]; then
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --base "$BASE_PUSH" --domain firmware-ota
+          else
+            python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --full --domain firmware-ota
+          fi
+      - name: Validate boot image size gate
+        run: python3 .github/scripts/test_compile_mcu.py
+      - name: Validate CI domain partition and selection scenarios
+        run: python3 .github/scripts/test_discover_ci.py
+      - name: Validate OTA gate logic
+        run: python3 .github/scripts/test_ota_gate.py
+      - name: Reject tracked Cargo.lock files
+        run: |
+          if git ls-files | grep -E '(^|/)Cargo\.lock$'; then
+            echo "Cargo.lock files must not be tracked" >&2
+            exit 1
+          fi
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  host-tests:
+    name: OTA host tests and Clippy / ${{ matrix.package }}
+    needs: [discover, format]
+    if: needs.discover.outputs.has_host == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJSON(needs.discover.outputs.host_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Unit tests
+        env:
+          PKG: ${{ matrix.package }}
+          FEATURES: ${{ matrix.features }}
+        run: cargo test -p "$PKG" --features "$FEATURES"
+      - name: Clippy
+        env:
+          PKG: ${{ matrix.package }}
+          FEATURES: ${{ matrix.features }}
+        run: cargo clippy -p "$PKG" --features "$FEATURES" --all-targets -- -D warnings
+      - name: Transactional boot exhaustive fault injection
+        if: matrix.package == 'iobewi-firmware-boot'
+        run: cargo test --release -p iobewi-firmware-boot
+      - name: Firmware OTA runtime feature tests and Clippy
+        if: matrix.package == 'iobewi-firmware-update'
+        run: |
+          cargo test -p iobewi-firmware-update --features runtime
+          cargo clippy -p iobewi-firmware-update --features runtime --all-targets -- -D warnings
+          cargo test -p iobewi-firmware-update --features 'runtime config-space'
+          cargo clippy -p iobewi-firmware-update --features 'runtime config-space' --all-targets -- -D warnings
+
+  # Each MCU job compiles all selected crates on ONE runner.
+  # Xtensa is installed once per compiler variant; no toolchain artifacts.
+  esp32c3:
+    name: OTA ESP32-C3 selected crates
+    needs: [discover, format, host-tests]
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_esp32c3 == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: riscv32imc-unknown-none-elf
+          components: rust-src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile selected ESP32-C3 crates
+        env:
+          PACKAGES: ${{ needs.discover.outputs.esp32c3_packages }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/compile_mcu.py --chip esp32c3
+
+  esp32s3:
+    name: OTA ESP32-S3 selected crates / ${{ matrix.variant }}
+    needs: [discover, format, host-tests]
+    if: always() && needs.discover.result == 'success' && needs.format.result == 'success' && (needs.host-tests.result == 'success' || (needs.discover.outputs.has_host != 'true' && needs.host-tests.result == 'skipped')) && needs.discover.outputs.has_esp32s3 == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"variant":"pinned","version":"1.98.1.0"}]}' || '{"include":[{"variant":"pinned","version":"1.98.1.0"},{"variant":"latest","version":"latest"}]}') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: esp-rs/xtensa-toolchain@v1.7.0
+        with:
+          buildtargets: esp32s3
+          default: false
+          override: false
+          version: ${{ matrix.version }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile selected ESP32-S3 crates
+        env:
+          PACKAGES: ${{ needs.discover.outputs.esp32s3_packages }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/compile_mcu.py --chip esp32s3
+
+  firmware-ota-gate:
+    name: Firmware OTA validation
+    runs-on: ubuntu-latest
+    needs: [discover, format, host-tests, esp32c3, esp32s3]
+    if: always()
+    steps:
+      - name: Confirm discovery and every selected OTA check passed
+        env:
+          DISCOVER: ${{ needs.discover.result }}
+          FORMAT: ${{ needs.format.result }}
+          HOST: ${{ needs.host-tests.result }}
+          C3: ${{ needs.esp32c3.result }}
+          S3: ${{ needs.esp32s3.result }}
+          HAS_HOST: ${{ needs.discover.outputs.has_host }}
+          HAS_C3: ${{ needs.discover.outputs.has_esp32c3 }}
+          HAS_S3: ${{ needs.discover.outputs.has_esp32s3 }}
+          EVENT: ${{ github.event_name }}
+          HAS_JOBS: ${{ needs.discover.outputs.has_jobs }}
+        run: |
+          [[ "$DISCOVER" == success && "$FORMAT" == success ]] || { echo "discovery or format did not succeed" >&2; exit 1; }
+          # Fail closed on missing or malformed discovery outputs.
+          for flag in "$HAS_HOST" "$HAS_C3" "$HAS_S3" "$HAS_JOBS"; do
+            [[ "$flag" == true || "$flag" == false ]] || { echo "invalid discovery output: '$flag'" >&2; exit 1; }
+          done
+          # Scheduled and manual runs validate everything: an empty matrix is an error.
+          if [[ "$EVENT" == schedule || "$EVENT" == workflow_dispatch ]]; then
+            [[ "$HAS_JOBS" == true ]] || { echo "full validation selected no job" >&2; exit 1; }
+          fi
+          # A selected job must succeed; an unselected job must have been skipped, never failed or cancelled.
+          check() { # name result selected
+            if [[ "$3" == true ]]; then
+              [[ "$2" == success ]] || { echo "$1 expected success, got $2" >&2; exit 1; }
+            else
+              [[ "$2" == skipped ]] || { echo "$1 not selected but result is $2" >&2; exit 1; }
+            fi
+          }
+          check host-tests "$HOST" "$HAS_HOST"
+          check esp32c3 "$C3" "$HAS_C3"
+          check esp32s3 "$S3" "$HAS_S3"
