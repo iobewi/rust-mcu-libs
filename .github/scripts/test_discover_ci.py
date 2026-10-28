@@ -12,7 +12,7 @@ assert ota | general == names and not ota & general
 assert {n for n, p in packages.items() if d.in_domain(p, "all")} == names
 # Pinned so the OTA perimeter cannot silently shrink or drift.
 assert ota == {
-    "iobewi-firmware-image", "iobewi-firmware-layout", "iobewi-firmware-slots",
+    "iobewi-firmware-image", "iobewi-firmware-auth", "iobewi-firmware-layout", "iobewi-firmware-slots",
     "iobewi-firmware-boot", "iobewi-firmware-update", "iobewi-workload",
     "iobewi-workload-abi", "iobewi-workload-image", "iobewi-workload-native",
     "iobewi-esp-boot", "iobewi-esp-firmware-a", "iobewi-esp-firmware-storage",

@@ -137,3 +137,11 @@ A green CI proves host tests, Clippy and compilation/link of the selected crates
 ### Migration status
 
 The OTA-specific checks (boot fault injection, `firmware-update` feature sets, bootloader image gate and its `test_compile_mcu.py` self-test, OTA reference firmware links) run only in `firmware-ota.yml`. `rust-mcu.yml` discovers with `--domain general` and no longer schedules any OTA crate. Sections above that describe the single-workflow behaviour apply to each workflow within its own domain.
+
+## Image authentication (#90)
+
+`iobewi-firmware-auth` uses the `host` profile (tests with `verify-p256,host-sign`, strict Clippy). The
+`Firmware OTA validation` workflow additionally checks that it builds for a bare-metal RISC-V target with and without
+`verify-p256`, runs the unsigned and signed host suites of `example-firmware-ota-system`, and, when that example is
+selected for C3/S3, builds its signed profile with a public test key and prints the flash growth against the unsigned
+build (`.github/scripts/elf_size.py`, with a growth budget). No workflow was added.

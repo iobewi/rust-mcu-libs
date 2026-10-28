@@ -15,7 +15,8 @@ use crate::metadata::{
     can_supersede, check_compatibility, check_staged, check_target, commit_transaction,
     firmware_record, load_transaction, parse_digest,
 };
-use crate::{Committed, Error, TransactionState, activate};
+use crate::{Committed, Digest, Error, TransactionState, activate};
+use iobewi_firmware_auth::{AuthError, AuthProfile, StagedClaim, UploadClaim};
 
 #[allow(async_fn_in_trait)]
 pub trait TargetSelection {
@@ -53,11 +54,13 @@ pub enum BeginError {
     BadDigest,
     Conflict,
     Storage(MetadataError),
+    /// The proof does not describe the image being uploaded.
+    Unauthorized(AuthError),
 }
 
 /// Resolve the previous staged transaction before writing any new flash bytes.
 /// An activating transaction can never be overwritten by an upload.
-pub async fn begin<S: MetadataStore>(
+pub(crate) async fn begin<S: MetadataStore>(
     store: &S,
     params: &SessionParams,
 ) -> Result<crate::Digest, BeginError> {
@@ -75,7 +78,7 @@ pub async fn begin<S: MetadataStore>(
 }
 
 /// Publish only an artifact whose bytes and digest were already verified.
-pub async fn publish<S: MetadataStore>(
+pub(crate) async fn publish<S: MetadataStore>(
     store: &S,
     deployment_id: String,
     artifact: Committed,
@@ -102,7 +105,7 @@ pub enum ActivateError {
 /// Publish `Activating` before programming the boot entry. If the boot entry
 /// fails, restore `Staged` so activation can be retried. A failed restore is
 /// still recoverable: the next boot reconciles the persisted state.
-pub async fn activate_staged<S: MetadataStore, B: BootActivation>(
+pub(crate) async fn activate_staged<S: MetadataStore, B: BootActivation>(
     store: &S,
     boot: &B,
     deployment_id: &str,
@@ -131,6 +134,181 @@ pub async fn activate_staged<S: MetadataStore, B: BootActivation>(
         return Err(ActivateError::NotStaged);
     }
     Ok(target)
+}
+
+/// The slot's bytes as they are in flash *now*: the signed profile hashes them
+/// again before activating, so an authorization covers what will really boot.
+#[allow(async_fn_in_trait)]
+pub trait SlotDigest {
+    /// SHA-256 of the first `size` bytes of `target`.
+    async fn slot_digest(&self, target: &str, size: u64) -> Result<Digest, ()>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdmitError {
+    BadDigest,
+    Auth(AuthError),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PublishError {
+    Auth(AuthError),
+    Storage(MetadataError),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActivationError {
+    Auth(AuthError),
+    /// Nothing is staged, or it is not in a state that can be activated.
+    NotStaged,
+    DeploymentMismatch,
+    /// The slot could not be read back for the authorization check.
+    SlotUnreadable,
+    Storage(MetadataError),
+}
+
+/// The one OTA engine, configured by an authentication profile.
+///
+/// Publication and activation are only reachable through this type, so the
+/// profile's own proof is always required: [`UnsignedAllowed`] and
+/// [`SignatureRequired`] share every transfer, publication, activation,
+/// confirmation and rollback mechanism and differ only in what they accept
+/// as authorization. The proof type is fixed by the profile, so a signed
+/// service cannot be handed an unsigned proof:
+///
+/// ```compile_fail
+/// use iobewi_firmware_auth::{Admitted, AuthProfile, UnsignedAllowed};
+/// use iobewi_firmware_update::service::OtaService;
+/// fn needs_signed<P: AuthProfile<Proof = Admitted>>(_: &OtaService<P>) {}
+/// needs_signed(&OtaService::new(UnsignedAllowed));
+/// ```
+///
+/// The raw operations are not public: there is no way around the service.
+///
+/// ```compile_fail
+/// use iobewi_firmware_update::service::publish;
+/// ```
+///
+/// ```compile_fail
+/// use iobewi_firmware_update::service::activate_staged;
+/// ```
+///
+/// ```compile_fail
+/// use iobewi_firmware_update::service::begin;
+/// ```
+///
+/// [`UnsignedAllowed`]: iobewi_firmware_auth::UnsignedAllowed
+/// [`SignatureRequired`]: iobewi_firmware_auth::SignatureRequired
+pub struct OtaService<P: AuthProfile> {
+    profile: P,
+}
+
+impl<P: AuthProfile> OtaService<P> {
+    pub const fn new(profile: P) -> Self {
+        Self { profile }
+    }
+
+    pub fn profile(&self) -> &P {
+        &self.profile
+    }
+
+    /// Authorizes an upload from its headers, before anything is erased.
+    /// `presented` is the decoded manifest envelope, if the client sent one.
+    pub fn admit(
+        &self,
+        presented: Option<&[u8]>,
+        params: &SessionParams,
+    ) -> Result<P::Proof, AdmitError> {
+        let digest = parse_digest(&params.digest).ok_or(AdmitError::BadDigest)?;
+        self.profile
+            .admit_upload(
+                presented,
+                &UploadClaim {
+                    size: u64::from(params.total),
+                    digest,
+                },
+            )
+            .map_err(AdmitError::Auth)
+    }
+
+    /// Resolves the previous staged transaction, only for an admitted upload.
+    pub async fn begin<S: MetadataStore>(
+        &self,
+        store: &S,
+        params: &SessionParams,
+        proof: &P::Proof,
+    ) -> Result<Digest, BeginError> {
+        let digest = parse_digest(&params.digest).ok_or(BeginError::BadDigest)?;
+        self.profile
+            .check_binding(proof, u64::from(params.total), &digest)
+            .map_err(BeginError::Unauthorized)?;
+        begin(store, params).await
+    }
+
+    /// Publishes a verified artifact only if the proof describes exactly it.
+    pub async fn publish<S: MetadataStore>(
+        &self,
+        store: &S,
+        deployment_id: String,
+        artifact: Committed,
+        target: String,
+        proof: &P::Proof,
+    ) -> Result<(), PublishError> {
+        self.profile
+            .check_binding(proof, artifact.size, &artifact.digest)
+            .map_err(PublishError::Auth)?;
+        publish(store, deployment_id, artifact, target)
+            .await
+            .map_err(PublishError::Storage)
+    }
+
+    /// Activates the staged deployment `deployment_id`.
+    ///
+    /// The authorization is evaluated again here, under the current policy,
+    /// from `presented` (the envelope the client sends again) against the
+    /// persisted record. A signed profile also hashes the slot again, so a
+    /// candidate staged without a signature, or altered since, is refused.
+    pub async fn activate<S: MetadataStore, B: BootActivation, D: SlotDigest>(
+        &self,
+        store: &S,
+        boot: &B,
+        slots: &D,
+        deployment_id: &str,
+        presented: Option<&[u8]>,
+    ) -> Result<String, ActivationError> {
+        let record = load_transaction(store)
+            .await
+            .map_err(ActivationError::Storage)?
+            .ok_or(ActivationError::NotStaged)?;
+        if record.id != deployment_id {
+            return Err(ActivationError::DeploymentMismatch);
+        }
+        if record.state != TransactionState::Staged {
+            return Err(ActivationError::NotStaged);
+        }
+        let artifact = record.artifacts.first().ok_or(ActivationError::NotStaged)?;
+        let (size, digest) = (artifact.size, artifact.digest);
+        let proof = self
+            .profile
+            .admit_activation(presented, &StagedClaim { size, digest })
+            .map_err(ActivationError::Auth)?;
+        if P::REHASH_SLOT_ON_ACTIVATION {
+            let actual = slots
+                .slot_digest(&artifact.target, size)
+                .await
+                .map_err(|()| ActivationError::SlotUnreadable)?;
+            self.profile
+                .check_binding(&proof, size, &actual)
+                .map_err(|_| ActivationError::Auth(AuthError::SlotDigestMismatch))?;
+        }
+        activate_staged(store, boot, deployment_id)
+            .await
+            .map_err(|error| match error {
+                ActivateError::NotStaged => ActivationError::NotStaged,
+                ActivateError::DeploymentMismatch => ActivationError::DeploymentMismatch,
+                ActivateError::Storage(error) => ActivationError::Storage(error),
+            })
+    }
 }
 
 #[cfg(test)]

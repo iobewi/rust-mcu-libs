@@ -62,3 +62,5 @@ Une mise à jour A+B n'est **pas automatiquement atomique entre les deux domaine
 4. **ESP32 :** builds C3/S3 et qualification matérielle du bootloader, du flash et des états de redémarrage.
 
 Références : `iobewi_old/docs/dual-ota.md`, `iobewi_old/docs/otm2.md`, `iobewi_old/firmware/model`. Ces sources sont utiles pour porter les contrats existants, mais leurs choix Agent/Workload ne sont plus des restrictions universelles de la nouvelle bibliothèque.
+
+Authenticité des images (signature IAM1, profils `UnsignedAllowed` / `SignatureRequired`) : [ota-image-authentication.md](ota-image-authentication.md).

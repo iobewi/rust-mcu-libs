@@ -1,0 +1,25 @@
+[package]
+name = "iobewi-firmware-auth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable authentication of firmware images: IAM1 manifest, pinned-key trust policy, OTA authentication profiles"
+
+[features]
+default = []
+# ECDSA P-256 / SHA-256 verification (RustCrypto). Off: the unsigned profile
+# links no asymmetric cryptography.
+verify-p256 = ["dep:p256"]
+# Host-only signing helpers for tests and the ota_sign tool. Never for firmware.
+host-sign = ["verify-p256"]
+
+[dependencies]
+iobewi-firmware-image = { path = "../image" }
+sha2 = { version = "0.10", default-features = false }
+p256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
+
+[[example]]
+name = "ota_sign"
+required-features = ["host-sign"]
