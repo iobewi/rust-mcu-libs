@@ -153,6 +153,43 @@ automatiquement.
   interrompu), plus le cycle publication → activation → confirmation avec coupure
   à chaque octet flash du cycle complet. Voir
   `common/firmware/update/src/frame_store.rs` et `nor_frames.rs`.
-* Matériel : à qualifier sur ESP32-S3 après accord (table des partitions
-  incluse). Les coupures physiques réelles ne sont pas couvertes par cette
-  campagne.
+* Matériel : qualifié sur ESP32-S3 (16 Mio) au commit `b03e6dc` par une campagne
+  progressive M0 à M5a, chaque étape conditionnant la suivante. Les relectures
+  de flash vérifient les octets (SHA-256) ; rien n'est déduit d'un simple
+  redémarrage.
+
+| Étape | Contenu | Résultat |
+|---|---|---|
+| M0 | identité, sauvegarde 16 Mio, état de départ | PASS |
+| M1 | table seule (`ota_meta` en `0xf000`, aucune région déplacée) ; l'ancienne application démarre | PASS |
+| M2 | `ota_meta` provisionné (trame OTSF séquence 1, OTM1 vide) ; l'ancienne application ne le modifie pas | PASS |
+| M3a/M3b | firmware #94 installé dans le slot inactif ; reprovisionnement physique contrôlé (`config` remise à blanc, `otadata` vers ce slot) | PASS |
+| M4a | cycle OTA nominal : publication, activation, `PendingVerify`, confirmation, 3 redémarrages sans commit superflu | PASS |
+| M4b | mauvais digest, transfert interrompu, image refusée par l'auto-vérification, image jamais confirmée | PASS |
+| M5-prep | second cycle OTA nominal, avec un firmware qui sait ré-amorcer le Wi-Fi | PASS |
+| M5a | remise à blanc de `config` seule : `ota_meta` et `otadata` octet pour octet identiques, le Wi-Fi est recréé, aucun commit OTA | PASS |
+
+Observations : la confirmation d'une image coûte deux commits (le second
+supprime l'état d'activation) ; l'expiration de la probation (15 s) provoque un
+reset logiciel avant le watchdog matériel ; un rejet explicite laisse l'entrée
+`otadata` à l'état 3, une image jamais confirmée à l'état 4. Un firmware de
+référence construit sans identifiants Wi-Fi ne peut pas se ré-amorcer après une
+remise à blanc de `config` (`wifi.rs`), ce qui n'est pas une défaillance du
+stockage OTA.
+
+**Non qualifié par injection matérielle** (couvert par les tests hôte
+exhaustifs seulement) :
+
+* coupure d'alimentation réelle pendant un commit `ota_meta`, une écriture
+  `otadata` ou une écriture d'image ;
+* corruption d'une copie, puis des deux copies d'`ota_meta` (lecture dégradée,
+  réparation au commit suivant, refus fail-closed) ;
+* configuration invalide pendant une probation, et configuration corrompue sur
+  une image déjà confirmée ;
+* watchdog matériel (la probation expire avant lui dans ces essais) ;
+* première trame déchirée d'un `ota_meta` livré vierge (le parcours normal livre
+  une trame initiale) ;
+* migration de StreamBeWI, qui garde son propre espace `ota`.
+
+Le CRC de la trame détecte les écritures interrompues ; il n'authentifie pas
+l'enregistrement (voir #90 et #91).
