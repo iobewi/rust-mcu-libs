@@ -56,10 +56,11 @@ def main():
     run(sys.executable, str(args.partition_tool.resolve()),
         "examples/firmware/" + args.scenario + "/partitions.csv", str(output / "partitions.bin"))
     (output / "config.bin").write_bytes(bytes([0xff]) * 0x40000)
+    (output / "ota_meta.bin").write_bytes(bytes([0xff]) * 0x2000)
     if args.scenario == "ota-supervised":
         (output / "wl_meta.bin").write_bytes(bytes([0xff]) * 0x2000)
     print("Prepared:", output)
-    print("Initial flash only: bootloader @0, partitions @0x8000, otadata @0xd000, app @0x20000, virgin config @0x3c0000 (explicit development reset)")
+    print("Initial flash only: bootloader @0, partitions @0x8000, otadata @0xd000, blank ota_meta @0xf000, app @0x20000, virgin config @0x3c0000 (explicit development reset)")
 
 
 if __name__ == "__main__":

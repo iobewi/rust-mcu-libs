@@ -48,7 +48,7 @@ Le fait de nommer B « firmware » ne garantit ni isolation mémoire, ni chargeu
 
 ## État durable
 
-- **OTM1** : contrat historique de transaction pour la mise à jour A.
+- **OTM1** : contrat historique de transaction pour la mise à jour A. Sur ESP32 il est persisté dans la partition dédiée `ota_meta` (deux copies à trame CRC + séquence), hors de ConfigManager/EKV : voir [le stockage OTA](ota-meta-reprovisioning.md).
 - **OTM2** : contrat historique de transaction distinct pour le domaine B dans `iobewi_old`.
 - Le format **Transactional A/B Boot v2** concerne la sélection au boot de A sur ESP32, voir [la spécification de boot](transactional-ab-boot.md) et [le reprovisionnement](boot-metadata-reprovisioning.md).
 

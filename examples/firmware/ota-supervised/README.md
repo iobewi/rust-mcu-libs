@@ -69,6 +69,7 @@ python3 -m esptool --chip esp32s3 --port /dev/ttyUSB0 write-flash \
   0x0 target/ota-supervised/esp32s3/bootloader.bin \
   0x8000 target/ota-supervised/esp32s3/partitions.bin \
   0xd000 target/ota-supervised/esp32s3/otadata.bin \
+  0xf000 target/ota-supervised/esp32s3/ota_meta.bin \
   0x20000 target/ota-supervised/esp32s3/app.bin \
   0x320000 target/ota-supervised/esp32s3/wl_meta.bin \
   0x3c0000 target/ota-supervised/esp32s3/config.bin
