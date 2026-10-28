@@ -9,6 +9,8 @@
 use embedded_storage::nor_flash::NorFlash;
 use iobewi_esp_partitions::{PartitionRange, erase_range as erase_raw_partition_range};
 use iobewi_firmware_update::ArtifactStorage;
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+pub mod ota_meta;
 pub mod partitions;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod shared_flash;

@@ -28,7 +28,7 @@ résolu par service::begin avant le premier erase. Activating et PendingVerify
 refusent un nouveau transfert. Une image entièrement publiée reste staged
 jusqu'à une demande explicite d'activation du même identifiant.
 
-Le verrou physique est relâché avant tout accès ConfigSpace. Après finish,
+Le verrou physique est relâché avant tout accès au store OTM1 ou à ConfigSpace. Après finish,
 les octets écrits sont relus et hachés, puis le vrai validateur ESP vérifie
 l'image avec la MemoryMap C3/S3 et une limite égale à la taille reçue. La
 réservation reste vivante pendant ces contrôles et la publication OTM1.
@@ -45,9 +45,14 @@ mesurer sur carte. Les credentials de cet exemple sont intégrés au build.
 
 ## Démarrage et probation
 
-HAL → TIMG0 → esp-rtos → watchdog 20 s → SharedFlash → EKV/OTM1 → boot gate.
-Aucun second TimerGroup n'est construit. ConfigSpace réserve `ota`, budget
-2048 octets. Le self-check EKV vérifie CRC/records en lecture seule ; sa deadline de
+HAL → TIMG0 → esp-rtos → watchdog 20 s → SharedFlash → `ota_meta` → ConfigSpace
+(Wi-Fi) → boot gate. Aucun second TimerGroup n'est construit. OTM1 vit dans la
+partition `ota_meta` (deux secteurs, trames CRC + séquence, voir
+`docs/firmware/ota-meta-reprovisioning.md`) : ConfigSpace ne réserve plus d'espace
+`ota`. Le self-check de confirmation exige le store `ota_meta` lisible **et** la
+configuration montée et saine (CRC/records en lecture seule) ; une configuration
+qui ne se monte pas n'empêche pas la décision de boot : l'image en probation est
+rejetée et le rollback reste possible, jamais confirmée. Sa deadline de
 probation est de 15 s. La confirmation durable précède le désarmement.
 Refus, timeout ou échec de confirmation provoquent un reset ; le watchdog reste
 armé. Une confirmation durable suivie d'un échec de finition OTM1 est signalée
@@ -63,8 +68,8 @@ probation. Aucun effacement automatique de configuration ni rescue n'est ajouté
 ## Connexion et reconnexion Wi-Fi
 
 Les deux étalons OTA utilisent `iobewi-wifi-manager` (`common/net/wifi/manager`)
-avec le transport `iobewi-esp-wifi`. Le manifeste ConfigSpace déclare `ota` et
-`wifi` ; aucun autre propriétaire flash ni partition supplémentaire n'est créé.
+avec le transport `iobewi-esp-wifi`. Le manifeste ConfigSpace ne déclare plus que
+`wifi` ; OTM1 a sa propre partition `ota_meta`.
 
 Au premier démarrage sans configuration Wi-Fi valide, les identifiants du build
 servent au provisioning : connexion et DHCP, puis commit WFC1 par le gestionnaire.
@@ -127,12 +132,13 @@ python3 -m esptool --chip esp32s3 --port /dev/ttyUSB0 write-flash \
   0x0 target/ota-system/esp32s3/bootloader.bin \
   0x8000 target/ota-system/esp32s3/partitions.bin \
   0xd000 target/ota-system/esp32s3/otadata.bin \
+  0xf000 target/ota-system/esp32s3/ota_meta.bin \
   0x20000 target/ota-system/esp32s3/app.bin \
   0x3c0000 target/ota-system/esp32s3/config.bin
 ```
 
 Cette installation initialise explicitement ota_0 comme Valid. Elle remplace
-les régions citées et remet explicitement ConfigSpace à zéro. Ne pas réutiliser l'otadata usine pour les
+les régions citées et remet explicitement ConfigSpace et le store OTM1 (`ota_meta`) à zéro. Ne pas réutiliser l'otadata usine pour les
 mises à jour normales : utiliser le transfert OTA ci-dessous.
 
 ## Transfert et activation

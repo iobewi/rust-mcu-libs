@@ -13,7 +13,12 @@ pub mod bootstrap;
 pub mod compat;
 #[cfg(feature = "config-space")]
 pub mod config_space;
+pub mod crc32;
+pub mod double_copy;
 pub mod error;
+pub mod frame_store;
+#[cfg(feature = "nor-flash")]
+pub mod nor_frames;
 /// Historical OTA metadata API; reuse the sole OTM1 implementation.
 pub mod metadata {
     pub use crate::compat::otm1::*;

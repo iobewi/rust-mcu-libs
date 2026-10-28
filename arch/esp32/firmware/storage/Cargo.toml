@@ -14,7 +14,7 @@ esp32s3 = ["iobewi-esp-partitions/esp32s3", "dep:iobewi-esp-flash", "iobewi-esp-
 
 [dependencies]
 iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
-iobewi-firmware-update = { path = "../../../../common/firmware/update" }
+iobewi-firmware-update = { path = "../../../../common/firmware/update", features = ["nor-flash"] }
 iobewi-esp-partitions = { path = "../../flash/partitions", default-features = false }
 embedded-storage = "0.3.1"
 

@@ -90,4 +90,47 @@ mod tests {
         t[4..8].copy_from_slice(&0x8000u32.to_le_bytes());
         assert_eq!(discover(&t, 0x1000000), Err(InvalidLayout));
     }
+
+    /// Table of the qualification board (16 MiB), with or without the `ota_meta`
+    /// entry added by #94, as ESP-IDF's generator lays it out.
+    fn board_table(with_ota_meta: bool) -> [u8; 0xc00] {
+        let entries = [
+            Some(("otadata", 1u8, 0u8, 0xd000u32, 0x2000u32)),
+            with_ota_meta.then_some(("ota_meta", 1, 0x41, 0xf000, 0x2000)),
+            Some(("ota_0", 0, 0x10, 0x20000, 0x1b0000)),
+            Some(("ota_1", 0, 0x11, 0x1d0000, 0x1b0000)),
+            Some(("config", 1, 0x40, 0x380000, 0x80000)),
+        ];
+        let mut out = [0xff; 0xc00];
+        for (i, (name, kind, sub, offset, size)) in entries.into_iter().flatten().enumerate() {
+            let e = &mut out[i * 32..(i + 1) * 32];
+            e.fill(0);
+            e[..4].copy_from_slice(&[0xaa, 0x50, kind, sub]);
+            e[4..8].copy_from_slice(&offset.to_le_bytes());
+            e[8..12].copy_from_slice(&size.to_le_bytes());
+            e[12..12 + name.len()].copy_from_slice(name.as_bytes());
+        }
+        out
+    }
+
+    #[test]
+    fn adding_ota_meta_to_the_board_table_changes_no_boot_visible_region() {
+        let old = discover(&board_table(false), 0x1000000).unwrap();
+        let new = discover(&board_table(true), 0x1000000).unwrap();
+        assert_eq!(old.otadata, new.otadata);
+        assert_eq!(old.images, new.images);
+        assert_eq!(new.otadata.offset, 0xd000);
+        assert_eq!(new.images[0].offset, 0x20000);
+        assert_eq!(new.images[1].offset, 0x1d0000);
+        assert_eq!(new.images[0].size, 0x1b0000);
+    }
+
+    #[test]
+    fn ota_meta_must_not_overlap_the_existing_regions() {
+        for offset in [0xe000u32, 0x1f000] {
+            let mut t = board_table(true);
+            t[32 + 4..32 + 8].copy_from_slice(&offset.to_le_bytes());
+            assert_eq!(discover(&t, 0x1000000), Err(InvalidLayout), "{offset:#x}");
+        }
+    }
 }

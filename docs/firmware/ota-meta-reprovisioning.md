@@ -1,0 +1,195 @@
+# Stockage des métadonnées OTA (`ota_meta`) et reprovisionnement
+
+Les métadonnées OTA (OTM1 : candidat `Written`/`Activating`, identité du dernier
+déploiement confirmé) ne vivent plus dans ConfigManager/EKV. Elles ont leur
+partition et leur cycle de vie. Ce document décrit le format, les états lus au
+démarrage et la procédure de reprovisionnement des cartes de développement.
+
+## Ce qui est séparé
+
+| Donnée | Propriétaire | Partition |
+|---|---|---|
+| Sélection de boot, probation, rollback | bootloader + application (`BOOT` v2) | `otadata` (`0xd000`, `0x2000`) |
+| Transaction OTA (OTM1) | moteur OTA | **`ota_meta`** (`0xf000`, `0x2000`) |
+| Paramètres applicatifs (Wi-Fi…) | ConfigManager / EKV | `config` |
+
+Réinitialiser ou perdre `config` n'efface pas l'état OTA. Perdre `ota_meta` ne
+change pas le slot démarré (c'est `otadata` qui décide) : au pire le candidat
+`Written`/`Activating` est abandonné et l'identité du dernier déploiement
+confirmé est oubliée. Un candidat **en probation** pendant cette perte n'est
+jamais confirmé : `reconcile` le déclare non expliqué et il est rejeté (rollback
+vers le dernier firmware confirmé).
+
+Le bootloader ne lit pas `ota_meta` et ne décode pas OTM1.
+
+## Partition
+
+`ota_meta, data, 0x41, 0xf000, 0x2000` : deux unités d'effacement consécutives
+(4 Kio), une copie chacune. L'adresse `0xf000` est la première libre après
+`otadata` sur la table de qualification (`0xd000` + `0x2000`) et reste avant
+`ota_0` (`0x20000`). Elle est découverte par son **label** (sous-type `0x41`),
+la table complète étant validée comme pour les autres partitions : aucune
+adresse n'est codée en dur dans le firmware.
+
+## Trame
+
+OTM1 est conservé tel quel (au plus 512 octets). Une enveloppe lui apporte ce
+qu'il n'a pas : détection d'écriture déchirée et choix de la copie récente.
+
+| Offset | Taille | Champ |
+|---|---|---|
+| 0 | 4 | magic `OTSF` |
+| 4 | 1 | version de trame, `1` |
+| 5 | 1 | réservé, `0` |
+| 6 | 2 | longueur de la charge utile |
+| 8 | 4 | séquence (arithmétique sérielle, tolère le bouclage) |
+| 12 | longueur arrondie à 4 | charge utile OTM1, complétée par des zéros |
+| fin | 4 | CRC-32 (zlib) de tout ce qui précède |
+
+Le CRC détecte une écriture ou un effacement interrompus. Il n'authentifie pas
+l'enregistrement (voir #90/#91).
+
+## Protocole de commit
+
+1. Lire les deux copies et choisir la plus récente valide.
+2. Écrire dans **l'autre** copie : effacer l'unité, vérifier qu'elle est vierge,
+   programmer la trame, relire et comparer.
+3. La copie précédente n'est pas touchée : quel que soit l'instant de la coupure,
+   la lecture suivante renvoie l'ancien enregistrement ou le nouveau.
+
+## Lecture au démarrage
+
+| Contenu des deux copies | Résultat | Effet |
+|---|---|---|
+| deux unités entièrement vierges | `None` (rien n'a jamais été publié) | état OTA par défaut |
+| au moins une trame valide | la plus récente | l'autre copie, invalide ou vierge, est réparée au commit suivant |
+| ni vierge ni aucune trame valide (déchirée, corrompue, autre format) | **erreur** | jamais réinitialisé automatiquement ; un commit est refusé |
+
+Dans le cas d'erreur, le démarrage traite OTM1 comme absent (un candidat en
+probation est rejeté) mais **aucun nouvel upload ni activation** n'est accepté
+tant que la région n'est pas reprovisionnée.
+
+## Provisionnement initial (parcours normal)
+
+`ota_meta` n'est pas livré vierge : `prepare.py` produit `ota_meta.bin` (8 192
+octets) avec le programme `ota_meta_image` du crate `iobewi-firmware-update`, donc
+avec les codecs réels. La copie 0 porte une trame `OTSF` de séquence 1 dont la
+charge est l'enregistrement OTM1 **vide** (`Metadata::default().encode()` : 19
+octets, `Stage::None`, aucun champ) ; la copie 1 reste effacée.
+
+* Cet état se lit exactement comme une région vierge : pas de transaction, pas
+  d'image active connue, aucun candidat. Il n'est ni une image confirmée ni un
+  candidat ; la réconciliation au boot traite les deux cas de la même façon.
+* Le premier commit opérationnel écrit la copie 1 (effacement puis programmation) ;
+  la copie 0 n'est pas touchée avant que ce commit soit complet. Une coupure à
+  n'importe quel octet laisse donc l'enregistrement initial ou le nouveau, jamais
+  une région refusée (tests exhaustifs dans `nor_frames`).
+* Une région corrompue ou inconnue reste **fail-closed** : `provision` et `commit`
+  refusent, rien n'est réécrit, seul `erase_all` (reprovisionnement explicite) la
+  réinitialise. Une région totalement vierge reste lisible (`None`) et le premier
+  commit y reste vulnérable (cas des cartes dont `ota_meta` a été effacé à la main).
+
+## Reprovisionner `ota_meta`
+
+Seulement quand l'état de boot est **confirmé** : le journal indique
+`boot: running ota_<n> status Stable` et `otadata` porte l'entrée `Valid` du
+slot en cours, sans candidat `Pending`. Sinon, attendre la fin de la probation.
+
+```sh
+python3 -m esptool --chip esp32s3 read-flash 0xd000 0x2000 otadata-avant.bin   # sauvegarde
+# ota_meta.bin : image de provisionnement produite par prepare.py (cargo run -p iobewi-firmware-update --example ota_meta_image -- ota_meta.bin 4096 8192)
+python3 -m esptool --chip esp32s3 write-flash 0xf000 ota_meta.bin
+```
+
+Effet : transaction en cours oubliée, identité du dernier déploiement oubliée,
+slot démarré inchangé. Relire `0xf000` : 8 192 octets identiques à `ota_meta.bin` (trame OTSF initiale en copie 0, copie 1 à `0xff`).
+
+## Cartes de développement existantes (migration par réinitialisation)
+
+Il n'y a pas de migration des anciens enregistrements OTM1 stockés dans EKV, et
+aucun double backend. Les anciennes cartes ont besoin de :
+
+1. **Table des partitions** avec `ota_meta` (voir les `partitions.csv` des
+   exemples, générés par `prepare.py`). Une table plus ancienne fait échouer la
+   découverte de `ota_meta` au démarrage. Les partitions inconnues sont tolérées
+   par le bootloader : il n'est pas modifié.
+2. **`config` remise à zéro.** Le nouveau firmware ne déclare plus l'espace
+   `ota` ; une `config` qui le contient est refusée au montage (`InvalidSpace`).
+   Le Wi-Fi est ré-amorcé par les identifiants de compilation.
+3. **`ota_meta` provisionné** avec `ota_meta.bin`.
+
+Installation d'usine complète, sans rebooter entre les écritures (sauvegarde
+préalable obligatoire, voir [le reprovisionnement du boot](boot-metadata-reprovisioning.md)) :
+
+```sh
+python3 -m esptool --chip esp32s3 write-flash \
+  0x8000 partitions.bin 0xd000 otadata.bin 0xf000 ota_meta.bin \
+  0x20000 app.bin 0x3c0000 config.bin
+```
+
+`prepare.py` produit ces fichiers. Avant tout effacement : lire `otadata` et
+vérifier qu'un firmware confirmé existe ; un `otadata` produit par `prepare.py`
+déclare `ota_0` confirmé.
+
+## Échec de la configuration
+
+La configuration (Wi-Fi) est montée **après** `ota_meta`, et son échec n'empêche
+plus la décision de boot :
+
+* image en probation, configuration non montée ou non saine : l'auto-vérification
+  échoue, l'image est rejetée puis le bootloader revient au dernier firmware
+  confirmé ;
+* image déjà confirmée, configuration non montée : l'erreur est journalisée, le
+  Wi-Fi et le service OTA ne démarrent pas ; `ota_meta` et `otadata` restent
+  intacts.
+
+Une application dont la configuration est invalide n'est donc jamais confirmée
+automatiquement.
+
+## Qualification
+
+* Hôte : la trame et le store sont testés avec une coupure simulée à **chaque
+  octet** d'effacement et de programmation (deux modèles d'effacement
+  interrompu), plus le cycle publication → activation → confirmation avec coupure
+  à chaque octet flash du cycle complet. Voir
+  `common/firmware/update/src/frame_store.rs` et `nor_frames.rs`.
+* Matériel : qualifié sur ESP32-S3 (16 Mio) au commit `b03e6dc` par une campagne
+  progressive M0 à M5a, chaque étape conditionnant la suivante. Les relectures
+  de flash vérifient les octets (SHA-256) ; rien n'est déduit d'un simple
+  redémarrage.
+
+| Étape | Contenu | Résultat |
+|---|---|---|
+| M0 | identité, sauvegarde 16 Mio, état de départ | PASS |
+| M1 | table seule (`ota_meta` en `0xf000`, aucune région déplacée) ; l'ancienne application démarre | PASS |
+| M2 | `ota_meta` provisionné (trame OTSF séquence 1, OTM1 vide) ; l'ancienne application ne le modifie pas | PASS |
+| M3a/M3b | firmware #94 installé dans le slot inactif ; reprovisionnement physique contrôlé (`config` remise à blanc, `otadata` vers ce slot) | PASS |
+| M4a | cycle OTA nominal : publication, activation, `PendingVerify`, confirmation, 3 redémarrages sans commit superflu | PASS |
+| M4b | mauvais digest, transfert interrompu, image refusée par l'auto-vérification, image jamais confirmée | PASS |
+| M5-prep | second cycle OTA nominal, avec un firmware qui sait ré-amorcer le Wi-Fi | PASS |
+| M5a | remise à blanc de `config` seule : `ota_meta` et `otadata` octet pour octet identiques, le Wi-Fi est recréé, aucun commit OTA | PASS |
+
+Observations : la confirmation d'une image coûte deux commits (le second
+supprime l'état d'activation) ; l'expiration de la probation (15 s) provoque un
+reset logiciel avant le watchdog matériel ; un rejet explicite laisse l'entrée
+`otadata` à l'état 3, une image jamais confirmée à l'état 4. Un firmware de
+référence construit sans identifiants Wi-Fi ne peut pas se ré-amorcer après une
+remise à blanc de `config` (`wifi.rs`), ce qui n'est pas une défaillance du
+stockage OTA.
+
+**Non qualifié par injection matérielle** (couvert par les tests hôte
+exhaustifs seulement) :
+
+* coupure d'alimentation réelle pendant un commit `ota_meta`, une écriture
+  `otadata` ou une écriture d'image ;
+* corruption d'une copie, puis des deux copies d'`ota_meta` (lecture dégradée,
+  réparation au commit suivant, refus fail-closed) ;
+* configuration invalide pendant une probation, et configuration corrompue sur
+  une image déjà confirmée ;
+* watchdog matériel (la probation expire avant lui dans ces essais) ;
+* première trame déchirée d'un `ota_meta` livré vierge (le parcours normal livre
+  une trame initiale) ;
+* migration de StreamBeWI, qui garde son propre espace `ota`.
+
+Le CRC de la trame détecte les écritures interrompues ; il n'authentifie pas
+l'enregistrement (voir #90 et #91).

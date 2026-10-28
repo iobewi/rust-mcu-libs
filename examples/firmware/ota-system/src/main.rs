@@ -17,13 +17,13 @@ compile_error!("choose at most one self-check fault");
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::timer::timg::TimerGroup;
+use iobewi_config_space::ConfigManager;
 use iobewi_config_space::storage::{EkvBackend, SpaceSpec, Store};
-use iobewi_config_space::{Budget, ConfigManager};
 use iobewi_esp_config_space::EspConfigFlash;
 use iobewi_esp_firmware_a::{platform::SystemBoot, service::BootRuntime};
+use iobewi_esp_firmware_storage::ota_meta::{self, EspOtaMeta};
 use iobewi_esp_flash::SharedFlash;
 use iobewi_firmware_update::{
-    config_space::ConfigSpaceMetadataStore,
     metadata::PendingCheckAction,
     service::boot::{self, BootSelfCheck, BootStatus, Confirmation},
 };
@@ -33,13 +33,24 @@ esp_bootloader_esp_idf::esp_app_desc!();
 const WATCHDOG_MS: u64 = 20_000;
 const SELF_CHECK_MS: u64 = 15_000;
 
-struct Check<'a>(&'a EkvBackend<'static, EspConfigFlash>);
+/// Health of what this image needs to run, as the confirmation gate sees it:
+/// the OTA metadata store must be readable and the application configuration
+/// must be mounted and healthy. An image whose configuration is unusable is
+/// therefore never confirmed (it is rejected and rolled back while pending).
+struct Check<'a> {
+    ota: &'a EspOtaMeta<'a>,
+    config: Option<&'a EkvBackend<'static, EspConfigFlash>>,
+}
 impl BootSelfCheck for Check<'_> {
     async fn self_check(&self) -> bool {
         if cfg!(feature = "hang-self-check") {
             core::future::pending::<()>().await;
         }
-        let healthy = self.0.self_check().await;
+        let healthy = self.ota.is_healthy().await
+            && match self.config {
+                Some(config) => config.self_check().await,
+                None => false,
+            };
         healthy && !cfg!(feature = "reject-self-check")
     }
 }
@@ -51,6 +62,37 @@ async fn reset_for_rollback() -> ! {
     Timer::after(Duration::from_millis(200)).await;
     esp_hal::system::software_reset()
 }
+/// Mounts the application configuration (Wi-Fi). `None` on any failure: the
+/// reason is logged and no region is reformatted except a blank one.
+async fn mount_config(flash: &'static SharedFlash) -> Option<&'static Store<EspConfigFlash>> {
+    let config_flash = EspConfigFlash::from_label(flash, "config")
+        .await
+        .map_err(|error| log::error!("config: partition unavailable {error:?}"))
+        .ok()?;
+    let blank = config_flash
+        .is_blank()
+        .await
+        .map_err(|error| log::error!("config: read failed {error:?}"))
+        .ok()?;
+    static CONFIG: StaticCell<Store<EspConfigFlash>> = StaticCell::new();
+    const SPACES: &[SpaceSpec] = &[SpaceSpec::new(
+        "wifi",
+        iobewi_wifi_manager::CONFIG_BUDGET.max_bytes(),
+    )];
+    let config = CONFIG.init(
+        Store::new(config_flash, esp_hal::rng::Rng::new().random(), SPACES)
+            .expect("config admission failed"),
+    );
+    if blank && let Err(error) = config.format().await {
+        log::error!("config: initialization failed {error:?}");
+        return None;
+    }
+    if let Err(error) = config.mount().await {
+        log::error!(target: "example_firmware_ota_system", "config: mount failed {error:?}; explicit reset required");
+        return None;
+    }
+    Some(config)
+}
 #[embassy_executor::task]
 async fn boot_task(
     flash: &'static SharedFlash,
@@ -58,40 +100,26 @@ async fn boot_task(
     spawner: Spawner,
     #[cfg(feature = "supervised")] cpu: esp_hal::system::CpuControl<'static>,
 ) {
-    let config_flash = EspConfigFlash::from_label(flash, "config")
+    // The OTA metadata has its own partition and store: it neither depends on
+    // nor is affected by the application configuration mounted below.
+    let ota_region = ota_meta::discover(flash)
         .await
-        .expect("config partition unavailable");
-    let blank = config_flash.is_blank().await.expect("config read failed");
-    static CONFIG: StaticCell<Store<EspConfigFlash>> = StaticCell::new();
-    const SPACES: &[SpaceSpec] = &[
-        SpaceSpec::new("ota", 2048),
-        SpaceSpec::new("wifi", iobewi_wifi_manager::CONFIG_BUDGET.max_bytes()),
-    ];
-    let config = CONFIG.init(
-        Store::new(config_flash, esp_hal::rng::Rng::new().random(), SPACES)
-            .expect("config admission failed"),
-    );
-    if blank {
-        config.format().await.expect("config initialization failed");
-    }
-    config
-        .mount()
-        .await
-        .unwrap_or_else(|error| {
-            log::error!(target: "example_firmware_ota_system", "config: mount failed {error:?}; explicit reset required");
-            panic!("config mount failed");
-        });
-    let backend = config.backend();
-    let mut manager = ConfigManager::new(backend);
-    // Example owns its OTM1 claim; product must use its existing claim/budget.
-    let ota = manager
-        .claim("ota", Budget::new(2048))
-        .expect("OTA claim failed");
-    let wifi = manager
-        .claim("wifi", iobewi_wifi_manager::CONFIG_BUDGET)
-        .expect("Wi-Fi claim failed");
-    let store = ConfigSpaceMetadataStore(&ota);
-    let check = Check(&backend);
+        .expect("ota_meta partition unavailable");
+    let store = EspOtaMeta::new(flash, ota_region);
+    // A configuration that cannot be mounted must not hide the boot state:
+    // the boot decision below still runs and can reject the image.
+    let config = mount_config(flash).await;
+    let backend = config.map(Store::backend);
+    let wifi = backend.and_then(|backend| {
+        ConfigManager::new(backend)
+            .claim("wifi", iobewi_wifi_manager::CONFIG_BUDGET)
+            .map_err(|error| log::error!("config: Wi-Fi claim failed {error:?}"))
+            .ok()
+    });
+    let check = Check {
+        ota: &store,
+        config: backend.as_ref(),
+    };
     let mut system = SystemBoot::discover(flash)
         .await
         .expect("system discovery failed");
@@ -148,6 +176,11 @@ async fn boot_task(
             log::error!("B: unavailable; system A remains available");
             None
         }
+    };
+    let Some(wifi) = wifi else {
+        log::error!("config: unavailable; Wi-Fi and OTA service cannot start");
+        core::future::pending::<()>().await;
+        unreachable!()
     };
     ota::serve(
         flash,
