@@ -454,4 +454,185 @@ mod tests {
             .unwrap_or_else(|e| panic!("cut {cut}: next commit failed: {e:?}"));
         }
     }
+
+    // --- factory provisioning: an initial OTSF frame holding the empty OTM1 ---
+
+    fn initial_payload() -> Vec<u8> {
+        Metadata::default().encode().unwrap()
+    }
+
+    fn provisioned_flash() -> Flash {
+        let mut flash = Flash::new();
+        let image = crate::frame_store::provisioned_image(SECTOR, &initial_payload()).unwrap();
+        flash.bytes[REGION as usize..REGION as usize + image.len()].copy_from_slice(&image);
+        flash
+    }
+
+    #[test]
+    fn the_provisioned_image_is_what_provision_programs() {
+        let mut programmed = Flash::new();
+        store(&mut programmed)
+            .provision(&initial_payload())
+            .unwrap();
+        assert_eq!(programmed.bytes, provisioned_flash().bytes);
+        // Copy 1 and the guard sectors stay erased.
+        let flash = provisioned_flash();
+        assert!(
+            flash.bytes[REGION as usize + SECTOR..]
+                .iter()
+                .all(|b| *b == 0xFF)
+        );
+        assert!(flash.bytes[..SECTOR].iter().all(|b| *b == 0xFF));
+    }
+
+    #[test]
+    fn the_empty_record_means_no_ota_transaction_exactly_like_a_blank_region() {
+        let mut flash = provisioned_flash();
+        match store(&mut flash).load().unwrap() {
+            Loaded::Payload {
+                sequence,
+                copy,
+                degraded,
+                ..
+            } => assert_eq!((sequence, copy, degraded), (1, 0, true)),
+            other => panic!("{other:?}"),
+        }
+        let provisioned = ready(load_metadata(&FlashStore(&RefCell::new(flash)))).unwrap();
+        let blank = ready(load_metadata(&FlashStore(&RefCell::new(Flash::new())))).unwrap();
+        assert_eq!(provisioned.encode().unwrap(), blank.encode().unwrap());
+        assert!(provisioned.staged.stage == Stage::None);
+        assert!(provisioned.staged.slot.is_empty());
+        assert!(provisioned.staged.digest.is_empty());
+        assert!(provisioned.staged.deployment_id.is_empty());
+        assert_eq!(provisioned.staged.size, 0);
+        // Neither a confirmed image nor a candidate.
+        assert!(provisioned.active_digest.is_empty());
+        assert!(provisioned.active_deployment_id.is_empty());
+    }
+
+    #[test]
+    fn provision_never_overwrites_a_record_or_a_corrupted_region() {
+        let mut flash = provisioned_flash();
+        assert_eq!(
+            store(&mut flash).provision(&initial_payload()),
+            Err(StoreError::NotBlank)
+        );
+        flash.bytes[REGION as usize + 20] ^= 1;
+        let before = flash.bytes.clone();
+        assert_eq!(
+            store(&mut flash).provision(&initial_payload()),
+            Err(StoreError::Corrupted)
+        );
+        assert_eq!(store(&mut flash).load().unwrap(), Loaded::Corrupted);
+        assert_eq!(store(&mut flash).commit(b"x"), Err(StoreError::Corrupted));
+        assert_eq!(flash.bytes, before, "a degraded region is never rewritten");
+    }
+
+    #[test]
+    fn a_corrupted_byte_of_the_only_provisioned_copy_stays_fail_closed() {
+        let len = {
+            let mut frame = [0u8; MAX_FRAME];
+            let image = crate::frame_store::provisioned_image(SECTOR, &initial_payload()).unwrap();
+            frame.copy_from_slice(&image[..MAX_FRAME]);
+            image
+                .iter()
+                .take(MAX_FRAME)
+                .rposition(|b| *b != 0xFF)
+                .unwrap()
+                + 1
+        };
+        for byte in 0..len {
+            for pattern in [0x01u8, 0x80, 0xFF] {
+                let mut flash = provisioned_flash();
+                flash.bytes[REGION as usize + byte] ^= pattern;
+                assert_eq!(
+                    store(&mut flash).load().unwrap(),
+                    Loaded::Corrupted,
+                    "byte {byte} ^ {pattern:#x}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_power_cut_at_any_byte_of_the_first_commit_after_provisioning_keeps_a_record() {
+        let initial = initial_payload();
+        // Exact flash cost of the first operational commit (publish).
+        let first_commit = {
+            let cell = RefCell::new(provisioned_flash());
+            ready(service::publish(
+                &FlashStore(&cell),
+                String::from("deploy-1"),
+                crate::Committed {
+                    size: 4096,
+                    digest: Digest([1; 32]),
+                },
+                String::from("ota_1"),
+            ))
+            .unwrap();
+            let ops = cell.into_inner().ops;
+            assert!(ops > SECTOR && ops < SECTOR + MAX_FRAME);
+            ops
+        };
+        for garbage in [false, true] {
+            let mut clean = provisioned_flash();
+            clean.garbage = garbage;
+            let cell = RefCell::new(clean);
+            lifecycle(&cell);
+            let total = cell.into_inner().ops;
+            assert!(total > first_commit);
+
+            for cut in 0..total {
+                let mut flash = provisioned_flash();
+                flash.garbage = garbage;
+                flash.budget = Some(cut);
+                let cell = RefCell::new(flash);
+                lifecycle(&cell);
+                let mut flash = cell.into_inner();
+                flash.budget = None;
+                let copy0_before =
+                    provisioned_flash().bytes[REGION as usize..REGION as usize + SECTOR].to_vec();
+                if cut < first_commit {
+                    // Only copy 1 was being written: copy 0 is untouched and
+                    // the answer is the initial record, never an error.
+                    assert_eq!(
+                        flash.bytes[REGION as usize..REGION as usize + SECTOR],
+                        copy0_before[..],
+                        "cut {cut}"
+                    );
+                }
+                let cell = RefCell::new(flash);
+                let flash_store = FlashStore(&cell);
+                let metadata = ready(load_metadata(&flash_store))
+                    .unwrap_or_else(|e| panic!("cut {cut} garbage {garbage}: {e:?}"));
+                if cut < first_commit {
+                    // The initial record, or the new one once its frame is whole.
+                    let is_initial = metadata.encode().unwrap() == initial;
+                    let is_new = metadata.staged.stage == Stage::Written
+                        && metadata.staged.deployment_id == "deploy-1";
+                    assert!(is_initial || is_new, "cut {cut}");
+                    if cut <= SECTOR {
+                        assert!(is_initial, "cut {cut}: still erasing copy 1");
+                    }
+                } else {
+                    match metadata.staged.stage {
+                        Stage::None => {}
+                        Stage::Written | Stage::Activating => {
+                            assert_eq!(metadata.staged.slot, "ota_1", "cut {cut}")
+                        }
+                    }
+                }
+                let mut next = metadata.clone();
+                next.set_staged(Staged::default());
+                ready(save_metadata(&flash_store, &next))
+                    .unwrap_or_else(|e| panic!("cut {cut}: next commit failed: {e:?}"));
+            }
+        }
+    }
+
+    #[test]
+    fn a_provisioning_image_needs_a_sector_that_holds_the_frame() {
+        assert!(crate::frame_store::provisioned_image(16, &initial_payload()).is_none());
+        assert!(crate::frame_store::provisioned_image(SECTOR, &[0u8; MAX_PAYLOAD + 1]).is_none());
+    }
 }

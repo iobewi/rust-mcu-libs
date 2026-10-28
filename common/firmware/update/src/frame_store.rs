@@ -80,6 +80,8 @@ pub enum StoreError<E> {
     TooLarge,
     /// The region holds no valid copy: not overwritten, see the module doc.
     Corrupted,
+    /// `provision` found a region that already holds a record.
+    NotBlank,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,6 +131,21 @@ fn decode(raw: &[u8; MAX_FRAME]) -> Found<Frame> {
         },
         sequence,
     }
+}
+
+/// Bytes of a freshly provisioned region of two `erase_size` sectors: copy 0
+/// holds `payload` as sequence 1, copy 1 stays erased. This is the image a
+/// factory flashes; it is byte-identical to what `FrameStore::provision`
+/// programs. `None` when `payload` or the geometry does not fit.
+pub fn provisioned_image(erase_size: usize, payload: &[u8]) -> Option<Vec<u8>> {
+    let mut frame = [0u8; MAX_FRAME];
+    let len = encode(1, payload, &mut frame)?;
+    if erase_size < len {
+        return None;
+    }
+    let mut image = alloc::vec![0xFFu8; 2 * erase_size];
+    image[..len].copy_from_slice(&frame[..len]);
+    Some(image)
 }
 
 pub struct FrameStore<B> {
@@ -192,6 +209,17 @@ impl<B: FrameBackend> FrameStore<B> {
         self.backend
             .write(target, &frame[..len])
             .map_err(StoreError::Backend)
+    }
+
+    /// Factory provisioning: publishes `payload` as sequence 1 in copy 0 of a
+    /// **blank** region (the other copy stays erased). It refuses a region
+    /// that holds a record or is corrupted, so it can never overwrite data.
+    pub fn provision(&mut self, payload: &[u8]) -> Result<(), StoreError<B::Error>> {
+        match self.selection().map_err(StoreError::Backend)? {
+            Selection::Blank => self.commit(payload),
+            Selection::Record { .. } => Err(StoreError::NotBlank),
+            Selection::Corrupted => Err(StoreError::Corrupted),
+        }
     }
 
     /// Explicit reprovisioning: erases both copies. Never called implicitly.

@@ -67,10 +67,27 @@ l'enregistrement (voir #90/#91).
 
 Dans le cas d'erreur, le démarrage traite OTM1 comme absent (un candidat en
 probation est rejeté) mais **aucun nouvel upload ni activation** n'est accepté
-tant que la région n'est pas reprovisionnée. Le cas le plus probable est une
-coupure d'alimentation pendant le tout premier commit d'un `ota_meta` vierge ; il
-disparaît si `ota_meta` est publié en usine avec une première trame ou si on
-accepte le reprovisionnement ci-dessous.
+tant que la région n'est pas reprovisionnée.
+
+## Provisionnement initial (parcours normal)
+
+`ota_meta` n'est pas livré vierge : `prepare.py` produit `ota_meta.bin` (8 192
+octets) avec le programme `ota_meta_image` du crate `iobewi-firmware-update`, donc
+avec les codecs réels. La copie 0 porte une trame `OTSF` de séquence 1 dont la
+charge est l'enregistrement OTM1 **vide** (`Metadata::default().encode()` : 19
+octets, `Stage::None`, aucun champ) ; la copie 1 reste effacée.
+
+* Cet état se lit exactement comme une région vierge : pas de transaction, pas
+  d'image active connue, aucun candidat. Il n'est ni une image confirmée ni un
+  candidat ; la réconciliation au boot traite les deux cas de la même façon.
+* Le premier commit opérationnel écrit la copie 1 (effacement puis programmation) ;
+  la copie 0 n'est pas touchée avant que ce commit soit complet. Une coupure à
+  n'importe quel octet laisse donc l'enregistrement initial ou le nouveau, jamais
+  une région refusée (tests exhaustifs dans `nor_frames`).
+* Une région corrompue ou inconnue reste **fail-closed** : `provision` et `commit`
+  refusent, rien n'est réécrit, seul `erase_all` (reprovisionnement explicite) la
+  réinitialise. Une région totalement vierge reste lisible (`None`) et le premier
+  commit y reste vulnérable (cas des cartes dont `ota_meta` a été effacé à la main).
 
 ## Reprovisionner `ota_meta`
 
@@ -80,12 +97,12 @@ slot en cours, sans candidat `Pending`. Sinon, attendre la fin de la probation.
 
 ```sh
 python3 -m esptool --chip esp32s3 read-flash 0xd000 0x2000 otadata-avant.bin   # sauvegarde
-head -c 8192 /dev/zero | tr '\0' '\377' > ota_meta-vierge.bin
-python3 -m esptool --chip esp32s3 write-flash 0xf000 ota_meta-vierge.bin
+# ota_meta.bin : image de provisionnement produite par prepare.py (cargo run -p iobewi-firmware-update --example ota_meta_image -- ota_meta.bin 4096 8192)
+python3 -m esptool --chip esp32s3 write-flash 0xf000 ota_meta.bin
 ```
 
 Effet : transaction en cours oubliée, identité du dernier déploiement oubliée,
-slot démarré inchangé. Relire `0xf000` : 8 192 octets à `0xff`.
+slot démarré inchangé. Relire `0xf000` : 8 192 octets identiques à `ota_meta.bin` (trame OTSF initiale en copie 0, copie 1 à `0xff`).
 
 ## Cartes de développement existantes (migration par réinitialisation)
 
@@ -99,7 +116,7 @@ aucun double backend. Les anciennes cartes ont besoin de :
 2. **`config` remise à zéro.** Le nouveau firmware ne déclare plus l'espace
    `ota` ; une `config` qui le contient est refusée au montage (`InvalidSpace`).
    Le Wi-Fi est ré-amorcé par les identifiants de compilation.
-3. **`ota_meta` vierge.**
+3. **`ota_meta` provisionné** avec `ota_meta.bin`.
 
 Installation d'usine complète, sans rebooter entre les écritures (sauvegarde
 préalable obligatoire, voir [le reprovisionnement du boot](boot-metadata-reprovisioning.md)) :
