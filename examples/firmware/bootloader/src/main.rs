@@ -3,7 +3,7 @@
 //!   ROM -> iobewi-esp-bootloader -> the slot IOBEWI OTA selects -> application
 //!
 //! Every *decision* -- which slot, what to write to `otadata`, whether an image
-//! is bootable -- is `iobewi-firmware-boot` (EWBT) with `iobewi-firmware-image` (ESP image validation), tested on the host against power cuts.
+//! is bootable -- is `iobewi-firmware-boot` (transactional boot metadata) with `iobewi-firmware-image` (ESP image validation), tested on the host against power cuts.
 //! This file only performs them on the real flash and hands over control.
 //!
 //! What it does today (boot chain step 5):
@@ -11,7 +11,9 @@
 //! * reads the partition table, then the two `otadata` entries;
 //! * asks `plan_boot` what to do. A blank `otadata` is a first boot: slot 0 is
 //!   validated, then `Valid(seq=1)` is written by the protocol below, and only
-//!   then does it boot. Anything unexpected halts -- it never guesses;
+//!   then does it boot. Anything unexpected halts -- it never guesses, and
+//!   `otadata` that is not blank but holds no accepted entry (torn, corrupt or
+//!   unknown format) is never re-seeded;
 //! * loads the chosen image (RAM segments copied, DROM/IROM mapped through the
 //!   flash MMU) and jumps.
 //!
@@ -85,7 +87,7 @@ enum BootError {
     FlashRead(u32),
     /// Missing, ambiguous or physically invalid layout.
     InvalidLayout,
-    /// `plan_boot` says there is nothing safe to boot: 1 = first boot, slot 0 unbootable; 2 = no usable entry.
+    /// `plan_boot` says there is nothing safe to boot: 1 = first boot, slot 0 unbootable; 2 = no usable entry; 3 = `otadata` is neither blank nor holds an accepted entry.
     Halt(u32),
     /// Physical metadata transaction failed: driver, bounds, readback or commit.
     OtadataWrite {
@@ -228,6 +230,7 @@ fn boot() -> Result<core::convert::Infallible, BootError> {
         Boot::Slot { slot, seq, .. } => (slot, seq),
         Boot::Halt(Halt::NoImage) => return Err(BootError::Halt(1)),
         Boot::Halt(Halt::NoUsableEntry) => return Err(BootError::Halt(2)),
+        Boot::Halt(Halt::UnknownMetadata) => return Err(BootError::Halt(3)),
     };
     log!("boot: plan slot=", u32::from(slot), " seq=", seq);
 

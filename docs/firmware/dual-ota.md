@@ -34,7 +34,7 @@ Une transaction de mise à jour peut partager les opérations suivantes : prépa
 
 La **politique d'activation** dépend du domaine et de la composition choisie :
 
-- En mode classique, A est sélectionné par le bootloader et confirmé après redémarrage. Sur ESP32, l'adaptateur de boot actuel emploie les métadonnées **Transactional A/B Boot v1** (magic binaire historique `EWBT`).
+- En mode classique, A est sélectionné par le bootloader et confirmé après redémarrage. Sur ESP32, l'adaptateur de boot actuel emploie les métadonnées de boot **Transactional A/B Boot v2** (magic binaire `BOOT`).
 - En mode A+B de type résident/workload, A peut servir de superviseur et charger B indépendamment. Le bootloader ESP ne sélectionne alors que A ; B possède son propre contrat de persistance et de rollback.
 - La bibliothèque ne doit **pas imposer** ce modèle à toutes les applications : d'autres mécanismes d'activation peuvent être fournis via composition explicite.
 
@@ -50,7 +50,7 @@ Le fait de nommer B « firmware » ne garantit ni isolation mémoire, ni chargeu
 
 - **OTM1** : contrat historique de transaction pour la mise à jour A.
 - **OTM2** : contrat historique de transaction distinct pour le domaine B dans `iobewi_old`.
-- Le format **Transactional A/B Boot v1** concerne la sélection au boot de A sur ESP32 ; les octets `EWBT` restent inchangés pour la compatibilité flash, voir [la spécification de boot](transactional-ab-boot.md).
+- Le format **Transactional A/B Boot v2** concerne la sélection au boot de A sur ESP32, voir [la spécification de boot](transactional-ab-boot.md) et [le reprovisionnement](boot-metadata-reprovisioning.md).
 
 Une mise à jour A+B n'est **pas automatiquement atomique entre les deux domaines**. Les versions successives peuvent coexister ; les éventuelles règles de compatibilité entre A et B sont décidées par le produit/runtime, pas par les primitives de stockage.
 

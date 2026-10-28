@@ -18,8 +18,9 @@
 //!
 //! ```text
 //!  0  ota_seq         u32   } as ESP-IDF
-//!  4  magic           "EWBT"   //!  8  format version  u32 = 1   | in ESP-IDF's `seq_label`, which it ignores
-//! 12  ext_crc         u32       | crc32(seq, state, magic, version)
+//!  4  magic           "BOOT"  } in ESP-IDF's `seq_label`, which it ignores
+//!  8  format version  u32 = 2  }
+//! 12  ext_crc         u32      } crc32(seq, state, magic, version)
 //! 16  reserved        u32 = erased
 //! 20  commit word     u32 = COMMIT   <- programmed last, on its own
 //! 24  ota_state       u32   } as ESP-IDF
@@ -28,7 +29,9 @@
 //!
 //! An entry is accepted only if **every** field is exact. Anything else that is
 //! not fully erased is *corrupt* and ignored -- including entries written the
-//! ESP-IDF way, by design: no legacy mode. A cut before the commit word is
+//! ESP-IDF way and entries of any other format version, by design: no legacy
+//! mode. A device holding such metadata is re-provisioned explicitly (see
+//! `docs/firmware/boot-metadata-reprovisioning.md`), never silently re-seeded. A cut before the commit word is
 //! complete leaves an entry that is not accepted; a cut during it leaves either
 //! that or the complete entry, whose body was already fully written. Nothing
 //! depends on the order the flash programs cells *within* one command.
@@ -43,7 +46,9 @@
 //!   activates in two writes and picks the sector by raw sequence comparison
 //!   (after a rollback it would erase the only good entry); the agent must use
 //!   this crate instead.
-//! * A blank `otadata` is a normal first boot, not an error: see [`plan_boot`].
+//! * A **blank** `otadata` (both entries fully erased) is a normal first boot,
+//!   not an error: see [`plan_boot`]. Anything else that holds no accepted
+//!   entry -- torn, foreign or unknown-format data -- halts instead.
 #![no_std]
 #[cfg(test)]
 extern crate alloc;
@@ -69,8 +74,8 @@ pub mod state {
     pub const ABORTED: u32 = 4;
 }
 
-pub const MAGIC: [u8; 4] = *b"EWBT";
-pub const FORMAT_VERSION: u32 = 1;
+pub const MAGIC: [u8; 4] = *b"BOOT";
+pub const FORMAT_VERSION: u32 = 2;
 /// Balanced bits: a partly-programmed word is never this value.
 pub const COMMIT: u32 = 0x5AC3_A53C;
 
@@ -149,7 +154,8 @@ impl Entry {
 pub enum Decoded {
     /// Fully erased.
     Blank,
-    /// Anything that is not a complete, exact Embewi entry: torn, garbage, or ESP-IDF-format.
+    /// Anything that is not a complete, exact entry of this format: torn, garbage, ESP-IDF-format
+    /// or another format version.
     Corrupt,
     Ok(Entry),
 }
@@ -327,6 +333,9 @@ pub enum Halt {
     NoImage,
     /// Entries exist but every one is rejected or points at an unbootable image.
     NoUsableEntry,
+    /// `otadata` is not blank yet holds no accepted entry: torn, corrupt or unknown-format
+    /// metadata. Never re-seeded, since that could silently discard a confirmed state.
+    UnknownMetadata,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -371,9 +380,11 @@ impl Plan {
 ///    one whose image is not bootable is marked `Invalid` and skipped;
 /// 3. an `Unproven` candidate is marked `Pending` *before* it is booted; a
 ///    `Valid` one boots as is;
-/// 4. with no candidate at all: if there is no entry that ever existed (blank
-///    or torn `otadata`, i.e. a first boot) and slot 0 is bootable, seed it as
-///    `Valid`; otherwise halt explicitly rather than guess.
+/// 4. with no candidate at all: if both sectors are fully erased (a first boot)
+///    and slot 0 is bootable, seed it as `Valid`; otherwise halt explicitly
+///    rather than guess -- [`Halt::UnknownMetadata`] when a sector holds data
+///    that is not an accepted entry, [`Halt::NoUsableEntry`] when every
+///    accepted entry was rejected.
 pub fn plan_boot(
     otadata: [Raw; SECTOR_COUNT],
     slot_count: u8,
@@ -389,7 +400,6 @@ pub fn plan_boot(
 
     // 1. Pending -> Aborted, and collect what is still a candidate.
     let mut candidates: [Option<(usize, u32, Trust)>; 2] = [None; 2];
-    let mut rejected_any = false;
     for (sector, c) in class.iter().enumerate() {
         if let Class::Ok { seq, trust } = *c {
             match trust {
@@ -401,9 +411,8 @@ pub fn plan_boot(
                         },
                         &mut writes,
                     );
-                    rejected_any = true;
                 }
-                Trust::Dead => rejected_any = true,
+                Trust::Dead => {}
                 Trust::Valid | Trust::Unproven => candidates[sector] = Some((sector, seq, trust)),
             }
         }
@@ -423,7 +432,6 @@ pub fn plan_boot(
                 },
                 &mut writes,
             );
-            rejected_any = true;
             continue;
         }
         if trust == Trust::Unproven {
@@ -445,14 +453,10 @@ pub fn plan_boot(
         );
     }
 
-    // 4. Nothing to boot. A first boot only if no entry was ever there.
-    // (Corrupt includes anything not written the Embewi way: a device flashed with an ESP-IDF
-    // `otadata` is re-seeded, which is the no-legacy policy, not an accident.)
-    if !rejected_any
-        && class
-            .iter()
-            .all(|c| matches!(c, Class::Blank | Class::Corrupt))
-    {
+    // 4. Nothing to boot. A first boot only if both sectors are fully erased: a sector that is
+    // neither blank nor an accepted entry (torn write, ESP-IDF or other-format metadata) may hide
+    // a confirmed state, so it halts rather than being overwritten by a seed.
+    if class.iter().all(|c| matches!(c, Class::Blank)) {
         if image_ok(0) {
             push(
                 Write {
@@ -472,7 +476,15 @@ pub fn plan_boot(
         }
         return Plan::new(Boot::Halt(Halt::NoImage), writes);
     }
-    Plan::new(Boot::Halt(Halt::NoUsableEntry), writes)
+    let accepted = class.iter().any(|c| matches!(c, Class::Ok { .. }));
+    Plan::new(
+        Boot::Halt(if accepted {
+            Halt::NoUsableEntry
+        } else {
+            Halt::UnknownMetadata
+        }),
+        writes,
+    )
 }
 
 /// Why [`activate`] refused.

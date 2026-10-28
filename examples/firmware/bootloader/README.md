@@ -12,8 +12,11 @@ Boot must remain able to invalidate that record when the image cannot boot.
 
 The executable clears flashboot watchdog bits, initializes esp-hal, validates
 the full table, plans boot, writes the transitions, copies validated RAM
-segments, maps DROM/IROM and jumps. Failure halts. EWBT record magic and OTM1/2
-bytes remain unchanged; standard ESP-IDF boot does not implement this contract.
+segments, maps DROM/IROM and jumps. Failure halts. The `otadata` record format is version 2 (magic `BOOT`);
+OTM1/2 bytes are unchanged. `otadata` that is neither blank nor a valid record
+halts (reason 3) instead of being re-seeded: see
+`docs/firmware/boot-metadata-reprovisioning.md`. Standard ESP-IDF boot does not
+implement this contract.
 
 ## Building
 
@@ -22,7 +25,8 @@ for S3 (xtensa-esp32s3-none-elf), with -Z build-std=core,alloc,
 --profile bootloader, -p iobewi-esp-bootloader, --bins and --features esp32c3 or
 esp32s3. S3 linking requires Xtensa GCC on PATH.
 
-esptool 5.5.0 elf2image packages the ELF. Boot image is flashed at **0**, table
+esptool 5.5.0 elf2image packages the ELF (ESP32-S3: `--flash-mode dio`, the default QIO
+image is not loadable by the ROM and the CI rejects it). Boot image is flashed at **0**, table
 at **0x8000**; do not use an ESP32 classic 0x1000 offset. The declarative CI
 esp32-bootloader profile links, packages, inspects the ESP checksum/footer and
 rejects empty images or images above 32768 bytes. Historical S3 ROM/cache/stack

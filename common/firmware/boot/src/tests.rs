@@ -176,23 +176,11 @@ fn entries_written_the_idf_way_are_ignored_by_design() {
         "the stale entry is not a candidate"
     );
     assert_eq!(p.writes().count(), 0);
-    // A device that still has an ESP-IDF `otadata` is re-seeded on ota_0: the migration path.
+    // A device that still has an ESP-IDF `otadata` halts: it may hide a confirmed state, so it is
+    // never re-seeded -- re-provisioning is explicit.
     let p = plan(&[idf_entry(1, state::VALID), BLANK], [true, true]);
-    assert_eq!(
-        p.boot,
-        Boot::Slot {
-            slot: 0,
-            sector: 0,
-            seq: 1
-        }
-    );
-    assert_eq!(
-        p.writes().collect::<Vec<_>>(),
-        [Write {
-            sector: 0,
-            entry: e(1, state::VALID)
-        }]
-    );
+    assert_eq!(p.boot, Boot::Halt(Halt::UnknownMetadata));
+    assert_eq!(p.writes().count(), 0);
 }
 
 #[test]
@@ -267,22 +255,102 @@ fn first_boot_halts_when_slot_0_is_not_bootable() {
 }
 
 #[test]
-fn a_torn_seed_is_retried_like_a_first_boot() {
+fn a_torn_seed_halts_instead_of_silently_reseeding() {
+    // A first-boot seed cut by a power loss leaves a sector that is neither blank nor an accepted
+    // entry. It is not distinguishable from foreign metadata, so it halts; the factory provisions
+    // `otadata` (see docs/firmware/boot-metadata-reprovisioning.md) so this window is not normal boot.
     for torn in [e(1, state::VALID).body(), {
         let mut r = e(1, state::VALID).encode();
         r[OFF_COMMIT] = 0xFF; // commit word half there
         r
     }] {
-        let p = plan(&[torn, BLANK], [true, true]);
-        assert_eq!(
-            p.boot,
-            Boot::Slot {
-                slot: 0,
-                sector: 0,
-                seq: 1
-            }
-        );
+        for flash in [[torn, BLANK], [BLANK, torn]] {
+            let p = plan(&flash, [true, true]);
+            assert_eq!(p.boot, Boot::Halt(Halt::UnknownMetadata));
+            assert_eq!(
+                p.writes().count(),
+                0,
+                "nothing is written over unknown metadata"
+            );
+        }
     }
+}
+
+/// An otherwise exact entry of another format: same layout, different magic or version, with a
+/// CRC consistent with those bytes -- what an earlier or later format of this record looks like.
+fn other_format(entry: Entry, magic: [u8; 4], version: u32) -> Raw {
+    let mut raw = entry.encode();
+    raw[OFF_MAGIC..OFF_MAGIC + 4].copy_from_slice(&magic);
+    raw[8..12].copy_from_slice(&version.to_le_bytes());
+    let mut input = [0u8; 16];
+    input[0..4].copy_from_slice(&entry.seq.to_le_bytes());
+    input[4..8].copy_from_slice(&entry.state.to_le_bytes());
+    input[8..12].copy_from_slice(&magic);
+    input[12..16].copy_from_slice(&version.to_le_bytes());
+    raw[12..16].copy_from_slice(&crc32_le(u32::MAX, &input).to_le_bytes());
+    raw
+}
+
+#[test]
+fn another_magic_or_version_is_unknown_metadata_and_never_reseeded() {
+    let entry = e(3, state::VALID);
+    assert_eq!(
+        decode(&other_format(entry, MAGIC, FORMAT_VERSION)),
+        Decoded::Ok(entry)
+    );
+    for foreign in [
+        other_format(entry, *b"XXXX", FORMAT_VERSION), // consistent CRC, other magic
+        other_format(entry, MAGIC, FORMAT_VERSION - 1), // previous version
+        other_format(entry, MAGIC, FORMAT_VERSION + 1), // future version
+        other_format(entry, MAGIC, 0),
+    ] {
+        assert_eq!(decode(&foreign), Decoded::Corrupt);
+        for flash in [[foreign, BLANK], [BLANK, foreign], [foreign, foreign]] {
+            let p = plan(&flash, [true, true]);
+            assert_eq!(p.boot, Boot::Halt(Halt::UnknownMetadata));
+            assert_eq!(p.writes().count(), 0);
+        }
+    }
+}
+
+#[test]
+fn only_two_fully_erased_sectors_are_a_first_boot() {
+    assert!(matches!(
+        plan(&[BLANK, BLANK], [true, true]).boot,
+        Boot::Slot {
+            slot: 0,
+            seq: 1,
+            ..
+        }
+    ));
+    // One flipped byte in an otherwise blank sector is not "blank".
+    let mut almost = BLANK;
+    almost[17] = 0x00;
+    assert_eq!(decode(&almost), Decoded::Corrupt);
+    for flash in [[almost, BLANK], [BLANK, almost]] {
+        let p = plan(&flash, [true, true]);
+        assert_eq!(p.boot, Boot::Halt(Halt::UnknownMetadata));
+        assert_eq!(p.writes().count(), 0);
+    }
+}
+
+#[test]
+fn a_corrupt_sector_beside_an_accepted_entry_does_not_block_the_boot() {
+    // A torn update leaves one corrupt sector; the confirmed entry in the other still boots.
+    let torn = e(2, state::NEW).body();
+    let p = plan(&[raw(1, state::VALID), torn], [true, true]);
+    assert_eq!(
+        p.boot,
+        Boot::Slot {
+            slot: 0,
+            sector: 0,
+            seq: 1
+        }
+    );
+    assert_eq!(p.writes().count(), 0);
+    // ... but if that accepted entry cannot boot, it halts as "no usable entry", never a reseed.
+    let p = plan(&[raw(1, state::VALID), torn], [false, true]);
+    assert_eq!(p.boot, Boot::Halt(Halt::NoUsableEntry));
 }
 
 #[test]
@@ -369,6 +437,12 @@ fn nothing_usable_halts_explicitly_and_never_reseeds() {
         [true, true],
     );
     assert_eq!(p.boot, Boot::Halt(Halt::NoUsableEntry));
+    let p = plan(&[raw(1, state::INVALID), BLANK], [true, true]);
+    assert_eq!(
+        p.boot,
+        Boot::Halt(Halt::NoUsableEntry),
+        "a rejected entry is not a first boot"
+    );
     let p = plan(&[raw(1, state::VALID), raw(2, state::NEW)], [false, false]);
     assert_eq!(p.boot, Boot::Halt(Halt::NoUsableEntry));
 }
@@ -740,12 +814,9 @@ fn check(f: &Flash, ctx: &Ctx) -> Result<Plan, String> {
             }
         }
         Boot::Halt(h) => {
-            if ctx.keep_valid
-                || ctx.images[0]
-                    && dec
-                        .iter()
-                        .all(|d| matches!(d, Decoded::Blank | Decoded::Corrupt))
-            {
+            // Only genuinely blank otadata is a first boot; torn or unknown data halts by design.
+            let first_boot = dec.iter().all(|d| matches!(d, Decoded::Blank));
+            if ctx.keep_valid || ctx.images[0] && first_boot {
                 return Err(format!("halts ({h:?}) although a boot was possible"));
             }
         }
@@ -1042,16 +1113,16 @@ fn a_torn_body_is_rejected_even_if_a_faulty_executor_commits_it_anyway() {
 
 #[test]
 fn the_entry_format_is_frozen_by_golden_vectors() {
-    // Cross-checked against scripts/ewbt-otadata.py (an independent implementation): if these change,
-    // every device already flashed loses its otadata -- bump FORMAT_VERSION instead.
+    // Cross-checked against tools/otadata_vectors.py (an independent implementation): if these change,
+    // every device already flashed halts on its otadata -- bump FORMAT_VERSION instead.
     let hex = |raw: Raw| raw.iter().map(|b| format!("{b:02x}")).collect::<String>();
     assert_eq!(
         hex(e(1, state::VALID).encode()),
-        "010000004557425401000000484e1c0dffffffff3ca5c35a020000009a984347"
+        "01000000424f4f5402000000c829c3fdffffffff3ca5c35a020000009a984347"
     );
     assert_eq!(
         hex(e(2, state::NEW).encode()),
-        "0200000045574254010000002564efc8ffffffff3ca5c35a000000007437f655"
+        "02000000424f4f5402000000a5033038ffffffff3ca5c35a000000007437f655"
     );
 }
 
