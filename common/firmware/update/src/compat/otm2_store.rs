@@ -3,7 +3,8 @@
 //! last good record always survives an interrupted write. A reader picks the
 //! newest valid copy (serial-number arithmetic on the sequence).
 
-use super::otm2::{DecodeError, RECORD_LEN, Record, newer};
+use super::otm2::{DecodeError, RECORD_LEN, Record};
+use crate::double_copy::{Found, Selection, select};
 
 /// Where the two copies physically live (flash sectors, NVS blobs, memory...).
 /// The store never assumes more than: reading a copy returns its bytes, and a
@@ -53,28 +54,29 @@ impl<B: MetadataBackend> MetadataStore<B> {
     }
 
     pub fn load(&mut self) -> Result<Loaded, B::Error> {
-        let mut decoded = [Err(DecodeError::Blank); COPIES];
-        for (copy, slot) in decoded.iter_mut().enumerate() {
-            *slot = Record::decode(&self.backend.read(copy)?);
+        let mut found = [Found::Blank; COPIES];
+        for (copy, slot) in found.iter_mut().enumerate() {
+            *slot = match Record::decode(&self.backend.read(copy)?) {
+                Ok(record) => Found::Valid {
+                    value: record,
+                    sequence: record.sequence,
+                },
+                Err(DecodeError::Blank) => Found::Blank,
+                Err(_) => Found::Invalid,
+            };
         }
-        let best = match (decoded[0], decoded[1]) {
-            (Ok(a), Ok(b)) => Some(if newer(b.sequence, a.sequence) {
-                (b, 1)
-            } else {
-                (a, 0)
-            }),
-            (Ok(a), Err(_)) => Some((a, 0)),
-            (Err(_), Ok(b)) => Some((b, 1)),
-            (Err(_), Err(_)) => None,
-        };
-        Ok(match best {
-            Some((record, copy)) => Loaded::Record {
-                record,
+        Ok(match select(found) {
+            Selection::Blank => Loaded::Blank,
+            Selection::Record {
+                value,
                 copy,
-                degraded: decoded[1 - copy].is_err(),
+                degraded,
+            } => Loaded::Record {
+                record: value,
+                copy,
+                degraded,
             },
-            None if decoded.iter().all(|d| matches!(d, Err(DecodeError::Blank))) => Loaded::Blank,
-            None => Loaded::Corrupted,
+            Selection::Corrupted => Loaded::Corrupted,
         })
     }
 

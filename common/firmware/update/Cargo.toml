@@ -15,6 +15,11 @@ sha2 = { version = "0.10", default-features = false }
 default = []
 runtime = ["dep:embassy-sync", "dep:embassy-time", "dep:embassy-futures"]
 config-space = ["dep:iobewi-config-space"]
+nor-flash = ["dep:embedded-storage"]
+
+[dependencies.embedded-storage]
+version = "0.3.1"
+optional = true
 
 [dependencies.embassy-sync]
 version = "0.8.0"

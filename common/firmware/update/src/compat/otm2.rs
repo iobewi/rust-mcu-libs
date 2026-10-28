@@ -240,26 +240,11 @@ fn slot_from(code: u8) -> Result<Option<Side>, DecodeError> {
     }
 }
 
-/// zlib CRC-32 (poly 0xEDB88320, init/final xor 0xFFFFFFFF).
-pub fn crc32(data: &[u8]) -> u32 {
-    let mut crc = u32::MAX;
-    for byte in data {
-        crc ^= u32::from(*byte);
-        for _ in 0..8 {
-            crc = if crc & 1 != 0 {
-                (crc >> 1) ^ 0xEDB8_8320
-            } else {
-                crc >> 1
-            };
-        }
-    }
-    !crc
-}
+/// zlib CRC-32, shared with the other record codecs.
+pub use crate::crc32::crc32;
 
 /// Serial-number comparison: is `a` newer than `b`, wrap-safe.
-pub const fn newer(a: u32, b: u32) -> bool {
-    (a.wrapping_sub(b) as i32) > 0
-}
+pub use crate::double_copy::newer;
 
 impl Record {
     pub const fn empty(sequence: u32) -> Self {

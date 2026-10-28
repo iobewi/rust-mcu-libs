@@ -106,6 +106,8 @@ jobs:
           cargo clippy -p iobewi-firmware-update --features runtime --all-targets -- -D warnings
           cargo test -p iobewi-firmware-update --features 'runtime config-space'
           cargo clippy -p iobewi-firmware-update --features 'runtime config-space' --all-targets -- -D warnings
+          cargo test -p iobewi-firmware-update --features 'runtime nor-flash'
+          cargo clippy -p iobewi-firmware-update --features 'runtime nor-flash' --all-targets -- -D warnings
 
   # Each MCU job compiles all selected crates on ONE runner.
   # Xtensa is installed once per compiler variant; no toolchain artifacts.

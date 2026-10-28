@@ -118,7 +118,7 @@ Two workflows share one Cargo workspace, one `ci.json` vocabulary and the same s
 Checks specific to the OTA domain run only in `firmware-ota.yml`:
 
 - `cargo test --release -p iobewi-firmware-boot` (exhaustive transactional boot fault injection);
-- `iobewi-firmware-update` tests and strict Clippy with `runtime`, then `runtime config-space`;
+- `iobewi-firmware-update` tests and strict Clippy with `runtime`, then `runtime config-space`, then `runtime nor-flash` (exhaustive power-cut injection of the OTA metadata frame store);
 - the `esp32-bootloader` profile (link, `esptool` image, 32768-byte gate) and `test_compile_mcu.py`;
 - the linked-binary profiles of the OTA reference firmware, on ESP32-C3 and ESP32-S3 (pinned Xtensa on pull requests, pinned and latest otherwise).
 
