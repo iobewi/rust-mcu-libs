@@ -1,7 +1,8 @@
 //! Local trust policy: what this device accepts. The manifest never decides
 //! any of it; it is only checked against the policy.
 
-use crate::manifest::{Algorithm, ImageFormat, KeyId, Mcu, Product};
+use crate::error::AuthError;
+use crate::manifest::{Algorithm, ImageFormat, KeyId, Manifest, Mcu, Product, RawManifest};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyState {
@@ -48,6 +49,74 @@ pub struct TrustPolicy<'a> {
     /// Static floor; a persistent anti-rollback counter is a separate lot.
     pub min_security_version: u32,
     pub keys: &'a [TrustedKey<'a>],
+}
+
+/// What a manifest must say about the image's target. Shared by the OTA service and the
+/// boot verifier so that both refuse the same images for the same reasons.
+#[derive(Debug, Clone, Copy)]
+pub struct Target<'a> {
+    pub product: Product,
+    pub mcu: Mcu,
+    pub image_format: ImageFormat,
+    pub hw_variants: &'a [u16],
+    pub min_security_version: u32,
+}
+
+impl Target<'_> {
+    /// Call only once the manifest's signature has been verified.
+    pub fn check(&self, manifest: &Manifest) -> Result<(), AuthError> {
+        if manifest.image_format != self.image_format {
+            return Err(AuthError::WrongImageFormat);
+        }
+        if manifest.mcu != self.mcu {
+            return Err(AuthError::WrongMcu);
+        }
+        if manifest.product != self.product {
+            return Err(AuthError::WrongProduct);
+        }
+        if !self.hw_variants.contains(&manifest.hw_variant) {
+            return Err(AuthError::WrongVariant);
+        }
+        if manifest.security_version < self.min_security_version {
+            return Err(AuthError::SecurityVersionTooLow);
+        }
+        Ok(())
+    }
+}
+
+impl Target<'_> {
+    /// [`Target::check`] on a manifest read in place, with the same refusals in the same
+    /// order. For the boot ROM stage, where decoding the fields into types costs code space.
+    pub fn check_raw(&self, manifest: &RawManifest<'_>) -> Result<(), AuthError> {
+        if manifest.image_format_id() != self.image_format.id() {
+            return Err(AuthError::WrongImageFormat);
+        }
+        if manifest.mcu_id() != self.mcu.id() {
+            return Err(AuthError::WrongMcu);
+        }
+        if manifest.product() != self.product.as_bytes() {
+            return Err(AuthError::WrongProduct);
+        }
+        if !self.hw_variants.contains(&manifest.hw_variant()) {
+            return Err(AuthError::WrongVariant);
+        }
+        if manifest.security_version() < self.min_security_version {
+            return Err(AuthError::SecurityVersionTooLow);
+        }
+        Ok(())
+    }
+}
+
+impl<'a> TrustPolicy<'a> {
+    pub fn target(&self) -> Target<'a> {
+        Target {
+            product: self.product,
+            mcu: self.mcu,
+            image_format: self.image_format,
+            hw_variants: self.hw_variants,
+            min_security_version: self.min_security_version,
+        }
+    }
 }
 
 /// Domain separation for [`TrustPolicy::fingerprint`].

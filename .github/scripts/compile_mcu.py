@@ -8,12 +8,16 @@ import subprocess
 import sys
 
 LIMIT = 0x8000  # historical table offset, boot image flashed at zero
+# Blocking budget of the default (unsigned) second stage, per chip. Measured 22 928 (C3) and
+# 29 920 (S3) bytes when this gate was set (#91); the budget leaves about 800 bytes of growth.
+# Raising it eats the room the verified profile needs: change it only with a measurement.
+BUDGET = {"esp32c3": 23744, "esp32s3": 30720}
 
-def check_size(image):
+def check_size(image, limit=LIMIT):
     size = Path(image).stat().st_size
-    if size > LIMIT or size == 0:
-        raise ValueError(f"boot image {size} bytes does not fit in {LIMIT} bytes")
-    print(f"Boot image: {size} bytes; margin before partition table: {LIMIT-size} bytes", flush=True)
+    if size > limit or size == 0:
+        raise ValueError(f"boot image {size} bytes does not fit in {limit} bytes")
+    print(f"Boot image: {size} bytes; margin before the limit {limit}: {limit-size} bytes", flush=True)
     return size
 
 def compile_selected(packages, chip):
@@ -52,6 +56,7 @@ def compile_selected(packages, chip):
                     subprocess.run([sys.executable, "-m", "esptool", "--chip", chip,
                                     "elf2image", *mode, "--flash-size", "16MB", "--output", str(image), str(elf)], check=True)
                     check_size(image)
+                    check_size(image, BUDGET[chip])
                     if chip == "esp32s3" and image.read_bytes()[2] != 2:
                         raise ValueError("ESP32-S3 boot image must use flash mode DIO (header byte 2 == 2)")
                     subprocess.run([sys.executable,"-m","esptool","--chip",chip,"image-info",str(image)],check=True)

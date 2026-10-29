@@ -27,6 +27,15 @@ esp32s3 = [
   "iobewi-esp-boot/esp32s3",
 ]
 
+# Verified boot (issue #91): every slot must carry a valid IAP1 proof (RSA-PSS 3072 through
+# the ROM) signed by a pinned key. Needs IOBEWI_BOOT_PINNED_KEYS, IOBEWI_BOOT_PRODUCT and
+# IOBEWI_BOOT_VARIANTS at build time; there is no default and no unsigned fallback.
+verified-boot = [
+  "iobewi-esp-boot/rom-verify",
+  "dep:iobewi-firmware-auth",
+  "dep:iobewi-firmware-bootauth",
+]
+
 [dependencies]
 esp-hal = { version = "~1.2", default-features = false }
 esp-println = { version = "~0.18", default-features = false }
@@ -35,3 +44,5 @@ iobewi-firmware-boot = { path = "../../../common/firmware/boot" }
 iobewi-firmware-image = { path = "../../../common/firmware/image", default-features = false }
 
 iobewi-firmware-layout = { path = "../../../common/firmware/layout" }
+iobewi-firmware-auth = { path = "../../../common/firmware/auth", optional = true }
+iobewi-firmware-bootauth = { path = "../../../common/firmware/bootauth", optional = true }

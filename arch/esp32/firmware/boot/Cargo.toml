@@ -10,10 +10,14 @@ description = "ROM boot primitives and memory maps for ESP32-C3/S3"
 default = []
 esp32c3 = []
 esp32s3 = []
+# ROM SHA-256 and RSA-PSS 3072 for the verified boot profile (issue #91).
+rom-verify = ["dep:iobewi-firmware-auth", "dep:iobewi-firmware-bootauth"]
 [dependencies]
 iobewi-firmware-image = { path = "../../../../common/firmware/image", default-features = false }
 iobewi-esp-partitions = { path = "../../flash/partitions", default-features = false }
 iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
+iobewi-firmware-auth = { path = "../../../../common/firmware/auth", optional = true }
+iobewi-firmware-bootauth = { path = "../../../../common/firmware/bootauth", optional = true }
 
 [dev-dependencies]
 iobewi-firmware-boot = { path = "../../../../common/firmware/boot" }

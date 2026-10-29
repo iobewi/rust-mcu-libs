@@ -1,0 +1,31 @@
+[package]
+name = "iobewi-firmware-bootauth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Boot-time authenticity of firmware slots: IAP1 proof sector, UnsignedBoot and VerifiedBoot profiles"
+
+[features]
+default = []
+# Host-only RSA-PSS helpers (key generation, signing, a reference verifier) for tests
+# and the `iap1_pack` tool. Never for firmware: the private key stays on the signing machine.
+host-sign = ["dep:rsa", "dep:rand_core"]
+
+[dependencies]
+iobewi-firmware-auth = { path = "../auth" }
+iobewi-firmware-boot = { path = "../boot" }
+iobewi-firmware-image = { path = "../image" }
+iobewi-firmware-layout = { path = "../layout" }
+rsa = { version = "0.9", default-features = false, features = ["std", "pem", "sha2"], optional = true }
+rand_core = { version = "0.6", features = ["getrandom"], optional = true }
+
+[dev-dependencies]
+rsa = { version = "0.9", default-features = false, features = ["std", "pem", "sha2"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+sha2 = "0.10"
+
+[[example]]
+name = "iap1_pack"
+required-features = ["host-sign"]

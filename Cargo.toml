@@ -29,6 +29,7 @@ members = [
   "common/firmware/boot",
   "common/firmware/image",
   "common/firmware/auth",
+  "common/firmware/bootauth",
   "common/firmware/slots",
   "arch/esp32/watchdog",
   "common/log/stream",
@@ -110,3 +111,16 @@ opt-level = "s"
 opt-level = "s"
 [profile.release.package.rfc6979]
 opt-level = "s"
+
+# Host tests generate 3072-bit RSA keys (iobewi-firmware-bootauth, `host-sign`): unoptimized
+# big-integer code takes minutes. Host-only; no firmware profile is affected.
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+[profile.dev.package.rsa]
+opt-level = 3
+[profile.dev.package.num-integer]
+opt-level = 3
+[profile.dev.package.num-traits]
+opt-level = 3
+[profile.dev.package.crypto-bigint]
+opt-level = 3

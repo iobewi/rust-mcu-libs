@@ -108,6 +108,12 @@ jobs:
           rustup target add riscv32imc-unknown-none-elf
           cargo build -p iobewi-firmware-auth --features verify-p256 --target riscv32imc-unknown-none-elf
           cargo build -p iobewi-firmware-auth --target riscv32imc-unknown-none-elf
+      - name: Boot authentication (host, bare-metal build)
+        if: matrix.package == 'iobewi-firmware-bootauth'
+        run: |
+          # The verifier crates run in the 32 KiB second stage: no_std, no allocation, no host-only code.
+          rustup target add riscv32imc-unknown-none-elf
+          cargo build -p iobewi-firmware-bootauth --target riscv32imc-unknown-none-elf
       - name: OTA reference firmware, both authentication profiles (host)
         if: matrix.package == 'example-firmware-ota-system'
         run: |
@@ -163,6 +169,12 @@ jobs:
           echo "### OTA flash footprint, esp32c3" >> "$GITHUB_STEP_SUMMARY"
           python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Verified boot second stage, link and size gate
+        if: contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-bootloader')
+        run: |
+          pip install esptool==5.5.0
+          python3 .github/scripts/verified_boot.py --chip esp32c3
+
   esp32s3:
     name: OTA ESP32-S3 selected crates / ${{ matrix.variant }}
     needs: [discover, format, host-tests]
@@ -203,6 +215,14 @@ jobs:
             -p example-firmware-ota-system --features esp32s3,signed --bins --release
           echo "### OTA flash footprint, esp32s3" >> "$GITHUB_STEP_SUMMARY"
           python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Verified boot second stage, link and size report
+        if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader')
+        run: |
+          pip install esptool==5.5.0
+          # Known overflow of the S3 second stage (issue #91, see docs/firmware/verified-boot.md):
+          # reported on every run, not yet a gate. Switch to a blocking run once it fits.
+          python3 .github/scripts/verified_boot.py --chip esp32s3 --report-only
 
   firmware-ota-gate:
     name: Firmware OTA validation

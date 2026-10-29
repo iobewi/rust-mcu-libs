@@ -57,9 +57,10 @@ impl SlotLayout {
             .map_err(|_| AuthorizationError::InvalidLayout)?;
         Self::new(
             Domain::A,
+            // The writable region of a slot excludes its proof sector.
             layout.images.map(|p| Region {
                 offset: p.offset,
-                size: p.size as usize,
+                size: p.usable_size() as usize,
             }),
             Region {
                 offset: layout.otadata.offset,
@@ -141,5 +142,41 @@ mod tests {
             SlotLayout::new(Domain::B, images, meta, 0x1000000, 0),
             Err(AuthorizationError::InvalidLayout)
         );
+    }
+
+    #[test]
+    fn a_domain_a_write_region_never_reaches_the_proof_sector() {
+        let layout = domain_a::Layout {
+            images: [
+                domain_a::Partition {
+                    offset: 0x20000,
+                    size: 0x1b0000,
+                },
+                domain_a::Partition {
+                    offset: 0x1d0000,
+                    size: 0x1b0000,
+                },
+            ],
+            otadata: domain_a::Partition {
+                offset: 0xd000,
+                size: 0x2000,
+            },
+        };
+        let slots = SlotLayout::for_a(&layout, 0x1000000).unwrap();
+        for (slot, partition) in [Slot::Zero, Slot::One].into_iter().zip(layout.images) {
+            let other = if slot == Slot::Zero {
+                Slot::One
+            } else {
+                Slot::Zero
+            };
+            let target = slots.authorize(Some(other), slot).unwrap();
+            let region = target.region();
+            assert_eq!(region.offset, partition.offset);
+            assert_eq!(
+                region.size as u32,
+                partition.size - domain_a::PROOF_SECTOR_SIZE
+            );
+            assert!(region.offset + region.size as u32 <= partition.proof_offset());
+        }
     }
 }

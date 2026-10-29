@@ -145,3 +145,11 @@ The OTA-specific checks (boot fault injection, `firmware-update` feature sets, b
 `verify-p256`, runs the unsigned and signed host suites of `example-firmware-ota-system`, and, when that example is
 selected for C3/S3, builds its signed profile with a public test key and prints the flash growth against the unsigned
 build (`.github/scripts/elf_size.py`, with a growth budget). No workflow was added.
+
+## Verified boot (#91)
+
+`iobewi-firmware-bootauth` uses the `host` profile (tests with `host-sign`, which generates real RSA-3072 keys,
+strict Clippy) and the OTA workflow also builds it for bare-metal RISC-V without `host-sign`. The default
+(unsigned) second stage is gated per chip (`compile_mcu.BUDGET`, tighter than the 32 KiB table limit). The verified
+second stage is built by `.github/scripts/verified_boot.py` with a public test pin: blocking on ESP32-C3, report-only
+on ESP32-S3 while it exceeds the limit (see `docs/firmware/verified-boot.md`). No workflow was added.

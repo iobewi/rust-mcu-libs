@@ -132,7 +132,7 @@ impl SlotDigest for Activation<'_> {
         };
         let partition = self.system.lock().await.layout().images[index];
         let size = u32::try_from(size).map_err(|_| ())?;
-        if size > partition.size {
+        if size > partition.usable_size() {
             return Err(());
         }
         let mut hash = Sha256::new();

@@ -29,7 +29,9 @@ compile_error!("select exactly one ESP boot target feature");
 
 use iobewi_firmware_boot as boot_core;
 
-use boot_core::{Boot, Halt, Raw, Write, plan_boot};
+#[cfg(not(feature = "verified-boot"))]
+use boot_core::plan_boot;
+use boot_core::{Boot, Halt, Raw, Write};
 use esp_println::Printer;
 use iobewi_esp_boot::hw;
 use iobewi_firmware_image::esp::{self as image, MemoryMap, Verify};
@@ -97,6 +99,9 @@ enum BootError {
     /// The chosen image failed validation when re-read to be loaded.
     Image,
     Mmu(i32),
+    /// Verified boot: flash reads kept failing while checking a slot. Nothing was written.
+    #[cfg(feature = "verified-boot")]
+    Io,
 }
 
 /// Reads `out.len()` bytes at flash offset `offset`. The ROM reader wants
@@ -194,6 +199,99 @@ fn execute(write: Write, layout: &Layout) -> Result<(), BootError> {
     })
 }
 
+#[cfg(feature = "verified-boot")]
+mod verified {
+    include!(concat!(env!("OUT_DIR"), "/verified_config.rs"));
+}
+
+/// The bootloader's flash reader as the boot-proof verifier sees it.
+#[cfg(feature = "verified-boot")]
+struct ProofReader;
+
+#[cfg(feature = "verified-boot")]
+impl iobewi_firmware_bootauth::SlotRead for ProofReader {
+    fn read(
+        &mut self,
+        offset: u32,
+        out: &mut [u8],
+    ) -> Result<(), iobewi_firmware_bootauth::IoError> {
+        flash_read(offset, out).map_err(|_| iobewi_firmware_bootauth::IoError)
+    }
+}
+
+/// Attempts at checking the slots before a persistent flash read error stops the boot.
+#[cfg(feature = "verified-boot")]
+const VERIFY_ATTEMPTS: u8 = 3;
+
+/// `plan_boot` with the verified profile: every slot must carry a valid proof. A flash read
+/// error never becomes an `Invalid` entry; after a few attempts the boot stops, writing nothing.
+#[cfg(feature = "verified-boot")]
+fn verified_plan(
+    layout: &Layout,
+    entries: [Raw; 2],
+    map: &MemoryMap,
+) -> Result<boot_core::Plan, BootError> {
+    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, RomSha256};
+    use iobewi_firmware_auth::{ImageFormat, Mcu, Product, Target};
+    use iobewi_firmware_bootauth::select::{self, Outcome, Structure};
+    use iobewi_firmware_bootauth::{BootPolicy, VerifiedBoot};
+
+    #[cfg(feature = "esp32c3")]
+    const MCU: Mcu = Mcu::Esp32C3;
+    #[cfg(feature = "esp32s3")]
+    const MCU: Mcu = Mcu::Esp32S3;
+    let target = Target {
+        product: Product::new(verified::PRODUCT).ok_or(BootError::InvalidLayout)?,
+        mcu: MCU,
+        image_format: ImageFormat::EspApp,
+        hw_variants: &verified::VARIANTS,
+        min_security_version: verified::MIN_SECURITY_VERSION,
+    };
+    let policy =
+        VerifiedBoot::<RomRsaPss3072, RomSha256>::new(target, &verified::PINS, RomRsaPss3072)
+            .map_err(|_| BootError::InvalidLayout)?;
+    log!(VerifiedBoot::<RomRsaPss3072, RomSha256>::LABEL);
+
+    for _ in 0..VERIFY_ATTEMPTS {
+        let mut structure = |slot: u8| {
+            let part = layout.images[usize::from(slot)];
+            match image::validate(
+                &mut RomFlash,
+                part.offset,
+                part.usable_size(),
+                map,
+                Verify::Structure,
+            ) {
+                Ok(_) => Structure::Bootable,
+                Err(image::ImageError::Read) => Structure::Io,
+                Err(e) => Structure::Refused(image_error_code(&e)),
+            }
+        };
+        // One terse line per refused slot; proof reasons are numbered from 100.
+        let mut report = |slot: u8, outcome: Outcome| {
+            let reason = match outcome {
+                Outcome::Structure(code) => code,
+                Outcome::Proof(refusal) => 100 + refusal.code(),
+                Outcome::Io => 0,
+            };
+            log!("boot: slot ", u32::from(slot), " refused, reason ", reason);
+        };
+        match select::plan(
+            entries,
+            SLOT_COUNT,
+            &policy,
+            &mut ProofReader,
+            layout.images,
+            &mut structure,
+            &mut report,
+        ) {
+            Ok(plan) => return Ok(plan),
+            Err(select::Interrupted) => flash_reinit(),
+        }
+    }
+    Err(BootError::Io)
+}
+
 fn boot() -> Result<core::convert::Infallible, BootError> {
     let flash_size = set_flash_size()?;
     let layout = read_layout(flash_size)?;
@@ -208,23 +306,30 @@ fn boot() -> Result<core::convert::Infallible, BootError> {
     );
     let entries = read_otadata(&layout)?;
 
-    let mut image_ok = |slot: u8| {
-        let part = layout.images[usize::from(slot)];
-        let (offset, size) = (part.offset, part.size);
-        match image::validate(&mut RomFlash, offset, size, &map, Verify::Structure) {
-            Ok(_) => true,
-            Err(e) => {
-                log!(
-                    "boot: slot ",
-                    u32::from(slot),
-                    " image refused, reason ",
-                    image_error_code(&e)
-                );
-                false
+    #[cfg(not(feature = "verified-boot"))]
+    let plan = {
+        log!("boot authentication: UNSIGNED");
+        let mut image_ok = |slot: u8| {
+            let part = layout.images[usize::from(slot)];
+            // The last sector of the slot is its proof sector: never part of the image.
+            let (offset, size) = (part.offset, part.usable_size());
+            match image::validate(&mut RomFlash, offset, size, &map, Verify::Structure) {
+                Ok(_) => true,
+                Err(e) => {
+                    log!(
+                        "boot: slot ",
+                        u32::from(slot),
+                        " image refused, reason ",
+                        image_error_code(&e)
+                    );
+                    false
+                }
             }
-        }
+        };
+        plan_boot(entries, SLOT_COUNT, &mut image_ok)
     };
-    let plan = plan_boot(entries, SLOT_COUNT, &mut image_ok);
+    #[cfg(feature = "verified-boot")]
+    let plan = verified_plan(&layout, entries, &map)?;
 
     let (slot, seq) = match plan.boot {
         Boot::Slot { slot, seq, .. } => (slot, seq),
@@ -253,7 +358,8 @@ fn boot() -> Result<core::convert::Infallible, BootError> {
 fn load(layout: &Layout, slot: u8) -> Result<core::convert::Infallible, BootError> {
     let map = memory_map();
     let part = layout.images[usize::from(slot)];
-    let (offset, size) = (part.offset, part.size);
+    // The last sector of the slot is its proof sector: never part of the image.
+    let (offset, size) = (part.offset, part.usable_size());
     let image = image::validate(&mut RomFlash, offset, size, &map, Verify::Structure)
         .map_err(|_| BootError::Image)?;
     log!(
@@ -356,6 +462,8 @@ fn report(e: &BootError) {
         }
         BootError::Image => log!("boot: FAILED image no longer validates"),
         BootError::Mmu(rc) => log!("boot: FAILED MMU rc ", *rc as u32),
+        #[cfg(feature = "verified-boot")]
+        BootError::Io => log!("boot: HALT, flash read errors while verifying, nothing written"),
     }
 }
 

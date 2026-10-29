@@ -5,6 +5,8 @@ compile_error!("select exactly one ESP boot target feature");
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod hw;
 pub mod layout;
+#[cfg(all(feature = "rom-verify", any(feature = "esp32c3", feature = "esp32s3")))]
+pub mod rom_verify;
 #[cfg(feature = "esp32c3")]
 pub const MEMORY_MAP: iobewi_firmware_image::esp::MemoryMap =
     iobewi_firmware_image::esp::MemoryMap {
