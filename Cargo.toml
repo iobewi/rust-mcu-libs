@@ -28,6 +28,7 @@ members = [
   "common/firmware/layout",
   "common/firmware/boot",
   "common/firmware/image",
+  "common/firmware/auth",
   "common/firmware/slots",
   "arch/esp32/watchdog",
   "common/log/stream",
@@ -89,3 +90,23 @@ opt-level = "s"
 panic = "abort"
 debug = 2
 overflow-checks = false
+
+# Signature verification runs once per OTA: favour flash over speed for the
+# RustCrypto curve stack (only linked by the signed profile, see
+# docs/firmware/ota-image-authentication.md).
+[profile.release.package.p256]
+opt-level = "s"
+[profile.release.package.primeorder]
+opt-level = "s"
+[profile.release.package.elliptic-curve]
+opt-level = "s"
+[profile.release.package.ecdsa]
+opt-level = "s"
+[profile.release.package.crypto-bigint]
+opt-level = "s"
+[profile.release.package.ff]
+opt-level = "s"
+[profile.release.package.group]
+opt-level = "s"
+[profile.release.package.rfc6979]
+opt-level = "s"

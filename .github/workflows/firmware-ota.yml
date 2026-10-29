@@ -55,6 +55,8 @@ jobs:
         run: python3 .github/scripts/test_discover_ci.py
       - name: Validate OTA gate logic
         run: python3 .github/scripts/test_ota_gate.py
+      - name: Validate the ELF footprint tool
+        run: python3 .github/scripts/test_elf_size.py
       - name: Reject the retired boot-metadata identifier
         run: python3 .github/scripts/check_retired_terms.py
       - name: Reject tracked Cargo.lock files
@@ -96,6 +98,21 @@ jobs:
           PKG: ${{ matrix.package }}
           FEATURES: ${{ matrix.features }}
         run: cargo clippy -p "$PKG" --features "$FEATURES" --all-targets -- -D warnings
+      - name: Image authentication profiles (host)
+        if: matrix.package == 'iobewi-firmware-auth'
+        run: |
+          # Unsigned profile: no asymmetric cryptography is even built.
+          cargo test -p iobewi-firmware-auth
+          cargo clippy -p iobewi-firmware-auth --all-targets -- -D warnings
+          # Portable: the verifier also builds for a bare-metal target.
+          rustup target add riscv32imc-unknown-none-elf
+          cargo build -p iobewi-firmware-auth --features verify-p256 --target riscv32imc-unknown-none-elf
+          cargo build -p iobewi-firmware-auth --target riscv32imc-unknown-none-elf
+      - name: OTA reference firmware, both authentication profiles (host)
+        if: matrix.package == 'example-firmware-ota-system'
+        run: |
+          cargo test -p example-firmware-ota-system --features signed
+          cargo clippy -p example-firmware-ota-system --features signed --all-targets -- -D warnings
       - name: Transactional boot exhaustive fault injection
         if: matrix.package == 'iobewi-firmware-boot'
         run: cargo test --release -p iobewi-firmware-boot
@@ -131,6 +148,20 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/compile_mcu.py --chip esp32c3
+      - name: Signed OTA profile, build and flash cost
+        if: contains(needs.discover.outputs.esp32c3_packages, 'example-firmware-ota-system')
+        env:
+          # Public test fixture only (its private half is the test key of the
+          # host suites); the firmware pins this key, it signs nothing.
+          IOBEWI_OTA_SIGNING_PUBKEY: 04f869e567b81900d7b41aced0678a52a5a8400827784110eb78597ba75a34f9f5067f982914d934e1ecd85c6cf9c7e741eb25c1b197ec5113871b215448cd4c46
+        run: |
+          set -euo pipefail
+          elf=target/riscv32imc-unknown-none-elf/release/firmware-ota-system-esp32
+          cp "$elf" "$RUNNER_TEMP/unsigned.elf"
+          cargo +nightly build -Z build-std=core,alloc --target riscv32imc-unknown-none-elf \
+            -p example-firmware-ota-system --features esp32c3,signed --bins --release
+          echo "### OTA flash footprint, esp32c3" >> "$GITHUB_STEP_SUMMARY"
+          python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
 
   esp32s3:
     name: OTA ESP32-S3 selected crates / ${{ matrix.variant }}
@@ -158,6 +189,20 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/compile_mcu.py --chip esp32s3
+      - name: Signed OTA profile, build and flash cost
+        if: contains(needs.discover.outputs.esp32s3_packages, 'example-firmware-ota-system')
+        env:
+          # Public test fixture only (its private half is the test key of the
+          # host suites); the firmware pins this key, it signs nothing.
+          IOBEWI_OTA_SIGNING_PUBKEY: 04f869e567b81900d7b41aced0678a52a5a8400827784110eb78597ba75a34f9f5067f982914d934e1ecd85c6cf9c7e741eb25c1b197ec5113871b215448cd4c46
+        run: |
+          set -euo pipefail
+          elf=target/xtensa-esp32s3-none-elf/release/firmware-ota-system-esp32
+          cp "$elf" "$RUNNER_TEMP/unsigned.elf"
+          cargo +esp build -Z build-std=core,alloc --target xtensa-esp32s3-none-elf \
+            -p example-firmware-ota-system --features esp32s3,signed --bins --release
+          echo "### OTA flash footprint, esp32s3" >> "$GITHUB_STEP_SUMMARY"
+          python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
 
   firmware-ota-gate:
     name: Firmware OTA validation

@@ -11,6 +11,12 @@ mod wifi;
 compile_error!("choose exactly one MCU feature");
 #[cfg(not(any(feature = "esp32c3", feature = "esp32s3")))]
 compile_error!("choose esp32c3 or esp32s3");
+// The component domain (`/workload/*`, OTM2) is not authenticated by #90: a build that
+// claims `signed` while serving it would be misleading, so the combination does not compile.
+#[cfg(all(feature = "signed", feature = "supervised"))]
+compile_error!(
+    "`signed` is not supported with `supervised`: the /workload/* OTM2 routes carry no image authentication"
+);
 #[cfg(all(feature = "reject-self-check", feature = "hang-self-check"))]
 compile_error!("choose at most one self-check fault");
 

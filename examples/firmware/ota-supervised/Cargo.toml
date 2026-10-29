@@ -43,6 +43,9 @@ firmware = [
     "dep:embedded-storage",
     "dep:sha2",
 ]
+# Declared so the shared OTA source type-checks. Enabling it is refused at compile time:
+# the /workload/* OTM2 routes carry no image authentication.
+signed = ["iobewi-firmware-auth/verify-p256"]
 reject-self-check = []
 hang-self-check = []
 esp32s3 = [
@@ -93,6 +96,7 @@ iobewi-http-server = { path = "../../../common/net/http/server", optional = true
 iobewi-esp-firmware-storage = { path = "../../../arch/esp32/firmware/storage", optional = true }
 iobewi-firmware-slots = { path = "../../../common/firmware/slots", optional = true }
 iobewi-firmware-image = { path = "../../../common/firmware/image" }
+iobewi-firmware-auth = { path = "../../../common/firmware/auth" }
 iobewi-esp-boot = { path = "../../../arch/esp32/firmware/boot", optional = true }
 embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "tcp"], optional = true }
 embassy-sync = { version = "0.8.0", optional = true }

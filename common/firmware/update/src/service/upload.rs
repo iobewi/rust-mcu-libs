@@ -8,9 +8,10 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_time::Instant;
 
-use super::publish;
+use super::{BeginError, OtaService, PublishError};
 use crate::metadata::{MetadataError, MetadataStore, SessionParams, format_digest};
 use crate::{Committed, Digest, Error, WriteSession};
+use iobewi_firmware_auth::{AuthError, AuthProfile};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct UploadStats {
@@ -47,15 +48,21 @@ pub enum StartError {
     Busy,
     Conflict,
     Storage(MetadataError),
+    /// The proof does not describe the image being uploaded.
+    Unauthorized(AuthError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FinishError {
     NotWriting,
     DigestMismatch(Digest),
-    Incomplete { durable: u64 },
+    Incomplete {
+        durable: u64,
+    },
     Backend,
     Storage(MetadataError),
+    /// The proof does not describe the committed image.
+    Unauthorized(AuthError),
 }
 
 pub struct UploadResult {
@@ -110,22 +117,26 @@ impl<W: UploadWriter> UploadManager<W> {
     /// A new writer is created only after the old staged transaction is
     /// resolved. The caller must select a target without holding flash across
     /// the metadata commit performed here.
-    pub async fn begin<S: MetadataStore>(
+    pub async fn begin<S: MetadataStore, P: AuthProfile>(
         &self,
+        service: &OtaService<P>,
         store: &S,
         params: SessionParams,
+        proof: &P::Proof,
         capacity: u64,
         writer: W,
     ) -> Result<(), StartError> {
         if u64::from(params.total) > capacity {
             return Err(StartError::TooLarge);
         }
-        let expected = super::begin(store, &params)
+        let expected = service
+            .begin(store, &params, proof)
             .await
             .map_err(|error| match error {
-                super::BeginError::BadDigest => StartError::Busy,
-                super::BeginError::Conflict => StartError::Conflict,
-                super::BeginError::Storage(error) => StartError::Storage(error),
+                BeginError::BadDigest => StartError::Busy,
+                BeginError::Conflict => StartError::Conflict,
+                BeginError::Storage(error) => StartError::Storage(error),
+                BeginError::Unauthorized(error) => StartError::Unauthorized(error),
             })?;
         *self.current.lock().await = Some(Upload {
             writer,
@@ -144,7 +155,12 @@ impl<W: UploadWriter> UploadManager<W> {
         upload.writer.append(&mut upload.engine, data).await
     }
 
-    pub async fn finish<S: MetadataStore>(&self, store: &S) -> Result<UploadResult, FinishError> {
+    pub async fn finish<S: MetadataStore, P: AuthProfile>(
+        &self,
+        service: &OtaService<P>,
+        store: &S,
+        proof: &P::Proof,
+    ) -> Result<UploadResult, FinishError> {
         let Some(Upload {
             mut writer,
             engine,
@@ -160,9 +176,19 @@ impl<W: UploadWriter> UploadManager<W> {
             Error::Incomplete { durable } => FinishError::Incomplete { durable },
             _ => FinishError::Backend,
         })?;
-        publish(store, params.deployment_id, committed, String::from(slot))
+        service
+            .publish(
+                store,
+                params.deployment_id,
+                committed,
+                String::from(slot),
+                proof,
+            )
             .await
-            .map_err(FinishError::Storage)?;
+            .map_err(|error| match error {
+                PublishError::Auth(error) => FinishError::Unauthorized(error),
+                PublishError::Storage(error) => FinishError::Storage(error),
+            })?;
         Ok(UploadResult {
             written: committed.size as u32,
             digest: format_digest(&committed.digest),
@@ -287,17 +313,50 @@ mod tests {
         }
     }
 
+    /// Unsigned-profile helpers: the engine path is the one production uses.
+    fn begin_t<S: MetadataStore>(
+        manager: &UploadManager<Writer>,
+        store: &S,
+        params: SessionParams,
+        capacity: u64,
+        writer: Writer,
+    ) -> Result<(), StartError> {
+        let service = OtaService::new(iobewi_firmware_auth::UnsignedAllowed);
+        match service.admit(None, &params) {
+            Ok(proof) => block_on(manager.begin(&service, store, params, &proof, capacity, writer)),
+            Err(_) => Err(StartError::Busy),
+        }
+    }
+
+    fn finish_t<S: MetadataStore>(
+        manager: &UploadManager<Writer>,
+        store: &S,
+    ) -> Result<UploadResult, FinishError> {
+        let service = OtaService::new(iobewi_firmware_auth::UnsignedAllowed);
+        let proof = service
+            .admit(
+                None,
+                &SessionParams {
+                    deployment_id: String::new(),
+                    digest: format_digest(&Digest([0; 32])),
+                    total: 0,
+                },
+            )
+            .unwrap();
+        block_on(manager.finish(&service, store, &proof))
+    }
+
     fn upload_all(
         manager: &UploadManager<Writer>,
         store: &MemoryStore,
         id: &str,
         data: &[u8],
     ) -> UploadResult {
-        block_on(manager.begin(store, params(id, data), 1024, Writer::new("ota_1"))).unwrap();
+        begin_t(manager, store, params(id, data), 1024, Writer::new("ota_1")).unwrap();
         for chunk in data.chunks(100) {
             assert!(block_on(manager.chunk(chunk)));
         }
-        block_on(manager.finish(store)).unwrap()
+        finish_t(manager, store).unwrap()
     }
 
     #[test]
@@ -369,7 +428,13 @@ mod tests {
         block_on(activate_staged(&store, &Boot, "dep-b")).unwrap();
         let c = image(100, 3);
         assert_eq!(
-            block_on(manager.begin(&store, params("dep-c", &c), 1024, Writer::new("ota_1"))),
+            begin_t(
+                &manager,
+                &store,
+                params("dep-c", &c),
+                1024,
+                Writer::new("ota_1")
+            ),
             Err(StartError::Conflict)
         );
         assert!(!block_on(manager.in_progress()));
@@ -434,31 +499,37 @@ mod tests {
         // No session: chunks and finish are refused.
         assert!(!block_on(manager.chunk(&[1, 2, 3])));
         assert!(matches!(
-            block_on(manager.finish(&store)),
+            finish_t(&manager, &store),
             Err(FinishError::NotWriting)
         ));
 
         // Larger than the slot capacity / malformed digest.
         assert_eq!(
-            block_on(manager.begin(&store, params("d", &data), 100, Writer::new("ota_1"))),
+            begin_t(
+                &manager,
+                &store,
+                params("d", &data),
+                100,
+                Writer::new("ota_1")
+            ),
             Err(StartError::TooLarge)
         );
         let mut bad = params("d", &data);
         bad.digest = String::from("sha256:zz");
         assert_eq!(
-            block_on(manager.begin(&store, bad, 1024, Writer::new("ota_1"))),
+            begin_t(&manager, &store, bad, 1024, Writer::new("ota_1")),
             Err(StartError::Busy)
         );
 
         // Declared digest of different bytes: finish reports the mismatch and publishes nothing.
         let declared = params("d", &image(500, 9));
-        block_on(manager.begin(&store, declared, 1024, Writer::new("ota_1"))).unwrap();
+        begin_t(&manager, &store, declared, 1024, Writer::new("ota_1")).unwrap();
         assert!(block_on(manager.params_match(&params("d", &image(500, 9)))));
         for chunk in data.chunks(128) {
             assert!(block_on(manager.chunk(chunk)));
         }
         assert!(matches!(
-            block_on(manager.finish(&store)),
+            finish_t(&manager, &store),
             Err(FinishError::DigestMismatch(_))
         ));
         assert!(
@@ -471,10 +542,17 @@ mod tests {
         );
 
         // Short of the declared size: incomplete, nothing published.
-        block_on(manager.begin(&store, params("e", &data), 1024, Writer::new("ota_1"))).unwrap();
+        begin_t(
+            &manager,
+            &store,
+            params("e", &data),
+            1024,
+            Writer::new("ota_1"),
+        )
+        .unwrap();
         assert!(block_on(manager.chunk(&data[..300])));
         assert!(matches!(
-            block_on(manager.finish(&store)),
+            finish_t(&manager, &store),
             Err(FinishError::Incomplete { durable: 300 })
         ));
         assert!(
@@ -564,11 +642,18 @@ mod tests {
         };
         let manager = UploadManager::<Writer>::new();
         let data = image(300, 5);
-        block_on(manager.begin(&store, params("dep", &data), 1024, Writer::new("ota_1"))).unwrap();
+        begin_t(
+            &manager,
+            &store,
+            params("dep", &data),
+            1024,
+            Writer::new("ota_1"),
+        )
+        .unwrap();
         for chunk in data.chunks(100) {
             assert!(block_on(manager.chunk(chunk)));
         }
-        block_on(manager.finish(&store)).unwrap();
+        finish_t(&manager, &store).unwrap();
         // The platform's lock is free again between operations.
         assert!(lock.0.try_lock().is_ok());
     }

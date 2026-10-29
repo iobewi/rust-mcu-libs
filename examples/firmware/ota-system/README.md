@@ -177,6 +177,25 @@ OTM1. Vérifier le fallback confirmé et la configuration après chaque essai.
 Aucun flash/essai matériel n'est réalisé par la livraison logicielle. La chaîne
 supervisée B/C reste distincte ; #61 ouverte et #65 Draft jusqu'aux gates finales.
 
+## Authentification des images (profils)
+
+Deux profils partagent le même moteur (voir
+[docs/firmware/ota-image-authentication.md](../../../docs/firmware/ota-image-authentication.md)) :
+
+* **par défaut, `UnsignedAllowed`** : intégrité et validation d'image, comportement
+  inchangé, aucune cryptographie asymétrique compilée ;
+* **`--features signed`, `SignatureRequired`** : chaque upload porte un manifeste
+  IAM1 signé (`X-Image-Manifest`), vérifié avant le premier effacement, puis
+  représenté et re-vérifié à l'activation (le slot est aussi re-haché). La clé
+  publique épinglée est fournie par `IOBEWI_OTA_SIGNING_PUBKEY` (hex SEC1, 130
+  chiffres) ; sans elle le build échoue, jamais de repli vers le non signé.
+
+`ota_sign` (exemple de `iobewi-firmware-auth`, hôte seulement) génère la clé et
+signe ; `client.py --manifest FICHIER` envoie l'enveloppe à l'upload et à
+l'activation. Le domaine B/C (`ota-supervised`) n'est pas concerné : sa combinaison avec
+`signed` est refusée à la compilation. Le serveur journalise `OTA authentication: UNSIGNED`
+ou `SIGNATURE_REQUIRED` au démarrage.
+
 ## ConfigSpace EKV — nouveau profil de développement
 
 Partition `config` data/0x40, 0x3c0000, taille 0x40000 (256 Kio), sans NVS.

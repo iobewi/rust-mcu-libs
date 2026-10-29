@@ -11,11 +11,13 @@ use iobewi_esp_firmware_storage::shared_flash::ArtifactWriteSession;
 use iobewi_esp_flash::{EspFlash, SharedFlash};
 use iobewi_esp_tls::EspTlsListener;
 use iobewi_esp_wifi::WifiManager;
+use iobewi_firmware_auth::{AuthProfile, MAX_ENVELOPE};
+use iobewi_firmware_image::Digest as ImageDigest;
 use iobewi_firmware_image::esp::{self, Verify};
 use iobewi_firmware_slots::Slot;
 use iobewi_firmware_update::{
     metadata::{MetadataStore, SessionParams},
-    service::{self, BootActivation},
+    service::{BootActivation, OtaService, SlotDigest},
 };
 use iobewi_http_server::{
     ResponseSent,
@@ -39,6 +41,52 @@ const KEY: &str = match option_env!("IOBEWI_TLS_KEY_PEM") {
     Some(v) => v,
     None => "",
 };
+/// The authentication profile of this build. The default is unsigned and links no
+/// asymmetric cryptography; `--features signed` requires an IAM1 envelope signed
+/// by the pinned key for every upload and again for every activation.
+#[cfg(not(feature = "signed"))]
+type Profile = iobewi_firmware_auth::UnsignedAllowed;
+#[cfg(not(feature = "signed"))]
+fn profile() -> Profile {
+    iobewi_firmware_auth::UnsignedAllowed
+}
+
+#[cfg(feature = "signed")]
+type Profile = iobewi_firmware_auth::SignatureRequired<'static, iobewi_firmware_auth::P256Verifier>;
+#[cfg(feature = "signed")]
+fn profile() -> Profile {
+    use iobewi_firmware_auth::{
+        Algorithm, ImageFormat, Mcu, P256Verifier, Product, SignatureRequired, TrustPolicy,
+        TrustedKey,
+    };
+    // `env!`: a missing key stops the build, it never degrades to unsigned.
+    static PUBLIC_KEY: [u8; 65] =
+        example_firmware_ota_system::parse_public_key(env!("IOBEWI_OTA_SIGNING_PUBKEY"));
+    static VARIANTS: [u16; 1] = [example_firmware_ota_system::HW_VARIANT];
+    static KEYS: StaticCell<[TrustedKey<'static>; 1]> = StaticCell::new();
+    const MIN_SECURITY_VERSION: u32 = match option_env!("IOBEWI_OTA_MIN_SECURITY_VERSION") {
+        Some(v) => example_firmware_ota_system::parse_u32(v),
+        None => 0,
+    };
+    let keys = KEYS.init([TrustedKey::pin(Algorithm::EcdsaP256Sha256, &PUBLIC_KEY)]);
+    SignatureRequired::new(
+        TrustPolicy {
+            product: Product::new(example_firmware_ota_system::PRODUCT).expect("product tag"),
+            mcu: if cfg!(feature = "esp32c3") {
+                Mcu::Esp32C3
+            } else {
+                Mcu::Esp32S3
+            },
+            image_format: ImageFormat::EspApp,
+            hw_variants: &VARIANTS,
+            min_security_version: MIN_SECURITY_VERSION,
+            keys,
+        },
+        P256Verifier,
+    )
+    .expect("OTA trust policy")
+}
+
 async fn identity() -> Option<iobewi_esp_tls::mbedtls_rs::SessionConfig<'static>> {
     iobewi_crypto_mbedtls::server_config_from_pem(CERT, KEY).ok()
 }
@@ -46,6 +94,7 @@ struct State<'a, S> {
     system: Mutex<NoopRawMutex, SystemBoot>,
     flash: &'a SharedFlash,
     store: &'a S,
+    service: &'a OtaService<Profile>,
 }
 struct Handler<'a, S> {
     state: &'a State<'a, S>,
@@ -73,6 +122,33 @@ impl BootActivation for Activation<'_> {
             .map_err(|_| ())
     }
 }
+impl SlotDigest for Activation<'_> {
+    /// SHA-256 of the bytes that are in the slot now, read back from flash.
+    async fn slot_digest(&self, target: &str, size: u64) -> Result<ImageDigest, ()> {
+        let index = match target {
+            "ota_0" => 0,
+            "ota_1" => 1,
+            _ => return Err(()),
+        };
+        let partition = self.system.lock().await.layout().images[index];
+        let size = u32::try_from(size).map_err(|_| ())?;
+        if size > partition.size {
+            return Err(());
+        }
+        let mut hash = Sha256::new();
+        let mut buffer = [0u8; 512];
+        let mut offset = 0u32;
+        while offset < size {
+            let n = ((size - offset) as usize).min(buffer.len());
+            iobewi_esp_firmware_a::flash::read(self.flash, partition, offset, &mut buffer[..n])
+                .await
+                .map_err(|_| ())?;
+            hash.update(&buffer[..n]);
+            offset += n as u32;
+        }
+        Ok(ImageDigest(hash.finalize().into()))
+    }
+}
 struct ImageReader<'a>(&'a mut EspFlash);
 impl esp::Read for ImageReader<'_> {
     fn read(&mut self, offset: u32, out: &mut [u8]) -> Result<(), ()> {
@@ -81,7 +157,12 @@ impl esp::Read for ImageReader<'_> {
 }
 
 impl<S: MetadataStore> Handler<'_, S> {
-    async fn upload<R: Read>(&self, request: &mut Request<'_, R>, params: SessionParams) -> bool {
+    async fn upload<R: Read>(
+        &self,
+        request: &mut Request<'_, R>,
+        params: SessionParams,
+        presented: Option<&[u8]>,
+    ) -> bool {
         // Keep the sole system owner borrowed through readback and publication.
         let mut system = self.state.system.lock().await;
         let Ok(mut reservation) = system.reserve(self.state.flash).await else {
@@ -101,8 +182,12 @@ impl<S: MetadataStore> Handler<'_, S> {
         ) {
             return false;
         }
-        // Invalid digest/conflicting Activating refuse before any erase.
-        let Ok(digest) = service::begin(self.state.store, &params).await else {
+        // Authorization first, then conflicts: either refuses before any erase.
+        let service = self.state.service;
+        let Ok(proof) = service.admit(presented, &params) else {
+            return false;
+        };
+        let Ok(digest) = service.begin(self.state.store, &params, &proof).await else {
             return false;
         };
         let Ok(mut session) = ArtifactWriteSession::begin(permit, params.total.into(), digest)
@@ -170,14 +255,16 @@ impl<S: MetadataStore> Handler<'_, S> {
             "ota: flash digest and image verified; publishing {}",
             params.deployment_id
         );
-        service::publish(
-            self.state.store,
-            params.deployment_id,
-            committed,
-            String::from(target),
-        )
-        .await
-        .is_ok()
+        service
+            .publish(
+                self.state.store,
+                params.deployment_id,
+                committed,
+                String::from(target),
+                &proof,
+            )
+            .await
+            .is_ok()
     }
 }
 impl<S: MetadataStore> RequestHandlerService for Handler<'_, S> {
@@ -201,6 +288,14 @@ impl<S: MetadataStore> RequestHandlerService for Handler<'_, S> {
             .get("x-image-sha256")
             .and_then(|v| v.as_str().ok())
             .unwrap_or("");
+        let mut envelope = [0u8; MAX_ENVELOPE];
+        let presented = headers
+            .get("x-image-manifest")
+            .and_then(|v| v.as_str().ok())
+            .and_then(|text| {
+                example_firmware_ota_system::decode_manifest_header(text, &mut envelope)
+            })
+            .map(|n| &envelope[..n]);
         let len = request.body_connection.content_length();
         let valid_id = example_firmware_ota_system::valid_deployment_id(id);
         let mut reboot = false;
@@ -217,7 +312,10 @@ impl<S: MetadataStore> RequestHandlerService for Handler<'_, S> {
                     system: Mutex::new(&mut system),
                     flash: self.state.flash,
                 };
-                reboot = service::activate_staged(self.state.store, &activation, id)
+                reboot = self
+                    .state
+                    .service
+                    .activate(self.state.store, &activation, &activation, id, presented)
                     .await
                     .is_ok();
                 if reboot {
@@ -235,7 +333,7 @@ impl<S: MetadataStore> RequestHandlerService for Handler<'_, S> {
                 digest: String::from(digest),
                 total: len as u32,
             };
-            if self.upload(&mut request, params).await {
+            if self.upload(&mut request, params, presented).await {
                 (StatusCode::OK, "staged")
             } else {
                 (
@@ -277,6 +375,8 @@ pub async fn serve<S: MetadataStore>(
         !TOKEN.is_empty() && !CERT.is_empty() && !KEY.is_empty(),
         "OTA token and TLS identity required"
     );
+    // First thing the operator can check: which authentication this build enforces.
+    log::info!("{}", <Profile as AuthProfile>::LABEL);
     static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
     let wifi = WifiManager::<3>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
     // Maintenance runs in its own task (static state): composing it with the server in this
@@ -289,10 +389,12 @@ pub async fn serve<S: MetadataStore>(
     let mut rx = [0u8; 4096];
     let mut tx = [0u8; 4096];
     let mut listener = EspTlsListener::new(stack, tls, identity, &mut rx, &mut tx);
+    let service = OtaService::new(profile());
     let state = State {
         system: Mutex::new(system),
         flash,
         store,
+        service: &service,
     };
     let router = iobewi_http_server::HttpRouter::new()
         .route(

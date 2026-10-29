@@ -19,6 +19,9 @@ def main():
     parser.add_argument("--version", default="1")
     parser.add_argument("--runtime-api", default="1.0")
     parser.add_argument("--activate", action="store_true")
+    parser.add_argument("--manifest", type=Path,
+                        help="file holding the IAM1 envelope (unpadded base64url, from ota_sign); "
+                             "sent on upload and again on activation. Required by a firmware built --features signed")
     args = parser.parse_args()
     url = urlsplit(args.url)
     if url.scheme != "https" or not url.hostname or url.path not in ("", "/") or url.username or url.query or url.fragment:
@@ -28,6 +31,13 @@ def main():
         parser.error("set IOBEWI_OTA_TOKEN")
     if not 1 <= len(args.deployment_id) <= 64 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_." for c in args.deployment_id):
         parser.error("invalid deployment id")
+    manifest = ""
+    if args.manifest:
+        manifest = args.manifest.read_text().strip()
+        if not manifest or any(c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_" for c in manifest):
+            parser.error("--manifest must hold unpadded base64url text")
+        if args.domain != "system":
+            parser.error("signed images apply to the system domain only")
     endpoint = "/ota" if args.domain == "system" else "/workload"
     context = ssl.create_default_context(cafile=args.ca)
     with args.image.open("rb") as image:
@@ -46,6 +56,8 @@ def main():
             "Content-Length": str(length),
         }.items():
             connection.putheader(name, value)
+        if manifest:
+            connection.putheader("X-Image-Manifest", manifest)
         if args.domain == "component":
             connection.putheader("X-Component-Version", args.version)
             connection.putheader("X-Runtime-Api", args.runtime_api)
@@ -65,9 +77,11 @@ def main():
         print("staged:", args.deployment_id)
     if args.activate:
         connection = http.client.HTTPSConnection(url.hostname, url.port or 443, context=context, timeout=60)
-        connection.request("POST", endpoint + "/activate", body=b"", headers={
-            "Authorization": "Bearer " + token, "X-Deployment-ID": args.deployment_id,
-        })
+        headers = {"Authorization": "Bearer " + token, "X-Deployment-ID": args.deployment_id}
+        if manifest:
+            # The firmware verifies the authorization again at activation.
+            headers["X-Image-Manifest"] = manifest
+        connection.request("POST", endpoint + "/activate", body=b"", headers=headers)
         response = connection.getresponse()
         result = response.read(2048).decode()
         connection.close()
