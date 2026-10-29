@@ -447,3 +447,74 @@ fn the_unsigned_profile_keeps_todays_behavior_without_hashing_the_slot() {
     let again = OtaService::new(UnsignedAllowed);
     assert!(again.admit(Some(b"ignored"), &p).is_ok());
 }
+
+#[test]
+fn a_proof_from_another_policy_cannot_begin_or_publish() {
+    let (k1, k2) = (signer(7), signer(8));
+    let store = Store::default();
+    let boot = Boot::default();
+    let slot = Slot::holding(IMAGE);
+    let by_k1 = envelope(&k1, IMAGE, 1);
+    signed(&[(&k1, false)], 0, |issuer| {
+        let p = params("d1", IMAGE);
+        let proof = issuer.admit(Some(&by_k1), &p).unwrap();
+        // A service that only trusts k2 refuses k1's proof at every step.
+        signed(&[(&k2, false)], 0, |other| {
+            assert_eq!(
+                ready(other.begin(&store, &p, &proof)),
+                Err(BeginError::Unauthorized(AuthError::PolicyMismatch))
+            );
+            assert_eq!(
+                ready(other.publish(
+                    &store,
+                    "d1".into(),
+                    committed(IMAGE),
+                    "ota_1".into(),
+                    &proof
+                )),
+                Err(PublishError::Auth(AuthError::PolicyMismatch))
+            );
+            // Activation takes no proof: it re-verifies under its own policy.
+            assert_eq!(
+                ready(other.activate(&store, &boot, &slot, "d1", Some(&by_k1))),
+                Err(ActivationError::NotStaged)
+            );
+        });
+        // The issuing key is revoked afterwards: the same proof cannot publish.
+        signed(&[(&k1, true), (&k2, false)], 0, |revoked| {
+            assert_eq!(
+                ready(revoked.publish(
+                    &store,
+                    "d1".into(),
+                    committed(IMAGE),
+                    "ota_1".into(),
+                    &proof
+                )),
+                Err(PublishError::Auth(AuthError::PolicyMismatch))
+            );
+            assert_eq!(
+                revoked.admit(Some(&by_k1), &p),
+                Err(AdmitError::Auth(AuthError::RevokedKey))
+            );
+        });
+        // Nothing reached the store; the issuer still publishes its own.
+        assert!(store.0.borrow().is_none());
+        assert_eq!(
+            ready(issuer.publish(
+                &store,
+                "d1".into(),
+                committed(IMAGE),
+                "ota_1".into(),
+                &proof
+            )),
+            Ok(())
+        );
+        // A published record stays unusable by a service that does not trust its signer.
+        signed(&[(&k2, false)], 0, |other| {
+            assert_eq!(
+                ready(other.activate(&store, &boot, &slot, "d1", Some(&by_k1))),
+                Err(ActivationError::Auth(AuthError::UnknownKey))
+            );
+        });
+    });
+}

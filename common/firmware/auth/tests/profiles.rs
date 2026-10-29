@@ -463,3 +463,99 @@ fn envelope_decoding_is_independent_of_the_policy() {
     assert_eq!(envelope.manifest, manifest_for(&f.signer));
     assert_eq!(KeyState::Active, KeyState::Active);
 }
+
+/// Policy helper for the regression tests below: pinned keys, floor, variants.
+fn profile_with<R>(
+    keys: &[TrustedKey<'_>],
+    min_security_version: u32,
+    f: impl FnOnce(&SignatureRequired<'_, P256Verifier>) -> R,
+) -> R {
+    let variants = [2u16, 3];
+    let profile = SignatureRequired::new(
+        TrustPolicy {
+            product: Product::new("iobewi-ota").unwrap(),
+            mcu: Mcu::Esp32S3,
+            image_format: ImageFormat::EspApp,
+            hw_variants: &variants,
+            min_security_version,
+            keys,
+        },
+        P256Verifier,
+    )
+    .unwrap();
+    f(&profile)
+}
+
+#[test]
+fn a_proof_is_bound_to_the_policy_that_issued_it() {
+    let f = Fixture::new();
+    let (k2, k3) = (key(9), key(11));
+    let (p2, p3) = (public_key(&k2), public_key(&k3));
+    let k1 = TrustedKey::pin(Algorithm::EcdsaP256Sha256, &f.public);
+    let proof = profile_with(&[k1], 0, |a| {
+        a.admit_upload(Some(&f.good()), &claim()).unwrap()
+    });
+    let refused = |keys: &[TrustedKey<'_>], floor: u32| {
+        profile_with(keys, floor, |b| {
+            b.check_binding(&proof, u64::from(SIZE), &DIGEST)
+        })
+    };
+    // The same policy, rebuilt, still honors its own proof.
+    assert_eq!(refused(&[k1], 0), Ok(()));
+    // Another key set.
+    assert_eq!(
+        refused(&[TrustedKey::pin(Algorithm::EcdsaP256Sha256, &p2)], 0),
+        Err(AuthError::PolicyMismatch)
+    );
+    // The same identifier bound to another public key.
+    let impostor = TrustedKey {
+        id: k1.id,
+        public_key: &p3,
+        ..k1
+    };
+    assert_eq!(refused(&[impostor], 0), Err(AuthError::PolicyMismatch));
+    // The issuing key revoked since: it can no longer back a new publication.
+    let other = TrustedKey::pin(Algorithm::EcdsaP256Sha256, &p2);
+    assert_eq!(
+        refused(&[k1.revoked(), other], 0),
+        Err(AuthError::PolicyMismatch)
+    );
+    // A raised security floor is another policy.
+    assert_eq!(refused(&[k1], 6), Err(AuthError::PolicyMismatch));
+    // Adding a key changes the policy too.
+    assert_eq!(refused(&[k1, other], 0), Err(AuthError::PolicyMismatch));
+}
+
+#[test]
+fn a_foreign_policy_is_reported_before_the_image_is_compared() {
+    let f = Fixture::new();
+    let p2 = public_key(&key(9));
+    let k1 = TrustedKey::pin(Algorithm::EcdsaP256Sha256, &f.public);
+    let proof = profile_with(&[k1], 0, |a| {
+        a.admit_upload(Some(&f.good()), &claim()).unwrap()
+    });
+    profile_with(
+        &[TrustedKey::pin(Algorithm::EcdsaP256Sha256, &p2)],
+        0,
+        |b| {
+            // Neither the right image nor another one gets through.
+            assert_eq!(
+                b.check_binding(&proof, u64::from(SIZE), &DIGEST),
+                Err(AuthError::PolicyMismatch)
+            );
+            assert_eq!(
+                b.check_binding(&proof, 1, &Digest([0; 32])),
+                Err(AuthError::PolicyMismatch)
+            );
+        },
+    );
+}
+
+#[test]
+fn each_profile_announces_itself_without_secrets() {
+    assert_eq!(UnsignedAllowed::LABEL, "OTA authentication: UNSIGNED");
+    assert_eq!(
+        SignatureRequired::<P256Verifier>::LABEL,
+        "OTA authentication: SIGNATURE_REQUIRED"
+    );
+}

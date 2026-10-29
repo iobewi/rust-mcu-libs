@@ -31,11 +31,21 @@ Garanties de typage (testées par des `compile_fail`) :
   aucun constructeur public ;
 * une preuve valable pour une autre image (taille ou digest) est refusée à `begin`
   comme à `publish` ;
+* une preuve est **liée à la politique effective** qui l'a émise (empreinte SHA-256
+  des contraintes de cible et, pour chaque clé épinglée, de son identifiant, son
+  algorithme, son état et sa clé publique) : un service dont les clés, les états
+  de clé, le plancher de version ou les variantes diffèrent la refuse
+  (`PolicyMismatch`), y compris pour le même identifiant associé à une autre clé
+  publique, ou après révocation de la clé émettrice ;
 * `SignatureRequired::new` refuse une politique sans clé, sans clé active, sans
   variante matérielle ou avec des clés invalides : aucun repli vers le non signé ;
   le profil est choisi à la compilation (`UnsignedAllowed` par défaut,
   `--features signed` pour l'exemple) ; la sûreté repose sur les types, les
   features Cargo ne servent qu'à maîtriser les dépendances et la taille.
+
+Au démarrage du serveur OTA, le firmware journalise le profil de son build :
+`OTA authentication: UNSIGNED` ou `OTA authentication: SIGNATURE_REQUIRED` (aucune
+clé ni secret dans ce message).
 
 ## Manifeste IAM1 v1
 
@@ -95,7 +105,9 @@ python3 examples/firmware/ota-system/client.py https://device app.bin deploy-1 \
   suffisante reste possible (#92). Révocation et rotation sont fixées à la
   compilation (lot 3).
 * Le domaine B/C (OTM2, `ota-supervised`) **n'est pas couvert** : il garde son
-  moteur et reste non authentifié.
+  moteur et reste non authentifié. En conséquence `ota-supervised --features signed`
+  **ne compile pas** (erreur explicite) tant que `/workload/*` n'est pas
+  authentifié ; `ota-supervised` reste utilisable en profil non signé.
 * Le Bearer HTTPS reste l'authentification de l'API d'administration ; les clés
   d'administration et de signature doivent rester distinctes. Un challenge-response
   asymétrique à clés épinglées pourrait la remplacer plus tard ; rien n'est

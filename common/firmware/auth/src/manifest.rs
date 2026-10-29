@@ -79,7 +79,7 @@ pub enum ImageFormat {
 }
 
 impl ImageFormat {
-    const fn id(self) -> u8 {
+    pub(crate) const fn id(self) -> u8 {
         match self {
             Self::EspApp => 1,
         }
@@ -102,7 +102,7 @@ pub enum Mcu {
 }
 
 impl Mcu {
-    const fn id(self) -> u8 {
+    pub(crate) const fn id(self) -> u8 {
         match self {
             Self::Esp32C3 => 1,
             Self::Esp32S3 => 2,

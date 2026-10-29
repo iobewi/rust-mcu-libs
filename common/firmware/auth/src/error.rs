@@ -48,6 +48,9 @@ pub enum AuthError {
     DigestMismatch,
     /// The proof does not describe this image (different size or digest).
     ProofMismatch,
+    /// The proof was issued under another trust policy (other keys, state or
+    /// target constraints) than the one of the service asked to use it.
+    PolicyMismatch,
     /// The bytes present in the slot do not hash to the authorized digest.
     SlotDigestMismatch,
 }

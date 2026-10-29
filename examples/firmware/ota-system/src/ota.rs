@@ -11,7 +11,7 @@ use iobewi_esp_firmware_storage::shared_flash::ArtifactWriteSession;
 use iobewi_esp_flash::{EspFlash, SharedFlash};
 use iobewi_esp_tls::EspTlsListener;
 use iobewi_esp_wifi::WifiManager;
-use iobewi_firmware_auth::MAX_ENVELOPE;
+use iobewi_firmware_auth::{AuthProfile, MAX_ENVELOPE};
 use iobewi_firmware_image::Digest as ImageDigest;
 use iobewi_firmware_image::esp::{self, Verify};
 use iobewi_firmware_slots::Slot;
@@ -375,6 +375,8 @@ pub async fn serve<S: MetadataStore>(
         !TOKEN.is_empty() && !CERT.is_empty() && !KEY.is_empty(),
         "OTA token and TLS identity required"
     );
+    // First thing the operator can check: which authentication this build enforces.
+    log::info!("{}", <Profile as AuthProfile>::LABEL);
     static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
     let wifi = WifiManager::<3>::new(peripheral, spawner, RESOURCES.init(StackResources::new()));
     // Maintenance runs in its own task (static state): composing it with the server in this

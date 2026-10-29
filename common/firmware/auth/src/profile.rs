@@ -51,6 +51,9 @@ pub trait AuthProfile: sealed::Sealed {
     type Proof;
     /// Whether the bytes present in the slot must be hashed again before activation.
     const REHASH_SLOT_ON_ACTIVATION: bool;
+    /// What a service logs at start so the build's profile is never a guess.
+    /// Carries no key, token or other sensitive value.
+    const LABEL: &'static str;
 
     /// Before any erase: authorizes the claimed image.
     fn admit_upload(
@@ -67,7 +70,8 @@ pub trait AuthProfile: sealed::Sealed {
         staged: &StagedClaim,
     ) -> Result<Self::Proof, AuthError>;
 
-    /// The proof describes exactly this image.
+    /// The proof was issued under this profile's policy and describes exactly
+    /// this image.
     fn check_binding(
         &self,
         proof: &Self::Proof,
@@ -84,6 +88,8 @@ pub struct Unsigned(());
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Admitted {
     manifest: Manifest,
+    /// Fingerprint of the effective policy of the profile that issued it.
+    policy: [u8; 32],
 }
 
 impl Admitted {
@@ -110,6 +116,7 @@ impl sealed::Sealed for UnsignedAllowed {}
 impl AuthProfile for UnsignedAllowed {
     type Proof = Unsigned;
     const REHASH_SLOT_ON_ACTIVATION: bool = false;
+    const LABEL: &'static str = "OTA authentication: UNSIGNED";
 
     fn admit_upload(&self, _: Option<&[u8]>, _: &UploadClaim) -> Result<Unsigned, AuthError> {
         Ok(Unsigned(()))
@@ -126,6 +133,8 @@ impl AuthProfile for UnsignedAllowed {
 /// There is no way to build it without keys, and no fallback to unsigned.
 pub struct SignatureRequired<'a, V: SignatureVerifier> {
     policy: TrustPolicy<'a>,
+    /// [`TrustPolicy::fingerprint`], computed once: the identity of this policy.
+    policy_id: [u8; 32],
     verifier: V,
 }
 
@@ -155,7 +164,11 @@ impl<'a, V: SignatureVerifier> SignatureRequired<'a, V> {
                 return Err(PolicyError::DuplicateKeyId);
             }
         }
-        Ok(Self { policy, verifier })
+        Ok(Self {
+            policy_id: policy.fingerprint(),
+            policy,
+            verifier,
+        })
     }
 
     pub fn policy(&self) -> &TrustPolicy<'a> {
@@ -219,13 +232,17 @@ impl<'a, V: SignatureVerifier> SignatureRequired<'a, V> {
         if manifest.digest != *digest {
             return Err(AuthError::DigestMismatch);
         }
-        Ok(Admitted { manifest })
+        Ok(Admitted {
+            manifest,
+            policy: self.policy_id,
+        })
     }
 }
 
 impl<V: SignatureVerifier> AuthProfile for SignatureRequired<'_, V> {
     type Proof = Admitted;
     const REHASH_SLOT_ON_ACTIVATION: bool = true;
+    const LABEL: &'static str = "OTA authentication: SIGNATURE_REQUIRED";
 
     fn admit_upload(
         &self,
@@ -244,6 +261,9 @@ impl<V: SignatureVerifier> AuthProfile for SignatureRequired<'_, V> {
     }
 
     fn check_binding(&self, proof: &Admitted, size: u64, digest: &Digest) -> Result<(), AuthError> {
+        if proof.policy != self.policy_id {
+            return Err(AuthError::PolicyMismatch);
+        }
         if proof.size() == size && proof.digest() == *digest {
             Ok(())
         } else {

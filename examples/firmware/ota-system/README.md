@@ -192,7 +192,9 @@ Deux profils partagent le même moteur (voir
 
 `ota_sign` (exemple de `iobewi-firmware-auth`, hôte seulement) génère la clé et
 signe ; `client.py --manifest FICHIER` envoie l'enveloppe à l'upload et à
-l'activation. Le domaine B/C (`ota-supervised`) n'est pas concerné.
+l'activation. Le domaine B/C (`ota-supervised`) n'est pas concerné : sa combinaison avec
+`signed` est refusée à la compilation. Le serveur journalise `OTA authentication: UNSIGNED`
+ou `SIGNATURE_REQUIRED` au démarrage.
 
 ## ConfigSpace EKV — nouveau profil de développement
 

@@ -49,3 +49,42 @@ pub struct TrustPolicy<'a> {
     pub min_security_version: u32,
     pub keys: &'a [TrustedKey<'a>],
 }
+
+/// Domain separation for [`TrustPolicy::fingerprint`].
+const POLICY_DOMAIN: &[u8; 21] = b"iobewi.ota.policy.v1\0";
+
+impl TrustPolicy<'_> {
+    /// SHA-256 over every element that decides what is accepted: the target
+    /// constraints and, for each pinned key, its identifier, algorithm, state
+    /// and public key bytes. A proof carries it, so it only ever authorizes
+    /// under the exact policy that issued it (another key set, a revoked key,
+    /// the same identifier with another public key, a raised floor...).
+    /// Order matters on purpose: a differently ordered policy is a different one.
+    pub(crate) fn fingerprint(&self) -> [u8; 32] {
+        use sha2::{Digest as _, Sha256};
+        let mut hash = Sha256::new();
+        hash.update(POLICY_DOMAIN);
+        hash.update([self.mcu.id(), self.image_format.id()]);
+        hash.update(self.product.as_str().as_bytes());
+        hash.update([0]);
+        hash.update(self.min_security_version.to_le_bytes());
+        hash.update((self.hw_variants.len() as u32).to_le_bytes());
+        for variant in self.hw_variants {
+            hash.update(variant.to_le_bytes());
+        }
+        hash.update((self.keys.len() as u32).to_le_bytes());
+        for key in self.keys {
+            hash.update(key.id.0);
+            hash.update([
+                key.algorithm.id(),
+                match key.state {
+                    KeyState::Active => 0,
+                    KeyState::Revoked => 1,
+                },
+            ]);
+            hash.update((key.public_key.len() as u32).to_le_bytes());
+            hash.update(key.public_key);
+        }
+        hash.finalize().into()
+    }
+}

@@ -43,7 +43,8 @@ firmware = [
     "dep:embedded-storage",
     "dep:sha2",
 ]
-# Same authentication profile switch as ota-system (shared OTA source).
+# Declared so the shared OTA source type-checks. Enabling it is refused at compile time:
+# the /workload/* OTM2 routes carry no image authentication.
 signed = ["iobewi-firmware-auth/verify-p256"]
 reject-self-check = []
 hang-self-check = []
