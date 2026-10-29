@@ -7,17 +7,33 @@ from pathlib import Path
 import subprocess
 import sys
 
-LIMIT = 0x8000  # historical table offset, boot image flashed at zero
-# Blocking budget of the default (unsigned) second stage, per chip. Measured 22 928 (C3) and
-# 29 920 (S3) bytes when this gate was set (#91); the budget leaves about 800 bytes of growth.
-# Raising it eats the room the verified profile needs: change it only with a measurement.
-BUDGET = {"esp32c3": 23744, "esp32s3": 30720}
+import esp_geometry
 
+LIMIT = 0x8000  # historical table offset, boot image flashed at zero
 def check_size(image, limit=LIMIT):
     size = Path(image).stat().st_size
     if size > limit or size == 0:
         raise ValueError(f"boot image {size} bytes does not fit in {limit} bytes")
     print(f"Boot image: {size} bytes; margin before the limit {limit}: {limit-size} bytes", flush=True)
+    return size
+
+def check_boot_image(chip, image, elf=None, profile="unsigned"):
+    """Flash limits and geometry of a built second stage, then the RAM placement of its ELF.
+
+    The limits follow the table offset the build was configured for
+    (``ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET``, see esp_geometry.py); the image must
+    be stamped with that same offset, and each RAM window must hold what was linked into it.
+    """
+    size, errors, notes = esp_geometry.check_image(chip, image, profile)
+    for note in notes:
+        print(note, flush=True)
+    if elf is not None:
+        ram_errors, report = esp_geometry.check_ram(chip, elf)
+        errors += ram_errors
+        print(f"RAM: IRAM {report['iram_used']}/{report['iram_size']} bytes, "
+              f"DRAM static {report['dram_static']}/{report['dram_size']}, stack {report['stack']} bytes", flush=True)
+    if errors:
+        raise ValueError("; ".join(errors))
     return size
 
 def compile_selected(packages, chip):
@@ -55,8 +71,7 @@ def compile_selected(packages, chip):
                     mode = ["--flash-mode", "dio"] if chip == "esp32s3" else []
                     subprocess.run([sys.executable, "-m", "esptool", "--chip", chip,
                                     "elf2image", *mode, "--flash-size", "16MB", "--output", str(image), str(elf)], check=True)
-                    check_size(image)
-                    check_size(image, BUDGET[chip])
+                    check_boot_image(chip, image, elf)
                     if chip == "esp32s3" and image.read_bytes()[2] != 2:
                         raise ValueError("ESP32-S3 boot image must use flash mode DIO (header byte 2 == 2)")
                     subprocess.run([sys.executable,"-m","esptool","--chip",chip,"image-info",str(image)],check=True)

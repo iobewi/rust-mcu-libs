@@ -1,8 +1,11 @@
 # Qualification matérielle du démarrage vérifié (protocole proposé)
 
-**Rien de ce document n'a été exécuté.** Chaque étape exige une autorisation distincte, arrêt à la
-première divergence. Il est subordonné à une décision sur la taille du second étage S3
-(`verified-boot.md`) : sans elle, le bootloader vérifié ne s'installe pas.
+**Rien de ce document n'a été exécuté.** Il se lit avec `geometry-reprovisioning.md` : le second
+étage vérifié du S3 s'installe avec la table à `0x10000`, donc après un reprovisionnement contrôlé du banc
+(table, `otadata`, `ota_meta` et applications recompilées pour ce décalage). Les adresses des secteurs de
+preuve (`0x1cf000`, `0x37f000`) ne changent pas. Chaque étape exige une autorisation distincte, arrêt à la
+première divergence. Le second étage S3 vérifié (34 352 octets) ne tient pas devant une table à `0x8000` : il n'a de sens
+qu'avec la géométrie large (`flash-geometry.md`).
 
 La restauration d'un bootloader expérimental n'est pas considérée comme garantie tant que H2 n'a pas été
 démontrée sur le banc.

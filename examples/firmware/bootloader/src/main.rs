@@ -73,8 +73,9 @@ macro_rules! log {
 
 // --- Flash layout (embewi-ab-v1, see partitions.csv) -----------------------
 
-/// Where the partition table lives (the ESP-IDF default, kept by espflash).
-const PARTITION_TABLE_OFFSET: u32 = 0x8000;
+/// Where the partition table lives: the build's flash geometry, the same value the application
+/// and the table generator use (`ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET`).
+const PARTITION_TABLE_OFFSET: u32 = iobewi_esp_boot::geometry::TABLE_OFFSET;
 const PARTITION_TABLE_LEN: usize = 0xC00;
 const SECTOR: u32 = 0x1000;
 const SLOT_COUNT: u8 = 2;
@@ -297,7 +298,9 @@ fn boot() -> Result<core::convert::Infallible, BootError> {
     let layout = read_layout(flash_size)?;
     let map = memory_map();
     log!(
-        "boot: otadata at ",
+        "boot: table at ",
+        PARTITION_TABLE_OFFSET,
+        " otadata at ",
         layout.otadata.offset,
         " ota_0 ",
         layout.images[0].offset,
@@ -477,6 +480,8 @@ fn clear_flashboot_watchdogs() -> (u32, u32) {
 fn main() -> ! {
     // First thing: the ROM's watchdogs are already ticking.
     let (tg0_wdt, rtc_wdt) = clear_flashboot_watchdogs();
+    // Keep the geometry stamp in the image: the packaging tools compare it with the table.
+    core::hint::black_box(&iobewi_esp_boot::geometry::STAMP);
     esp_hal::init(esp_hal::Config::default());
     log!("\r\niobewi-esp-bootloader ", env!("CARGO_PKG_VERSION"));
     log!(

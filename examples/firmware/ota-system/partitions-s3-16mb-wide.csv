@@ -1,0 +1,12 @@
+# table-offset: 0x10000
+# flash-size: 0x1000000
+# ESP32-S3, 16 MiB: table moved to 0x10000 so the second stage may use 0..0x10000 (issue #91).
+# Slots and `config` keep their historical offsets; `otadata` and `ota_meta` follow the table.
+# Build every binary with ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET=0x10000.
+# The last sector of each slot (0x1cf000, 0x37f000) is its boot proof; free: 0x15000..0x20000.
+# Name, Type, SubType, Offset, Size, Flags
+otadata, data, ota, 0x11000, 0x2000,
+ota_meta, data, 0x41, 0x13000, 0x2000,
+ota_0, app, ota_0, 0x20000, 0x1b0000,
+ota_1, app, ota_1, 0x1d0000, 0x1b0000,
+config, data, 0x40, 0x380000, 0x80000,

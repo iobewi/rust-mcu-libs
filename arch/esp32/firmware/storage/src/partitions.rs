@@ -27,7 +27,9 @@ pub fn discover<const N: usize>(
         };
         count += 1;
         // ESP application starts must be bootable; data still uses erase geometry.
-        if entry.offset < 0x9000 || (entry.kind == 0 && entry.offset % 0x10000 != 0) {
+        if entry.offset < partitions::geometry::FIRST_PARTITION_MIN
+            || (entry.kind == 0 && entry.offset % 0x10000 != 0)
+        {
             error = Some(DiscoveryError::Misaligned);
         }
         for (i, req) in required.iter().enumerate() {

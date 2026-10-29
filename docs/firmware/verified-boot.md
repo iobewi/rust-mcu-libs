@@ -4,8 +4,9 @@ Une signature vérifiée à l'upload n'est pas un Secure Boot : les octets d'un 
 ensuite. Ce lot décide, **avant l'exécution** d'un slot, s'il porte encore une image authentique.
 Il s'appuie sur #90 (IAM1, clés épinglées) sans toucher à OTM1, OTSF ni BOOT v2.
 
-**État : implémenté et testé sur hôte ; le second étage vérifié ne tient pas encore dans 32 Kio sur
-ESP32-S3** (voir « Taille »). Rien n'a été installé sur une carte.
+**État : implémenté et testé sur hôte. Le second étage vérifié ne tient pas dans les 32 Kio de la
+table historique sur ESP32-S3 ; il tient avec la table à `0x10000` (`flash-geometry.md`) et sur ESP32-C3
+avec la géométrie historique.** Rien n'a été installé sur une carte.
 
 ## Deux profils de boot
 
@@ -78,23 +79,20 @@ vérifie qu'elle ne peut jamais accepter ce que le décodage refuse.
 
 ## Taille
 
-| Second étage (octets, limite 32 768) | ESP32-S3 | ESP32-C3 |
+| Second étage (octets) | ESP32-S3 | ESP32-C3 |
 |---|---|---|
-| Non signé (budget CI bloquant 30 720 / 23 744) | **29 920** | **22 928** |
-| Vérifié | **34 256** (dépasse de 1 488) | **26 832** (marge 5 936) |
+| Non signé | **30 016** | **23 008** |
+| Vérifié | **34 352** | **26 912** |
+| Région avant la table, géométrie historique (0x8000) | 32 768 : le vérifié dépasse de 1 584 | 32 768 : marge 5 856 |
+| Région avant la table, géométrie large (0x10000) | 65 536 (limite dure CI 61 440) : marge 27 088 | non utilisée |
 
-Sur S3, IRAM 30 597 / 36 864 octets, DRAM statique 3 652 / 32 768, pile disponible environ 29 Kio.
-Optimisations essayées : `opt-level = "z"` par crate (aucun effet avec la LTO), `optimize_for_size`
-(aucun effet), `panic=immediate-abort` (−592 octets, change le comportement de panique), lecture en place
-du manifeste (−944 octets, retenue).
+Le choix retenu est de déplacer la table du S3 (`flash-geometry.md`) plutôt que de réduire le
+bootloader. Le gain mesuré de `opt-level = "z"`, de `optimize_for_size` et de la lecture du manifeste « en
+place » (−944 octets, retenue) reste dans l'historique de la PR ; `esp_hal::init` (environ 13 Kio) est
+conservé. Cartes mémoire (IRAM, DRAM, pile) et budgets CI : `flash-geometry.md`.
 
-**Levier mesuré** : `esp_hal::init` (arbre d'horloges, gestionnaires GPIO et d'interruptions) pèse environ
-13 Kio. Sans lui le vérifié ferait 20 816 octets et le non signé 16 400. Le retirer ou le remplacer par une
-initialisation minimale change le démarrage qualifié (horloges, débit UART, `delay_us`) : décision à
-prendre avec sa propre qualification matérielle. La table de partitions ne bouge pas.
-
-La CI bloque le non signé (budget par puce), bloque le vérifié sur C3 et **rapporte** le vérifié sur S3
-(`verified_boot.py --report-only`) tant qu'il ne tient pas.
+La CI bloque le non signé et le vérifié selon la géométrie, rapporte le vérifié S3 historique (qui ne
+tient pas) et bloque le vérifié S3 large.
 
 ## Ce que cela ne protège pas
 
@@ -113,4 +111,4 @@ produit `OUT.env` (enveloppe IAM1 en base64url) et `OUT.iap1` (secteur de preuve
 
 Un appareil déjà qualifié n'a aucune preuve : installer un second étage vérifié le mettrait en HALT.
 L'écriture de la preuve à l'activation OTA n'est **pas encore câblée** dans l'exemple ; en l'état, les
-preuves se provisionnent depuis l'hôte. Voir `verified-boot-qualification.md`.
+preuves se provisionnent depuis l'hôte. Voir `verified-boot-qualification.md` et `geometry-reprovisioning.md`.

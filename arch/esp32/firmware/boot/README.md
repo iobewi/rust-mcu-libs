@@ -15,7 +15,7 @@ and common full-region/domain-A validators. It selects only ota_0, ota_1 and
 otadata; B/C are checked geometrically, with no imposed boot policy. It rejects
 duplicate labels, overlap including unrelated partitions, overflow, capacity
 violations, sector misalignment, application starts off 64 KiB and partitions
-before 0x9000. This deliberately strengthens old last-match-wins discovery.
+before the first usable offset of the build's table geometry (0x9000 for a table at 0x8000, see `iobewi_esp_partitions::geometry`). This deliberately strengthens old last-match-wins discovery.
 Buffers are bounded, without allocation. Host tests cover a 16 MiB A/B/C map
 and dangerous layouts. MCU features are mutually exclusive.
 

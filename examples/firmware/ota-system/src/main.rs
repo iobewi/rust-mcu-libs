@@ -205,6 +205,10 @@ fn log_status(status: &str) {
 }
 #[esp_hal::main]
 fn main() -> ! {
+    // The partition table is where this build was configured to find it
+    // (ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET); stamp the image so the packaging
+    // tools can refuse it next to a second stage or a table built for another geometry.
+    core::hint::black_box(&iobewi_esp_boot::geometry::STAMP);
     let p = esp_hal::init(esp_hal::Config::default());
     iobewi_log::install(
         iobewi_esp_console::console_print,

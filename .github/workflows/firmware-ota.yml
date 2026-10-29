@@ -51,6 +51,8 @@ jobs:
           fi
       - name: Validate boot image size gate
         run: python3 .github/scripts/test_compile_mcu.py
+      - name: Validate the flash geometry tool
+        run: python3 .github/scripts/test_esp_geometry.py
       - name: Validate CI domain partition and selection scenarios
         run: python3 .github/scripts/test_discover_ci.py
       - name: Validate OTA gate logic
@@ -108,6 +110,23 @@ jobs:
           rustup target add riscv32imc-unknown-none-elf
           cargo build -p iobewi-firmware-auth --features verify-p256 --target riscv32imc-unknown-none-elf
           cargo build -p iobewi-firmware-auth --target riscv32imc-unknown-none-elf
+      - name: Flash geometry, both table offsets (host)
+        if: matrix.package == 'iobewi-esp-boot' || matrix.package == 'iobewi-esp-partitions'
+        env:
+          PKG: ${{ matrix.package }}
+        run: |
+          set -euo pipefail
+          # The tests cover both reference geometries whatever the build is configured for;
+          # running them for each configured offset also proves the build-time setting is read.
+          for offset in 0x8000 0x10000; do
+            ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET=$offset cargo test -p "$PKG"
+          done
+          # An offset no table can have is refused when building, not at boot.
+          for bad in 0x10001 0x4000 0x1c000; do
+            if ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET=$bad cargo check -q -p iobewi-esp-partitions 2>/dev/null; then
+              echo "table offset $bad was accepted"; exit 1
+            fi
+          done
       - name: Boot authentication (host, bare-metal build)
         if: matrix.package == 'iobewi-firmware-bootauth'
         run: |
@@ -216,13 +235,38 @@ jobs:
           echo "### OTA flash footprint, esp32s3" >> "$GITHUB_STEP_SUMMARY"
           python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Verified boot second stage, link and size report
+      - name: Verified boot second stage, historical geometry (report only)
         if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader')
         run: |
           pip install esptool==5.5.0
-          # Known overflow of the S3 second stage (issue #91, see docs/firmware/verified-boot.md):
-          # reported on every run, not yet a gate. Switch to a blocking run once it fits.
+          # With the historical table at 0x8000 the S3 verified second stage does not fit
+          # (docs/firmware/verified-boot.md): reported only. The wide geometry below is the gate.
           python3 .github/scripts/verified_boot.py --chip esp32s3 --report-only
+
+      - name: Wide flash geometry (table at 0x10000), second stage and application
+        if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader') || contains(needs.discover.outputs.esp32s3_packages, 'example-firmware-ota-system')
+        env:
+          ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET: "0x10000"
+        run: |
+          set -euo pipefail
+          pip install esptool==5.5.0
+          target=target/xtensa-esp32s3-none-elf
+          python3 .github/scripts/esp_geometry.py csv examples/firmware/ota-system/partitions-s3-16mb-wide.csv
+          cargo +esp build -Z build-std=core,alloc --target xtensa-esp32s3-none-elf --profile bootloader \
+            -p iobewi-esp-bootloader --features esp32s3 --bins
+          python3 -m esptool --chip esp32s3 elf2image --flash-mode dio --flash-size 16MB \
+            --output "$RUNNER_TEMP/boot-wide.bin" $target/bootloader/iobewi-esp-bootloader
+          # Flash limits, geometry stamp and RAM placement of the linked second stage.
+          python3 .github/scripts/esp_geometry.py image esp32s3 "$RUNNER_TEMP/boot-wide.bin" \
+            --elf $target/bootloader/iobewi-esp-bootloader --profile unsigned | tee -a "$GITHUB_STEP_SUMMARY"
+          # The verified profile fits this geometry: blocking.
+          python3 .github/scripts/verified_boot.py --chip esp32s3
+          # The application is built for the same table offset or the packaging refuses it.
+          cargo +esp build -Z build-std=core,alloc --target xtensa-esp32s3-none-elf \
+            -p example-firmware-ota-system --features esp32s3 --bins --release
+          python3 -m esptool --chip esp32s3 elf2image --flash-size 16MB \
+            --output "$RUNNER_TEMP/app-wide.bin" $target/release/firmware-ota-system-esp32
+          test "$(python3 .github/scripts/esp_geometry.py stamp "$RUNNER_TEMP/app-wide.bin")" = "0x10000"
 
   firmware-ota-gate:
     name: Firmware OTA validation

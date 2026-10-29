@@ -27,9 +27,13 @@ esp32s3. S3 linking requires Xtensa GCC on PATH.
 
 esptool 5.5.0 elf2image packages the ELF (ESP32-S3: `--flash-mode dio`, the default QIO
 image is not loadable by the ROM and the CI rejects it). Boot image is flashed at **0**, table
-at **0x8000**; do not use an ESP32 classic 0x1000 offset. The declarative CI
-esp32-bootloader profile links, packages, inspects the ESP checksum/footer and
-rejects empty images or images above 32768 bytes. Historical S3 ROM/cache/stack
+at the configured offset (**0x8000** by default, **0x10000** for the wide ESP32-S3 geometry, see
+`docs/firmware/flash-geometry.md`); do not use an ESP32 classic 0x1000 offset. The offset is
+`ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET`, the same variable the application build
+reads: set it for every binary of a flash. The declarative CI esp32-bootloader profile links,
+packages, inspects the ESP checksum/footer and checks the image against the limits of the
+geometry (`.github/scripts/esp_geometry.py`: the image must end before the table, carry the
+stamp of that geometry and fit its RAM windows). Historical S3 ROM/cache/stack
 link assertions remain. A 16MB packaging header tests encoding, not physical
 16MB qualification; downstream flashing needs the actual capacity/layout.
 

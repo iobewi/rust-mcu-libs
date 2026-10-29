@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from compile_mcu import check_size, LIMIT, BUDGET
+from compile_mcu import check_size, LIMIT
 
 with tempfile.TemporaryDirectory() as directory:
     image = Path(directory)/"boot.bin"
@@ -17,21 +17,12 @@ with tempfile.TemporaryDirectory() as directory:
             raise AssertionError(f"accepted invalid size {size}")
 print("Boot image gate boundaries passed")
 
-# Per-chip budget of the unsigned second stage: current images fit, growth past it is refused.
-with tempfile.TemporaryDirectory() as directory:
-    image = Path(directory)/"boot.bin"
-    for chip, current in (("esp32c3", 22928), ("esp32s3", 29920)):
-        image.write_bytes(bytes(current))
-        assert check_size(image, BUDGET[chip]) == current
-        assert BUDGET[chip] - current >= 512, "budget keeps room for ordinary growth"
-        assert BUDGET[chip] <= LIMIT
-        image.write_bytes(bytes(BUDGET[chip] + 1))
-        try:
-            check_size(image, BUDGET[chip])
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(f"{chip}: accepted an image over its budget")
+# The default (unsigned) second stage is gated by the geometry tool, per chip and table offset.
+import esp_geometry
+for chip, offset, current in (("esp32c3", 0x8000, 23008), ("esp32s3", 0x8000, 30016), ("esp32s3", 0x10000, 30016)):
+    limits = esp_geometry.limits(chip, offset)
+    assert limits["unsigned"] - current >= 512, "budget keeps room for ordinary growth"
+    assert limits["unsigned"] <= limits["hard"]
 print("Per-chip boot budgets passed")
 
 # Host coverage of a firmware must not turn its MCU link gate into cargo check.

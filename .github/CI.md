@@ -153,3 +153,13 @@ strict Clippy) and the OTA workflow also builds it for bare-metal RISC-V without
 (unsigned) second stage is gated per chip (`compile_mcu.BUDGET`, tighter than the 32 KiB table limit). The verified
 second stage is built by `.github/scripts/verified_boot.py` with a public test pin: blocking on ESP32-C3, report-only
 on ESP32-S3 while it exceeds the limit (see `docs/firmware/verified-boot.md`). No workflow was added.
+
+## Flash geometry (#91, B2)
+
+The partition table offset is one build-time setting, `ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET`
+(default `0x8000`), read by the second stage, the application, the generated table and the tools
+(`.github/scripts/esp_geometry.py`, tested by `test_esp_geometry.py`). Second stage limits, geometry stamps
+and RAM placement (IRAM, DRAM, stack) are checked on every bootloader build, separately from flash size. The
+default S3 build stays on the historical geometry; the `Wide flash geometry` step builds the S3 second stage
+(unsigned and verified, the latter blocking) and the application with the table at `0x10000`. The C3 keeps
+the historical geometry. `docs/firmware/flash-geometry.md` lists the budgets.

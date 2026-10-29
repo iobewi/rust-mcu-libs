@@ -5,6 +5,20 @@ pub struct InvalidLayout;
 /// Validate all physical entries before selecting the historical A slots.
 /// B/C partitions are checked geometrically but never boot-selected here.
 pub fn discover(table: &[u8], flash_size: u32) -> Result<domain_a::Layout, InvalidLayout> {
+    discover_with(
+        table,
+        flash_size,
+        iobewi_esp_partitions::geometry::FIRST_PARTITION_MIN,
+    )
+}
+
+/// [`discover`] for a table whose first usable flash offset is `first_partition_min`
+/// (the table offset plus its sector): nothing may start in front of it.
+pub fn discover_with(
+    table: &[u8],
+    flash_size: u32,
+    first_partition_min: u32,
+) -> Result<domain_a::Layout, InvalidLayout> {
     let entries = iobewi_esp_partitions::raw::entries(table).map_err(|_| InvalidLayout)?;
     let empty = domain_a::Entry {
         label: "",
@@ -17,7 +31,7 @@ pub fn discover(table: &[u8], flash_size: u32) -> Result<domain_a::Layout, Inval
     let mut regions = [Region { offset: 0, size: 0 }; iobewi_esp_partitions::raw::MAX_LEN / 32];
     let mut count = 0;
     for e in entries {
-        if e.offset < 0x9000 {
+        if e.offset < first_partition_min {
             return Err(InvalidLayout);
         }
         regions[count] = Region {
@@ -48,6 +62,11 @@ pub fn discover(table: &[u8], flash_size: u32) -> Result<domain_a::Layout, Inval
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// First usable offset for the historical table at 0x8000.
+    const LEGACY: u32 = 0x9000;
+    fn discover(table: &[u8], flash_size: u32) -> Result<domain_a::Layout, InvalidLayout> {
+        super::discover_with(table, flash_size, LEGACY)
+    }
     fn table() -> [u8; 0xc00] {
         let mut out = [0xff; 0xc00];
         for (i, (name, kind, sub, offset, size)) in [
