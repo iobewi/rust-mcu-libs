@@ -163,3 +163,11 @@ and RAM placement (IRAM, DRAM, stack) are checked on every bootloader build, sep
 default S3 build stays on the historical geometry; the `Wide flash geometry` step builds the S3 second stage
 (unsigned and verified, the latter blocking) and the application with the table at `0x10000`. The C3 keeps
 the historical geometry. `docs/firmware/flash-geometry.md` lists the budgets.
+
+## Boot proof kept by the OTA (#91, B3)
+
+`iobewi-firmware-bootauth` also covers the sequence an OTA performs on a slot (`provision`): invalidate the proof,
+rewrite the image, publish and re-check the proof, gate the activation, with a power cut at every flash command
+(`tests/ota_sequence.rs`); `iobewi-firmware-update` covers the activation refusal. The S3/C3 jobs additionally
+build `example-firmware-ota-system` with `signed-rsa` and a public test key
+(`.github/fixtures/ota-signing-rsa-test-public.hex`) and gate its flash growth over the unsigned build.

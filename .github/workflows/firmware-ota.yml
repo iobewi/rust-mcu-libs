@@ -188,6 +188,19 @@ jobs:
           echo "### OTA flash footprint, esp32c3" >> "$GITHUB_STEP_SUMMARY"
           python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: RSA-PSS OTA profile with boot proofs, build and flash cost
+        if: contains(needs.discover.outputs.esp32c3_packages, 'example-firmware-ota-system')
+        run: |
+          set -euo pipefail
+          # Public test fixture only (the private half exists nowhere in this repository); the
+          # firmware pins this key and verifies through the ROM, it signs nothing.
+          export IOBEWI_OTA_SIGNING_RSA_KEY="$(cat .github/fixtures/ota-signing-rsa-test-public.hex)"
+          cargo +nightly build -Z build-std=core,alloc --target riscv32imc-unknown-none-elf \
+            -p example-firmware-ota-system --features esp32c3,signed-rsa --bins --release
+          elf=target/riscv32imc-unknown-none-elf/release/firmware-ota-system-esp32
+          echo "### OTA flash footprint (RSA-PSS), esp32c3" >> "$GITHUB_STEP_SUMMARY"
+          # Measured growth over the unsigned build: about 14 KiB (C3) and 17 KiB (S3).
+          python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 32768 | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Verified boot second stage, link and size gate
         if: contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-bootloader')
         run: |
@@ -235,6 +248,19 @@ jobs:
           echo "### OTA flash footprint, esp32s3" >> "$GITHUB_STEP_SUMMARY"
           python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 65536 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: RSA-PSS OTA profile with boot proofs, build and flash cost
+        if: contains(needs.discover.outputs.esp32s3_packages, 'example-firmware-ota-system')
+        run: |
+          set -euo pipefail
+          # Public test fixture only (the private half exists nowhere in this repository); the
+          # firmware pins this key and verifies through the ROM, it signs nothing.
+          export IOBEWI_OTA_SIGNING_RSA_KEY="$(cat .github/fixtures/ota-signing-rsa-test-public.hex)"
+          cargo +esp build -Z build-std=core,alloc --target xtensa-esp32s3-none-elf \
+            -p example-firmware-ota-system --features esp32s3,signed-rsa --bins --release
+          elf=target/xtensa-esp32s3-none-elf/release/firmware-ota-system-esp32
+          echo "### OTA flash footprint (RSA-PSS), esp32s3" >> "$GITHUB_STEP_SUMMARY"
+          # Measured growth over the unsigned build: about 14 KiB (C3) and 17 KiB (S3).
+          python3 .github/scripts/elf_size.py --compare "$RUNNER_TEMP/unsigned.elf" "$elf" --max-growth 32768 | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Verified boot second stage, historical geometry (report only)
         if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader')
         run: |

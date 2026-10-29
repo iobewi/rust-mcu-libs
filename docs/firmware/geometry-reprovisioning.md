@@ -33,25 +33,23 @@ entiers, `config`. Une région non vierge là où la nouvelle disposition écrit
 
 ```sh
 export ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET=0x10000
+cargo run -p iobewi-firmware-bootauth --features host-sign --example iap1_pack -- keygen bench-boot.pem
+# Identifiants du banc (Wi-Fi, jeton, identité TLS) dans l'environnement, hors Git.
 python3 examples/firmware/ota-system/prepare.py --chip esp32s3 --flash-size 16MB \
-  --partition-tool /chemin/esp-idf/components/partition_table/gen_esp32part.py
+  --auth signed-rsa --boot unsigned --rsa-key bench-boot.pem \
+  --partition-tool /chemin/esp-idf/components/partition_table/gen_esp32part.py     # image A
+python3 examples/firmware/ota-system/prepare.py ... --boot verified ...            # second étage vérifié
+# image B: même commande avec une autre identité TLS ; garder app.bin et app.env
 cat target/ota-system/esp32s3/flash-plan.txt        # offsets, tailles, SHA-256
 ```
 
-`prepare.py` refuse une incohérence de géométrie (bootloader au-delà de la table, application estampillée
-pour un autre offset, fichier de partitions incohérent). Pour le profil signé de #90, recompiler l'application
-avec `--features signed` et `IOBEWI_OTA_SIGNING_PUBKEY` (clé de banc P-256), puis signer son image ; pour le
-démarrage vérifié, générer la clé RSA et les preuves :
-
-```sh
-cargo run -p iobewi-firmware-bootauth --features host-sign --example iap1_pack -- keygen bench-boot.pem
-cargo run -p iobewi-firmware-bootauth --features host-sign --example iap1_pack -- \
-  sign bench-boot.pem app.bin iobewi-ota-sys esp32s3 0 1 ota0     # ota0.env, ota0.iap1
-IOBEWI_BOOT_PINNED_KEYS=<pin> IOBEWI_BOOT_PRODUCT=iobewi-ota-sys IOBEWI_BOOT_VARIANTS=0 \
-  cargo +esp build ... -p iobewi-esp-bootloader --features esp32s3,verified-boot --profile bootloader --bins
-```
-
-Contrôler les empreintes de tout ce qui sera écrit avant de toucher la carte.
+`prepare.py` refuse une incohérence de géométrie (bootloader au-delà de la table, application estampillée pour
+un autre offset, fichier de partitions incohérent), dérive la clé épinglée par l'application et par le
+bootloader du même fichier, et écrit pour l'image `app.bin` : `app.env` (enveloppe pour `X-Image-Manifest`) et
+`app.iap1` (preuve du slot installé à la main). **Les empreintes d'une même construction ne sont pas
+reproductibles** (date de compilation dans le descripteur d'application, sel aléatoire de la signature RSA-PSS) :
+figer les empreintes des fichiers finaux, ne plus les reconstruire. Vérifier chaque couple image + preuve avec
+`iap1_pack verify` avant de toucher la carte.
 
 ## R2 : preuve de récupération (avant la première écriture)
 
@@ -65,9 +63,9 @@ second étage dans la procédure de base.
 1. blanchir `0x8000`–`0x10000` (fichier de `0xff`) : l'ancienne table disparaît ;
 2. second étage (non signé d'abord) à `0x0` ;
 3. table à `0x10000` ;
-4. `otadata` d'usine à `0x11000` ; `ota_meta` d'usine à `0x13000` ;
+4. `otadata` d'usine à `0x11000` ; `ota_meta` d'usine à `0x13000` ; **ne pas** écrire `config.bin` (la `config` est conservée) ;
 5. blanchir l'en-tête d'`ota_1` (`0x1d0000`, un secteur) : l'ancien Ns2 ne doit pas être pris pour une image ;
-6. application recompilée à `0x20000` (`ota_0`) ;
+6. application recompilée à `0x20000` (`ota_0`) et sa preuve `app.iap1` à `0x1cf000` ;
 7. relecture de chaque région écrite et comparaison aux SHA-256 de R1 ;
 8. un seul reset.
 
@@ -77,10 +75,9 @@ L'`otadata` d'usine marque `ota_0` comme Valid (premier démarrage : `plan_boot`
 
 ## R4 : démarrage vérifié
 
-Seulement après R3 réussi et sur autorisation : écrire le secteur de preuve de `ota_0` (`0x1cf000`), puis le
-second étage vérifié à `0x0`. Attendus et refus : `verified-boot-qualification.md`, H4 et H5. Les preuves ne
-sont pas écrites par l'OTA dans cette version : un OTA vers `ota_1` laisse ce slot sans preuve valide tant
-qu'elle n'est pas provisionnée depuis l'hôte.
+Seulement après R3 réussi et sur autorisation : le second étage vérifié à `0x0` (la preuve d'`ota_0` est déjà
+en place), puis la mise à jour OTA de l'image B, dont la preuve est écrite par l'appareil lui-même. Attendus et
+refus : `verified-boot-qualification.md`, P3 et P4.
 
 ## R5 : retour à la géométrie historique
 

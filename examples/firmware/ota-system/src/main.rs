@@ -17,6 +17,14 @@ compile_error!("choose esp32c3 or esp32s3");
 compile_error!(
     "`signed` is not supported with `supervised`: the /workload/* OTM2 routes carry no image authentication"
 );
+#[cfg(all(feature = "signed-rsa", feature = "supervised"))]
+compile_error!(
+    "`signed-rsa` is not supported with `supervised`: the /workload/* OTM2 routes carry no image authentication"
+);
+#[cfg(all(feature = "signed", feature = "signed-rsa"))]
+compile_error!(
+    "choose one signature algorithm: `signed` (ECDSA P-256) or `signed-rsa` (RSA-PSS 3072 with boot proofs)"
+);
 #[cfg(all(feature = "reject-self-check", feature = "hang-self-check"))]
 compile_error!("choose at most one self-check fault");
 

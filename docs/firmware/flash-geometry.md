@@ -83,8 +83,8 @@ vecteurs et le non-recouvrement ; `esp_geometry.py` le re-vérifie sur l'ELF pro
 
 | Mesure (octets) | S3 non signé | S3 vérifié | C3 non signé | C3 vérifié |
 |---|---|---|---|---|
-| image | 30 016 | 34 352 | 23 008 | 26 912 |
-| IRAM utilisée / fenêtre | 26 535 / 65 536 | 30 663 / 65 536 | 21 074 / 36 864 | 24 782 / 36 864 |
+| image | 30 016 | 34 864 | 23 008 | 27 296 |
+| IRAM utilisée / fenêtre | 26 535 / 65 536 | 30 663 / 65 536 | 21 074 / 36 864 | 24 806 / 36 864 |
 | DRAM statique / fenêtre | 3 484 / 32 768 | 3 692 / 32 768 | 2 280 / 32 768 | 2 476 / 32 768 |
 | pile disponible | 29 284 | 29 076 | 30 488 | 30 292 |
 
@@ -92,9 +92,25 @@ Segments S3 : `0x3fce4000` (données, 0xd9c octets chargés, 32 Kio réservés),
 `0x403c4000` (0x400), code `0x403c4400`. L'image est identique dans les deux géométries à la constante de
 la table près : la géométrie ne change que ce que le bootloader lit et ce que la CI autorise.
 
-Le code vérifié actuel (30,7 Kio) tiendrait encore dans l'ancienne fenêtre de 36 Kio : l'extension à
-64 Kio sert à la croissance. Elle repose sur une hypothèse que la documentation ne contredit pas mais
-que seule la carte confirme : la ROM charge un second étage dans cette fenêtre.
+### Fenêtre IRAM : 64 Kio ou l'ancienne de 36 Kio ?
+
+Le code vérifié actuel (30,7 Kio) **tient dans l'ancienne fenêtre** (`0x403cb000`–`0x403d4000`) : mesuré, le
+bootloader S3 vérifié se lie à l'identique (même taille de fichier, IRAM 30 663 sur 36 864, 5,5 Kio libres).
+L'extension à 64 Kio n'est donc pas indispensable à cette version ; elle ne sert qu'à la croissance.
+
+| | Anciennes adresses (36 Kio) | Fenêtre de 64 Kio |
+|---|---|---|
+| ce que la ROM charge | mêmes adresses que le bootloader qualifié (#93) : seule la taille du fichier change | une fenêtre jamais chargée par la ROM sur cette carte : une variable de plus |
+| risque de la première qualification | réduit : un seul changement de géométrie (la table) | ajoute « la ROM accepte-t-elle ces adresses ? » |
+| marge de croissance du code | 5,5 Kio d'IRAM (14 %) | 34 Kio |
+| budget de dérive CI (verifié 40 960) | non atteignable : IRAM + DRAM ≈ 40 Kio | cohérent |
+| suite | une 2e qualification matérielle le jour où l'IRAM manque | aucune |
+
+Recommandation : qualifier d'abord avec les anciennes adresses, puis étendre quand l'IRAM manque, avec sa
+propre qualification. Le changement se limite à deux lignes du script d'édition de liens
+(`vectors_seg`/`IRAM` : `0x403cb000`/`0x403cb400`, longueurs `0x400`/`0x9000 - 0x400`) ; les deux variantes
+des quatre bootloaders sont fabriquées et empreintes (jeu de qualification), la CI construit la variante
+actuelle. L'état du dépôt reste la fenêtre de 64 Kio tant que cette décision n'est pas prise.
 
 ## Construire, vérifier, empaqueter
 

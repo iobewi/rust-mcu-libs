@@ -15,6 +15,8 @@
 //!   error apart from an image that is genuinely refused (an I/O error never reaches
 //!   `otadata` as `Invalid`).
 //! * [`writer`] writes a proof: erase, body, read back, commit word last.
+//! * [`provision`] keeps a slot's proof in step with its image across an OTA: invalidate
+//!   before the image is rewritten, publish and re-check once it is complete, gate activation.
 //!
 //! What this does **not** do: it does not protect a bootloader that an attacker can rewrite
 //! (that needs the ROM to authenticate the second stage, a separate hardware profile), it
@@ -23,6 +25,7 @@
 
 pub mod iap1;
 pub mod policy;
+pub mod provision;
 pub mod select;
 pub mod traits;
 pub mod verdict;

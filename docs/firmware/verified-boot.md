@@ -82,9 +82,9 @@ vérifie qu'elle ne peut jamais accepter ce que le décodage refuse.
 | Second étage (octets) | ESP32-S3 | ESP32-C3 |
 |---|---|---|
 | Non signé | **30 016** | **23 008** |
-| Vérifié | **34 352** | **26 912** |
-| Région avant la table, géométrie historique (0x8000) | 32 768 : le vérifié dépasse de 1 584 | 32 768 : marge 5 856 |
-| Région avant la table, géométrie large (0x10000) | 65 536 (limite dure CI 61 440) : marge 27 088 | non utilisée |
+| Vérifié | **34 864** | **27 296** |
+| Région avant la table, géométrie historique (0x8000) | 32 768 : le vérifié dépasse de 2 096 | 32 768 : marge 5 472 |
+| Région avant la table, géométrie large (0x10000) | 65 536 (limite dure CI 61 440) : marge 26 576 | non utilisée |
 
 Le choix retenu est de déplacer la table du S3 (`flash-geometry.md`) plutôt que de réduire le
 bootloader. Le gain mesuré de `opt-level = "z"`, de `optimize_for_size` et de la lecture du manifeste « en
@@ -103,12 +103,45 @@ tient pas) et bloque le vérifié S3 large.
 * Le rejeu d'une ancienne image valablement signée (anti-rollback persistant : #92).
 * La rotation ou la révocation dynamique des clés.
 
+## La preuve suit l'image pendant un OTA
+
+Profil `signed-rsa` de l'exemple `ota-system` (`--features signed-rsa`, clé RSA épinglée à la compilation par
+`IOBEWI_OTA_SIGNING_RSA_KEY`, vérification par la ROM). Les trois opérations de `provision` se placent sur les
+transitions existantes, sans nouvelle machine à états : le secteur de preuve **est** l'état.
+
+| Transition existante | Ajout | Si l'ajout échoue |
+|---|---|---|
+| admission (enveloppe IAM1 RSA vérifiée sous la politique courante) puis `begin` | — | refus avant tout effacement |
+| ouverture de la session d'écriture, **avant le premier octet du corps** | `invalidate` : le secteur de preuve du slot inactif est effacé | upload refusé |
+| écriture du corps, vérification taille + SHA-256 + structure | — | upload refusé, slot sans preuve valide |
+| **avant** la publication OTM1 `Written` | `publish` : écrire la preuve (mot de validation en dernier), la relire, la faire juger par le contrôle du boot | upload refusé, rien n'est publié |
+| activation : re-vérification de l'enveloppe et re-hachage du slot (inchangés), **avant** `Activating` | `slot_bootable` : le contrôle du boot sur le slot | `409`, rien n'est écrit, `Staged` conservé |
+| écriture de l'entrée `otadata` (inchangée) | — | `Staged` restauré (comportement existant) |
+| démarrage | `VerifiedBoot` vérifie de façon indépendante | slot refusé, repli sur le confirmé |
+
+Invariants (tests hôte `ota_sequence.rs` et `auth_service.rs`) :
+
+* une activation ne rend jamais démarrable un slot dont la preuve est absente, partielle, périmée ou étrangère ;
+* à toute coupure, à chaque commande flash et à plusieurs octets près, le slot n'est « activable » que s'il
+  contient l'image complète et sa preuve, ou si rien n'avait encore été touché ;
+* le slot confirmé (image et preuve) n'est ni lisible en écriture par ce code, ni modifié ;
+* la preuve publiée signe exactement la taille et le digest reçus ;
+* une signature P-256 n'est jamais convertie en preuve RSA : sans `signed-rsa`, aucune preuve n'est écrite
+  (un bootloader vérifié refuse alors les images de ce firmware, ce qui est sûr).
+
+L'exemple n'est pas qualifié sur carte pour cette chaîne. La pile occupée par la vérification dans la tâche
+HTTP et la taille de l'en-tête `X-Image-Manifest` (614 caractères, sous la mémoire tampon de 2048 octets de
+la requête) restent à confirmer sur matériel.
+
 ## Outils et migration
 
 `cargo run -p iobewi-firmware-bootauth --features host-sign --example iap1_pack -- sign KEY IMAGE PRODUCT MCU VARIANT SECVER OUT`
-produit `OUT.env` (enveloppe IAM1 en base64url) et `OUT.iap1` (secteur de preuve de 4096 octets) ;
-`keygen`, `pin` et `inspect` complètent l'outil. La clé privée ne quitte pas la machine qui signe.
+produit `OUT.env` (enveloppe IAM1 en base64url, pour `X-Image-Manifest`) et `OUT.iap1` (secteur de preuve de
+4096 octets, pour une installation à la main). `keygen`, `pin`, `keyhex`, `inspect` et `verify` complètent
+l'outil ; `verify` rejoue `VerifiedBoot::admit` sur une image et sa preuve, avec la logique du bootloader mais
+une vérification RSA sur hôte. La clé privée ne quitte pas la machine qui signe. `prepare.py --auth signed-rsa
+--boot verified --rsa-key KEY` fabrique tout d'un seul tenant, la clé épinglée par l'application et par le
+bootloader venant du même fichier.
 
-Un appareil déjà qualifié n'a aucune preuve : installer un second étage vérifié le mettrait en HALT.
-L'écriture de la preuve à l'activation OTA n'est **pas encore câblée** dans l'exemple ; en l'état, les
-preuves se provisionnent depuis l'hôte. Voir `verified-boot-qualification.md` et `geometry-reprovisioning.md`.
+Un appareil déjà qualifié n'a aucune preuve : installer un second étage vérifié le mettrait en HALT sans
+toucher `otadata`. L'ordre sûr est décrit dans `geometry-reprovisioning.md`.

@@ -70,6 +70,15 @@ pub struct MemFlash {
     pub budget: Option<usize>,
     /// Bytes the command interrupted by the power cut still manages to apply.
     pub torn: usize,
+    cut_done: bool,
+}
+
+enum Spend {
+    Ok,
+    /// The command during which power is lost.
+    Cut,
+    /// Power is already gone: nothing happens, whatever is asked.
+    Dead,
 }
 
 impl MemFlash {
@@ -80,6 +89,7 @@ impl MemFlash {
             fail_reads: None,
             budget: None,
             torn: 0,
+            cut_done: false,
         }
     }
 
@@ -102,14 +112,21 @@ impl MemFlash {
         self.data[at] ^= mask;
     }
 
-    fn spend(&mut self) -> bool {
-        match &mut self.budget {
-            Some(0) => false,
-            Some(n) => {
-                *n -= 1;
-                true
+    fn spend(&mut self) -> Spend {
+        match self.budget {
+            None => {
+                self.cut_done = false;
+                Spend::Ok
             }
-            None => true,
+            Some(0) if self.cut_done => Spend::Dead,
+            Some(0) => {
+                self.cut_done = true;
+                Spend::Cut
+            }
+            Some(n) => {
+                self.budget = Some(n - 1);
+                Spend::Ok
+            }
         }
     }
 
@@ -143,27 +160,37 @@ impl Flash for MemFlash {
     }
     fn erase(&mut self, absolute: u32, len: u32) -> Result<(), ()> {
         let at = self.at(absolute);
-        if !self.spend() {
-            // A torn erase leaves the first bytes erased and the rest as it was.
-            let k = self.torn.min(len as usize);
-            self.data[at..at + k].fill(0xFF);
-            return Err(());
+        match self.spend() {
+            Spend::Ok => {
+                self.data[at..at + len as usize].fill(0xFF);
+                Ok(())
+            }
+            Spend::Cut => {
+                // A torn erase leaves the first bytes erased and the rest as it was.
+                let k = self.torn.min(len as usize);
+                self.data[at..at + k].fill(0xFF);
+                Err(())
+            }
+            Spend::Dead => Err(()),
         }
-        self.data[at..at + len as usize].fill(0xFF);
-        Ok(())
     }
     fn program(&mut self, absolute: u32, bytes: &[u8]) -> Result<(), ()> {
         let at = self.at(absolute);
-        let n = if self.spend() {
-            bytes.len()
-        } else {
-            self.torn.min(bytes.len())
+        let n = match self.spend() {
+            Spend::Ok => bytes.len(),
+            Spend::Cut => self.torn.min(bytes.len()),
+            Spend::Dead => return Err(()),
         };
         // NOR flash: programming can only clear bits.
         for (cell, byte) in self.data[at..at + n].iter_mut().zip(bytes) {
             *cell &= byte;
         }
-        if n == bytes.len() { Ok(()) } else { Err(()) }
+        // Even a command that landed completely is not acknowledged when power went with it.
+        if n == bytes.len() && self.budget.is_none_or(|b| b > 0 || !self.cut_done) {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 }
 

@@ -252,6 +252,12 @@ fn verified_plan(
         VerifiedBoot::<RomRsaPss3072, RomSha256>::new(target, &verified::PINS, RomRsaPss3072)
             .map_err(|_| BootError::InvalidLayout)?;
     log!(VerifiedBoot::<RomRsaPss3072, RomSha256>::LABEL);
+    let micros = || {
+        esp_hal::time::Instant::now()
+            .duration_since_epoch()
+            .as_micros()
+    };
+    let started = micros();
 
     for _ in 0..VERIFY_ATTEMPTS {
         let mut structure = |slot: u8| {
@@ -286,7 +292,14 @@ fn verified_plan(
             &mut structure,
             &mut report,
         ) {
-            Ok(plan) => return Ok(plan),
+            Ok(plan) => {
+                // What verification costs at every boot: flash reads, SHA-256 and RSA-PSS.
+                log!(
+                    "boot: slots checked, microseconds ",
+                    (micros() - started) as u32
+                );
+                return Ok(plan);
+            }
             Err(select::Interrupted) => flash_reinit(),
         }
     }

@@ -223,3 +223,18 @@ garantie. Les coupures visant les commits ConfigSpace restent une campagne
 séparée ; un mount échoué n'efface jamais automatiquement les données.
 
 Campagne nominale : [procédure ConfigSpace/EKV et OTA A](../../../docs/config/issue-68-board-campaign.md).
+
+## Profil `signed-rsa` : preuve de démarrage maintenue par l'OTA (#91)
+
+`--features signed-rsa` exige une enveloppe IAM1 RSA-PSS 3072 (`X-Image-Manifest`, 614 caractères) à l'upload et à
+l'activation, vérifiée par la ROM, avec une clé épinglée à la compilation par `IOBEWI_OTA_SIGNING_RSA_KEY`
+(1552 chiffres hexadécimaux : `iap1_pack keyhex`). Pendant l'OTA l'appareil efface la preuve du slot inactif avant
+d'y toucher, la réécrit une fois l'image complète, la fait juger par le contrôle du boot, et refuse d'activer un
+slot dont la preuve n'est pas valide ; voir `docs/firmware/verified-boot.md`. `signed` (ECDSA P-256) et
+`signed-rsa` s'excluent ; `signed-rsa` n'existe pas avec `supervised`. Un second étage vérifié refuse les images
+d'un firmware sans `signed-rsa` (aucune preuve n'est écrite : sûr, mais inutilisable).
+
+```sh
+python3 examples/firmware/ota-system/client.py https://appareil image.bin deploy-2 --ca ca.pem \
+  --manifest image.env --activate
+```

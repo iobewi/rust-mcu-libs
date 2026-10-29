@@ -46,6 +46,10 @@ firmware = [
 # Signature required: IOBEWI_OTA_SIGNING_PUBKEY (public key, hex) must be set at build
 # time. The default build is the unsigned profile and links no asymmetric crypto.
 signed = ["iobewi-firmware-auth/verify-p256"]
+# Signature required with RSA-PSS 3072 (IAM1 algorithm 2), verified through the ROM, and a boot
+# proof (IAP1) kept in step with each image for a verified-boot bootloader.
+# IOBEWI_OTA_SIGNING_RSA_KEY (the key encoding as 1552 hex digits) must be set at build time.
+signed-rsa = ["dep:iobewi-firmware-bootauth", "iobewi-esp-boot/rom-verify"]
 reject-self-check = []
 hang-self-check = []
 esp32c3 = [
@@ -107,6 +111,8 @@ iobewi-esp-firmware-storage = { path = "../../../arch/esp32/firmware/storage", o
 iobewi-firmware-slots = { path = "../../../common/firmware/slots", optional = true }
 iobewi-firmware-image = { path = "../../../common/firmware/image" }
 iobewi-firmware-auth = { path = "../../../common/firmware/auth" }
+iobewi-firmware-bootauth = { path = "../../../common/firmware/bootauth", optional = true }
+iobewi-firmware-layout = { path = "../../../common/firmware/layout" }
 iobewi-esp-boot = { path = "../../../arch/esp32/firmware/boot", optional = true }
 embassy-net = { version = "0.9.1", default-features = false, features = ["dhcpv4", "medium-ethernet", "tcp"], optional = true }
 embassy-sync = { version = "0.8.0", optional = true }
