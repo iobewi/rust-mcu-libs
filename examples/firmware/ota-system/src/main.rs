@@ -205,7 +205,21 @@ fn log_status(status: &str) {
 }
 #[esp_hal::main]
 fn main() -> ! {
+    // The platform's primary console is shared with the bootloader: keep its stamp in the image so
+    // the packaging tools can refuse a second stage built for another console.
+    core::hint::black_box(&iobewi_esp_console::STAMP);
     let p = esp_hal::init(esp_hal::Config::default());
+    #[cfg(all(feature = "console-ring", feature = "esp32s3"))]
+    let console_tx = p.GPIO43;
+    #[cfg(all(feature = "console-ring", feature = "esp32c3"))]
+    let console_tx = p.GPIO21;
+    #[cfg(feature = "console-ring")]
+    iobewi_esp_console::install(
+        p.UART0,
+        console_tx,
+        esp_hal::uart::Config::default().with_baudrate(115_200),
+    )
+    .expect("console UART configuration");
     iobewi_log::install(
         iobewi_esp_console::console_print,
         "example_firmware_ota_system",
@@ -246,7 +260,9 @@ fn main() -> ! {
     })
 }
 #[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    // Independent of the logger: works whatever state it is in.
+    iobewi_esp_console::panic_print(info);
     // If startup/confirmation failed before disarm, hardware expiry still resets.
     loop {
         core::hint::spin_loop();

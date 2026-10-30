@@ -71,7 +71,7 @@ esp32s3 = [
 
 [dependencies]
 iobewi-log = { path = "../../../common/log/core", optional = true }
-iobewi-esp-console = { path = "../../../arch/esp32/log/console", default-features = false, optional = true }
+iobewi-esp-console = { path = "../../../arch/esp32/log/console", optional = true }
 iobewi-config-space = { path = "../../../common/config/space", optional = true }
 iobewi-esp-config-space = { path = "../../../arch/esp32/config/space", optional = true }
 esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"], optional = true }

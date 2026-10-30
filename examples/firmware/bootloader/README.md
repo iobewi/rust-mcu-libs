@@ -47,3 +47,7 @@ No hardware is attached: first/confirmed boot, unconfirmed reboot, image
 corruption, power cuts, stack use and MMU/cache handover remain device gates.
 This composition does not complete product OTA endpoints or supervised
 runtime/backend wiring.
+
+## Console
+
+Diagnostics go through `iobewi-esp-console`'s primary console (UART0 by default, `IOBEWI_CONSOLE_PRIMARY`, features `console-*`), shared with the application and stamped in the image; the second stage links no logger. See `docs/firmware/console.md`.

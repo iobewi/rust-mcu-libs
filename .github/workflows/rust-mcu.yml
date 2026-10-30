@@ -90,6 +90,11 @@ jobs:
           PKG: ${{ matrix.package }}
           FEATURES: ${{ matrix.features }}
         run: cargo clippy -p "$PKG" --features "$FEATURES" --all-targets -- -D warnings
+      - name: Console transmit ring, exhaustive interleavings and memory orders (loom)
+        if: matrix.package == 'iobewi-console'
+        env:
+          RUSTFLAGS: --cfg loom
+        run: cargo test -p iobewi-console --release --test ring_loom
       - name: Optional WebSocket feature tests and Clippy
         if: matrix.package == 'iobewi-http-client'
         run: |

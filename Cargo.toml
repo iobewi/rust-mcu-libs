@@ -51,6 +51,7 @@ members = [
   "common/net/io",
   "common/net/http/client",
   "common/log/core",
+  "common/log/console",
   "arch/esp32/log/console",
   "common/log/config",
   "common/config/space",
@@ -67,6 +68,7 @@ members = [
 ]
 default-members = [
   "common/log/core",
+  "common/log/console",
   "common/config/space",
   "common/net/wifi/core",
   "common/net/wifi/manager",
