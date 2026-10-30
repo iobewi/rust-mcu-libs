@@ -44,6 +44,12 @@ compile_error!(
 );
 #[cfg(all(feature = "esp32c3", feature = "esp32s3"))]
 compile_error!("iobewi-esp-console: select exactly one ESP target feature");
+#[cfg(all(feature = "ring", feature = "lock"))]
+compile_error!(
+    "iobewi-esp-console: `ring` and `lock` exclude each other; use default-features = false"
+);
+#[cfg(all(feature = "ring", not(feature = "primary-uart0")))]
+compile_error!("iobewi-esp-console: `ring` is the UART0 console; it needs `primary-uart0`");
 
 /// The transport this build implements.
 pub const IMPLEMENTED: ConsoleBackend = if cfg!(feature = "primary-usb-serial-jtag") {
@@ -96,12 +102,23 @@ pub struct Primary;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 impl Console for Primary {
     fn write_bytes(&self, bytes: &[u8]) {
+        // With the ring installed a message is deposited whole and leaves by itself.
+        #[cfg(feature = "ring")]
+        if ring_backend::installed() {
+            ring_backend::write(bytes);
+            return;
+        }
         for chunk in bytes.chunks(CHUNK) {
             esp_println::Printer::write_bytes(chunk);
         }
     }
 
-    fn flush(&self) {}
+    /// With the ring: waits at most 100 ms for everything deposited to be transmitted. Without
+    /// it, writes are synchronous and there is nothing to wait for.
+    fn flush(&self) {
+        #[cfg(feature = "ring")]
+        let _ = ring_backend::flush(100_000);
+    }
 }
 
 /// `println!` / `print!` on the primary console, for examples that print formatted text
@@ -131,8 +148,20 @@ pub fn console_print(record: &log::Record<'_>) {
 /// (spin, reset, indicate) stays its own business.
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub fn panic_print(info: &core::panic::PanicInfo<'_>) {
+    #[cfg(feature = "ring")]
+    if ring_backend::installed() {
+        ring_backend::emergency(info);
+        return;
+    }
     write_line(format_args!("PANIC: {info}"));
 }
+
+#[cfg(all(feature = "ring", any(feature = "esp32c3", feature = "esp32s3")))]
+mod ring_backend;
+#[cfg(all(feature = "ring", any(feature = "esp32c3", feature = "esp32s3")))]
+pub use ring_backend::{RING_BYTES, flush, install, installed, lost_messages, pending_bytes};
+#[cfg(all(feature = "ring-stats", any(feature = "esp32c3", feature = "esp32s3")))]
+pub use ring_backend::{RingStats, ring_stats};
 
 #[cfg(feature = "uart-secondary")]
 mod secondary;

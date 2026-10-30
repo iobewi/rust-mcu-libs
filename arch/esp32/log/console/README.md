@@ -35,6 +35,10 @@ The variable is the platform's setting and the feature is how this crate impleme
 
 An image keeps `core::hint::black_box(&iobewi_esp_console::STAMP)`; `.github/scripts/esp_console.py` compares the stamps of the images of a platform.
 
+## Application ring (feature `ring`)
+
+For applications: `install(UART0, tx_pin, config)` starts a 2 KiB transmit ring drained by the UART `TxDone` interrupt; `console_print` deposits whole lines and returns, a full ring drops the whole message and counts it, `flush(timeout_us)` waits for physical transmission, `panic_print` freezes and replays the ring (details and proofs in `docs/firmware/console.md`). It excludes `lock`, needs `primary-uart0`, and is not used by the bootloader. `ring-stats` adds `ring_stats()` (longest critical sections).
+
 ## Logger
 
 ```rust

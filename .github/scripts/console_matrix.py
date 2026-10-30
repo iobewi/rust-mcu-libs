@@ -29,6 +29,14 @@ def cases(chip):
         connector("connector usb-serial-jtag", ["primary-usb-serial-jtag"], "usb-serial-jtag"),
         connector("connector none", ["primary-none"], "none"),
         connector("connector uart0+secondary", ["primary-uart0", "uart-secondary", "lock"], None),
+        connector("connector uart0 ring", ["primary-uart0", "ring"], None),
+        connector("connector uart0 ring+stats+secondary", ["primary-uart0", "ring-stats", "uart-secondary"], None),
+        connector("refused: ring with lock", ["primary-uart0", "ring", "lock"], None,
+                  "`ring` and `lock` exclude each other"),
+        connector("refused: ring on usb-serial-jtag", ["primary-usb-serial-jtag", "ring"], "usb-serial-jtag",
+                  "`ring` is the UART0 console"),
+        connector("refused: ring with no console", ["primary-none", "ring"], "none",
+                  "`ring` is the UART0 console"),
         connector("refused: env usb-serial-jtag, feature uart0", ["primary-uart0"], "usb-serial-jtag",
                   "does not match the primary-* feature"),
         connector("refused: env none, feature uart0", ["primary-uart0"], "none",
@@ -49,6 +57,7 @@ def cases(chip):
                     ["--no-default-features"], env, None))
         out.append((f"application {label}", APP, [chip, f"console-{feature}"],
                     ["--no-default-features"], env, None))
+    out.append(("application ring", APP, [chip, "console-ring"], ["--no-default-features"], None, None))
     out.append(("bootloader/application mismatch refused", BOOTLOADER, [chip, "console-none"],
                 ["--no-default-features"], None, "does not match the primary-* feature"))
     return out

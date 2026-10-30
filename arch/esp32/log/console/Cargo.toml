@@ -20,6 +20,13 @@ primary-none = ["esp-println?/no-op"]
 lock = ["esp-println?/critical-section"]
 esp32c3 = ["dep:esp-println", "esp-println/esp32c3", "esp-hal?/esp32c3"]
 esp32s3 = ["dep:esp-println", "esp-println/esp32s3", "esp-hal?/esp32s3"]
+# Application console on UART0 with a 2 KiB transmit ring and a UART `TxDone` drain: whole messages,
+# no producer waits for the UART, no long critical section. Incompatible with `lock` (the direct
+# path is also the panic path, which must not take a lock). Needs `esp-hal`'s unstable UART
+# interrupt API. The bootloader does not use it.
+ring = ["dep:esp-hal", "dep:critical-section", "esp-hal/unstable"]
+# Longest critical-section durations of the ring, for qualification.
+ring-stats = ["ring"]
 # Secondary console on UART1, taken by value from esp-hal (application only).
 uart-secondary = ["dep:esp-hal", "dep:critical-section"]
 

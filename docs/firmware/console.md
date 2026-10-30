@@ -59,6 +59,41 @@ The primary console needs no state of ours: no logger, no allocator, no error ha
 
 Limits: nothing makes a multi-chunk message atomic against another task (that would mean holding interrupts off for the whole message, or a blocking lock that is unsafe in interrupt and panic context); a UART that never drains stalls the writer holding the lock, as before. Whether the truncated lines seen in the old bench capture came from missing locking (the old build used none) or from the `auto` transport was not established.
 
+## Application console with a transmit ring (feature `ring`)
+
+Q2 showed that no lock held while the UART transmits can both keep messages whole and keep interrupts open (an UART byte takes 87 µs; `esp-println` flushes synchronously). Applications can therefore use the ring instead of the direct path; **the bootloader never does** (synchronous, direct, no ring, no interrupt, no lock).
+
+```text
+producer ──deposit(whole message, µs)──▶ ring 2 KiB ──pump (FIFO fill ≤128 B)──▶ UART0 FIFO ──▶ wire
+   task / interrupt                       │                  ▲
+                                          └─ TxDone interrupt┘  (drains with no further log call)
+```
+
+* `iobewi_esp_console::install(UART0, tx_pin, config)` once, at start-up, on the core that serves the UART interrupt. Before it, the console is the direct one.
+* **Saturation never makes a producer wait**: a message that does not fit is dropped whole, counted (`lost_messages()`), and a `WARN - console: N message(s) dropped` line comes first in the next deposit that fits. A message longer than the ring is dropped whole.
+* **Three guarantees**: *deposit* (returned: in the ring whole, or dropped and counted), *transfer to the FIFO* (autonomous, in order, via `TxDone`, as long as that interrupt can run), *physical transmission* (`flush(timeout)`: ring empty and `TxDone` seen, thread context, bounded).
+* Interrupt context: deposit is allowed (one short critical section, no waiting). The message leaves through `TxDone`.
+
+### Concurrency (proved, not measured)
+
+`common/log/console/src/ring.rs` documents the protocol and invariants. Summary: one actor at a time inside the ring (the critical section); `head` advances after a complete copy, `tail` only after the FIFO accepted the bytes; the panic path never takes the critical section and freezes the ring with a Dekker handshake (`busy`/`emerg`, `SeqCst` fences) before reading it. Proof by `loom` (exhaustive interleavings with the C11 memory model; two deliberately broken variants must fail) and by host tests (ordering, wrap, index overflow, saturation, loss marker, byte conservation, two-thread stress, freeze, abandon cases).
+
+Disassembly (release `ota-system` with `console-ring`): ESP32-S3: `s32i busy; memw; l32i emerg` in the actors, `s32c1i` (claim) then `memw` before the freeze reads; ESP32-C3: `sw busy; fence rw,rw; lw emerg`, `fence rw,rw` in the freeze, `fence rw,w` before releasing stores and `fence r,rw` after acquiring loads.
+
+### Panic
+
+`panic_print` (ring installed): claim the emergency (one winner on S3), write `\r\nPANIC[core N]: …` directly (ROM routine, no lock, no ring), then confirm the freeze (waits at most 2 ms for an actor of the other core, polled by the timer with an iteration cap that is only a safety net), then replay the bytes never transferred, unchanged, between two `-- console ring … --` lines. No replay if: the panic happened inside the ring on this core, the freeze was not confirmed in time, or the ring state is doubtful (indices or witness); the fatal line is out in every case. A second simultaneous panic waits at most 25 ms for the winner's line, then writes its own; two emergency outputs can still interleave if that wait expires or if the second panic arrives during the replay, and a message whose start was already in the FIFO shows its end after the fatal line (the header says so). If the other core died inside the ring, the replay is abandoned after the freeze wait; if it died holding the critical section, nothing here waits for it. The ROM routine itself waits for the UART at wire speed: if the UART clock is dead it never returns (the watchdog, if armed, is the only recourse, as before).
+
+### What is proved, measured, and limited by hardware
+
+| Property | Status |
+| --- | --- |
+| whole messages, FIFO order, no torn message, loss counting, byte conservation, freeze/abandon logic | proved by tests and loom (host) |
+| barriers actually emitted | disassembly (above) |
+| UART `TxDone` drain without further logs, IRQ latency, maximum critical-section time, throughput, behaviour on both cores | **not measured yet (Q3)** |
+| UART0 interrupt routed to one core only | read in esp-hal 1.2.2 (`enable` maps for the current core) |
+| ROM output wait, dead UART clock | hardware limit |
+
 ## Secondary consoles
 
 See `arch/esp32/log/console/README.md`. The connector only moves bytes; fan-out remains the application's composition (`print` function passed to `iobewi_log::install`).

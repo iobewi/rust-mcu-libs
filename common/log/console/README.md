@@ -7,6 +7,7 @@ A console is a byte sink. This `no_std` crate defines how a platform names one a
 - `ConsoleBackend`: `None | Uart(u8) | UsbSerialJtag` (`#[non_exhaustive]`). Which of them an MCU supports is the architecture crate's concern.
 - `PRIMARY` / `STAMP`: the platform's **primary console**, set at build time by `IOBEWI_CONSOLE_PRIMARY` (`uart<N>`, `usb-serial-jtag` or `none`; default `uart0`). Anything else fails the build. Every image of the platform (bootloader and application) reads the same variable.
 - `LineBuf<N>`: formats a message into a fixed buffer (cut with `...` past `N`) so a connector writes it in one go.
+- `ring` module: portable transmit ring (`Ring`, `Platform`) with atomic whole-message deposit, a pump for the device, an emergency freeze, loss counting and a `loom` model of the freeze protocol.
 - `write_record` (feature `log`): the `LEVEL - message` line of a `log` record, for any console.
 
 It does not depend on `iobewi-log`: the logger consumes a console, never the reverse. See `docs/firmware/console.md`.

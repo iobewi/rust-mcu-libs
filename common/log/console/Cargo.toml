@@ -14,3 +14,9 @@ log = ["dep:log"]
 
 [dependencies]
 log = { version = "0.4", optional = true }
+
+[target.'cfg(loom)'.dependencies]
+loom = "0.7"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)', 'cfg(loom_no_fence)', 'cfg(loom_no_recheck)'] }

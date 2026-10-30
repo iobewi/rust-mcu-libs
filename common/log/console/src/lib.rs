@@ -10,6 +10,8 @@ use core::fmt;
 mod backend;
 pub use backend::ConsoleBackend;
 
+pub mod ring;
+
 include!(concat!(env!("OUT_DIR"), "/console_config.rs"));
 
 /// A byte sink. Writes are best effort and cannot fail: a console that is not there must not
