@@ -1,0 +1,16 @@
+[package]
+name = "iobewi-console"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Portable console contract: byte sink, transport selection and the platform's primary console"
+
+[features]
+default = []
+# `write_record`: the `LEVEL - message` line of a `log` record, for any console.
+log = ["dep:log"]
+
+[dependencies]
+log = { version = "0.4", optional = true }
