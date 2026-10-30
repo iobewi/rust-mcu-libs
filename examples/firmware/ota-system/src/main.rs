@@ -250,14 +250,8 @@ fn main() -> ! {
 }
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    // The primary console is stateless, so this works whatever state the logger is in.
-    {
-        use core::fmt::Write as _;
-        let _ = writeln!(
-            iobewi_esp_console::Writer(&iobewi_esp_console::Primary),
-            "PANIC: {info}"
-        );
-    }
+    // Independent of the logger: works whatever state it is in.
+    iobewi_esp_console::panic_print(info);
     // If startup/confirmation failed before disarm, hardware expiry still resets.
     loop {
         core::hint::spin_loop();

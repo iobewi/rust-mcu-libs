@@ -40,7 +40,24 @@ The application does the same with `-p example-firmware-ota-system --features es
 
 ## Panic and HALT
 
-The primary console is stateless, so it works before `esp_hal::init`, without logger and without error handling (no circular dependency). The bootloader prints `boot: PANIC` and its HALT reasons through it; the application's panic handler prints the panic message. If a panic interrupts an ongoing write, output can interleave. The panic location is not printed by the bootloader: keeping every panic site's file name costs about 2.5 KiB of a 32 KiB image.
+The primary console needs no state of ours: no logger, no allocator, no error handling (no circular dependency). **Observed on the bench**: bootloader lines on UART0 after `esp_hal::init`. **Not measured**: output before `esp_hal::init` (the ROM routine it uses does not depend on it, but this was not tested), forced HALT, forced panic.
+
+- Bootloader: `boot: PANIC` and its HALT reasons go through the connector. The panic location is not printed: keeping every panic site's file name costs about 2.5 KiB of a 32 KiB image.
+- Applications: `iobewi_esp_console::panic_print(info)` writes `PANIC: <info>` and nothing else. It does not use `iobewi-log`, so it works whether or not the logger is installed or filtering. `ota-system`, `https-client`, `https-health`, `config-manager`, `wifi-modes` and `state-indicator` use it; `indicator` and `ws2812` do not use the console and keep their silent handler.
+
+## Synchronisation: what is guaranteed
+
+| | |
+| --- | --- |
+| bytes | never torn (application, `lock`): every chunk of at most 64 bytes is written under `esp-println`'s lock |
+| short messages | a message of 64 bytes or less is never split |
+| long messages | formatted in a 256-byte buffer (cut with `...`), written in chunks; another writer can interleave at a 64-byte boundary |
+| interrupts | masked for one chunk at a time, not a line |
+| interrupt context, panic | allowed; the lock is reentrant on a core, so no self-deadlock; the other core's holder releases within one chunk |
+| bootloader | no lock (one core, no interrupts) |
+| `SecondaryUart` | locks per non-blocking FIFO fill, never while waiting; may interleave at fill boundaries; bounded wait on a stuck UART |
+
+Limits: nothing makes a multi-chunk message atomic against another task (that would mean holding interrupts off for the whole message, or a blocking lock that is unsafe in interrupt and panic context); a UART that never drains stalls the writer holding the lock, as before. Whether the truncated lines seen in the old bench capture came from missing locking (the old build used none) or from the `auto` transport was not established.
 
 ## Secondary consoles
 
@@ -51,19 +68,21 @@ See `arch/esp32/log/console/README.md`. The connector only moves bytes; fan-out 
 | Property | Evidence |
 | --- | --- |
 | variable parsing, stamp, `Writer` | host tests of `iobewi-console` |
-| rejected combinations (variable ≠ feature, `uart1`, no feature, two features) | cross-compile failures (see PR) |
+| accepted selections and rejected combinations (variable ≠ feature, `uart1`, unknown value, no feature, two features, bootloader/application mismatch), ESP32-C3 and S3 | `console_matrix.py`, CI step in both MCU jobs (a refusal must fail with its reason) |
+| line formatting and truncation | host tests of `iobewi-console` (`LineBuf`) |
 | stamp agreement bootloader/application | `esp_console.py` and its tests, CI step |
 | output on the wire (UART0, USB Serial/JTAG, none), HALT/panic, ROM/bootloader/application ordering | **bench only** (not covered by software tests) |
+| locking, interleaving, interrupt and panic context | by construction (esp-println lock, reentrant); **not tested on hardware** |
 | UART1 secondary output | compiles only; needs a USB-UART adapter on the chosen pin, which the bench does not have |
 
 ## Impact (ESP32-S3, measured; bootloader profile / release application)
 
 | | before | after |
 | --- | --- | --- |
-| bootloader image (`.bin`) | 29808 B | 29728 B |
+| bootloader image (`.bin`) | 29808 B | 29760 B |
 | bootloader `.data` / `.bss` | 1452 / 96 B | 1452 / 92 B |
-| bootloader `.text` / `.rodata` | 20193 / 1868 B | 20085 / 1896 B |
-| application flash (`elf_size.py`) | 597975 B | 598927 B (+952 B: panic message printing) |
-| application `.data` / `.bss` | 9876 / 192092 B | 9868 / 192092 B |
+| bootloader text+rodata (`size`) | 28251 B | 28203 B |
+| application flash (`elf_size.py`) | 597975 B | 599079 B (+1104 B: panic message printing, `lock`, line buffer) |
+| application `.data` / `.bss` (`size`) | 9892 / 462936 B | 9900 / 462928 B |
 
-The stamp is about 30 bytes per image. Stack use was not measured separately: the primary console adds no frame beyond the `esp-println` call.
+The stamp is about 30 bytes per image. `console_print` and `panic_print` put a 256-byte line buffer on the stack of the calling task (the panic handler runs on the panicking stack); stack high-water marks were not re-measured.

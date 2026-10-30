@@ -391,7 +391,8 @@ fn main() -> ! {
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
-    // The console is stateless: this works before `esp_hal::init` and without any logger. The
+    // The console is stateless: this needs no logger and no state of ours. (Bench: its output is
+    // observed after `esp_hal::init`; before it, it is not measured.) The
     // location is not printed: keeping every panic site's file name costs ~2.5 KiB of a 32 KiB image.
     log!("boot: PANIC");
     loop {

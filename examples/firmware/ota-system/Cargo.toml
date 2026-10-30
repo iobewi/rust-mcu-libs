@@ -21,6 +21,7 @@ console-none = ["iobewi-esp-console?/primary-none"]
 firmware = [
     "dep:iobewi-log",
     "dep:iobewi-esp-console",
+    "iobewi-esp-console/lock",
     "dep:iobewi-config-space",
     "dep:iobewi-esp-config-space",
     "dep:esp-hal",

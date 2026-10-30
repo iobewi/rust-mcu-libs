@@ -30,6 +30,68 @@ impl<C: Console + ?Sized> fmt::Write for Writer<'_, C> {
     }
 }
 
+/// A fixed line buffer: a message is formatted first and written in one go, so concurrent
+/// writers interleave whole lines (or whole chunks of one) instead of formatting fragments.
+/// A line longer than `N` is cut and ends with `...`; it never fails and never allocates.
+pub struct LineBuf<const N: usize> {
+    buf: [u8; N],
+    len: usize,
+    cut: bool,
+}
+
+impl<const N: usize> LineBuf<N> {
+    pub const fn new() -> Self {
+        Self {
+            buf: [0; N],
+            len: 0,
+            cut: false,
+        }
+    }
+
+    /// The line so far; a cut line ends with `...`.
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.buf[..self.len]
+    }
+
+    /// Ends the line: `\n`, or `...\n` over the tail when the line was cut. Needs `N >= 4`.
+    pub fn finish(&mut self) {
+        let keep = if self.cut {
+            N.saturating_sub(4)
+        } else {
+            N.saturating_sub(1)
+        };
+        if self.len > keep {
+            self.len = keep;
+        }
+        if self.cut {
+            self.buf[self.len..self.len + 3].copy_from_slice(b"...");
+            self.len += 3;
+        }
+        self.buf[self.len] = b'\n';
+        self.len += 1;
+    }
+}
+
+impl<const N: usize> Default for LineBuf<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const N: usize> fmt::Write for LineBuf<N> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        // Keep room for the `...` and the line end.
+        let room = N.saturating_sub(4).saturating_sub(self.len);
+        let take = s.len().min(room);
+        self.buf[self.len..self.len + take].copy_from_slice(&s.as_bytes()[..take]);
+        self.len += take;
+        if take < s.len() {
+            self.cut = true;
+        }
+        Ok(())
+    }
+}
+
 /// Writes `LEVEL - message` (no line end) for a `log` record.
 #[cfg(feature = "log")]
 pub fn write_record(out: &mut impl fmt::Write, record: &log::Record<'_>) -> fmt::Result {
@@ -50,6 +112,28 @@ mod tests {
             *n += bytes.len();
         }
         fn flush(&self) {}
+    }
+
+    #[test]
+    fn line_buf_ends_a_line() {
+        let mut l = LineBuf::<16>::new();
+        write!(l, "A {}", 1).unwrap();
+        l.finish();
+        assert_eq!(l.as_bytes(), b"A 1\n");
+    }
+
+    #[test]
+    fn line_buf_cuts_a_long_line_and_says_so() {
+        let mut l = LineBuf::<16>::new();
+        write!(l, "{}", "x".repeat(40)).unwrap();
+        l.finish();
+        assert_eq!(l.as_bytes(), b"xxxxxxxxxxxx...\n");
+        assert_eq!(l.as_bytes().len(), 16);
+        // an exact fit is not a cut
+        let mut l = LineBuf::<16>::new();
+        write!(l, "{}", "y".repeat(12)).unwrap();
+        l.finish();
+        assert_eq!(l.as_bytes(), b"yyyyyyyyyyyy\n");
     }
 
     #[test]

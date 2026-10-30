@@ -11,10 +11,13 @@ description = "ESP console connector: the platform's primary console (UART0, USB
 # The primary console is `IOBEWI_CONSOLE_PRIMARY` (iobewi-console, default uart0); exactly one
 # `primary-*` feature must agree with it, or the build fails. UART0 is the default; another
 # transport needs `default-features = false` on the dependency.
-default = ["primary-uart0"]
+default = ["primary-uart0", "lock"]
 primary-uart0 = ["esp-println?/uart"]
 primary-usb-serial-jtag = ["esp-println?/jtag-serial"]
 primary-none = ["esp-println?/no-op"]
+# Write under esp-println's lock (interrupts masked per 64-byte chunk, both cores excluded).
+# Applications keep it; the single-core, interrupt-free bootloader opts out.
+lock = ["esp-println?/critical-section"]
 esp32c3 = ["dep:esp-println", "esp-println/esp32c3", "esp-hal?/esp32c3"]
 esp32s3 = ["dep:esp-println", "esp-println/esp32s3", "esp-hal?/esp32s3"]
 # Secondary console on UART1, taken by value from esp-hal (application only).

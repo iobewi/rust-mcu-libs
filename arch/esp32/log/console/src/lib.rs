@@ -2,7 +2,9 @@
 
 //! ESP console connector. The platform's primary console is stateless: it needs no
 //! initialisation, no allocator, no runtime and no `iobewi-log`, so a second-stage bootloader
-//! can use it from its first instruction and a panic handler can use it at any time. It knows
+//! and a panic handler can use it without setting anything up. (Output has so far been
+//! observed only after `esp_hal::init`; the ROM path it uses does not depend on it, but a
+//! write before it is not measured.) It knows
 //! nothing about capture, streaming or policy; a platform passes [`console_print`] to the
 //! logger at installation time.
 //!
@@ -66,7 +68,25 @@ const _: () = assert!(
 /// `core::hint::black_box(iobewi_esp_console::STAMP)`; `esp_console.py` compares the images.
 pub use iobewi_console::STAMP;
 
-/// The platform's primary console. Zero-sized; safe to use before any initialisation.
+/// Bytes written per lock acquisition. With the `lock` feature each chunk is atomic and masks
+/// interrupts only for as long as the UART takes to accept it (the 128-byte FIFO absorbs a
+/// chunk of this size when idle), not for a whole line.
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+const CHUNK: usize = 64;
+
+/// Longest record, line end included; a longer one is cut and ends with `...`.
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+const LINE: usize = 256;
+
+/// The platform's primary console. Zero-sized and stateless: it needs no initialisation, so it
+/// can be used in a panic handler.
+///
+/// Concurrency: with the `lock` feature every chunk of at most 64 bytes is written under
+/// esp-println's lock (interrupts masked, other core excluded, reentrant on the same core),
+/// so bytes are never torn and a short message is never split. A message longer than a chunk can
+/// be interleaved with another writer's at a chunk boundary. Without `lock` (bootloader: one
+/// core, no interrupts) nothing is taken. There is no wait on another writer outside the
+/// lock, hence no lock-ordering deadlock; the lock is held only while the UART drains.
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Primary;
@@ -74,20 +94,42 @@ pub struct Primary;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 impl Console for Primary {
     fn write_bytes(&self, bytes: &[u8]) {
-        esp_println::Printer::write_bytes(bytes);
+        for chunk in bytes.chunks(CHUNK) {
+            esp_println::Printer::write_bytes(chunk);
+        }
     }
 
     fn flush(&self) {}
 }
 
-/// `println!` / `print!` on the primary console, for examples that print formatted text directly.
+/// `println!` / `print!` on the primary console, for examples that print formatted text
+/// directly. With `lock`, `println!` holds the lock for the whole line: use [`console_print`]
+/// or [`panic_print`] where interrupts must not stay masked that long.
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub use esp_println::{print, println};
+
+/// Formats `args` into one line and writes it in chunks.
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+fn write_line(args: core::fmt::Arguments<'_>) {
+    use core::fmt::Write as _;
+    let mut line = iobewi_console::LineBuf::<LINE>::new();
+    let _ = line.write_fmt(args);
+    line.finish();
+    Primary.write_bytes(line.as_bytes());
+}
 
 /// Writes `LEVEL - message` on the primary console, one line at a time.
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub fn console_print(record: &log::Record<'_>) {
-    esp_println::println!("{} - {}", record.level(), record.args());
+    write_line(format_args!("{} - {}", record.level(), record.args()));
+}
+
+/// Minimal panic output: `PANIC: <info>` on the primary console. It depends on nothing but
+/// the primary console (no `iobewi-log`, no allocator, no runtime); what the handler does next
+/// (spin, reset, indicate) stays its own business.
+#[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
+pub fn panic_print(info: &core::panic::PanicInfo<'_>) {
+    write_line(format_args!("PANIC: {info}"));
 }
 
 #[cfg(feature = "uart-secondary")]

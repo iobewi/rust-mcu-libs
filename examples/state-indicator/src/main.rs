@@ -299,6 +299,6 @@ fn halt() -> ! {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    println!("panic: {info}");
+    iobewi_esp_console::panic_print(info);
     halt()
 }

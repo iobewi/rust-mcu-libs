@@ -27,23 +27,44 @@ impl<'d> SecondaryUart<'d> {
     }
 }
 
+/// Polls without progress before a write gives up (a stuck UART must not hang the application).
+const PATIENCE: u32 = 2_000_000;
+
 impl Console for SecondaryUart<'_> {
+    /// The critical section covers one non-blocking FIFO fill at a time; waiting for FIFO space
+    /// happens outside it, so interrupts are masked for microseconds, not for a whole line.
+    /// Bytes of two concurrent writers can interleave at FIFO-fill boundaries.
     fn write_bytes(&self, mut bytes: &[u8]) {
-        critical_section::with(|cs| {
-            let mut tx = self.0.borrow_ref_mut(cs);
-            while !bytes.is_empty() {
-                match tx.write(bytes) {
-                    Ok(n) => bytes = &bytes[n..],
-                    // Best effort: a broken secondary console must not stop the application.
-                    Err(_) => return,
+        let mut idle = 0;
+        while !bytes.is_empty() {
+            let wrote = critical_section::with(|cs| {
+                let mut tx = self.0.borrow_ref_mut(cs);
+                if tx.write_ready() {
+                    // Ready: this write does not block.
+                    tx.write(bytes).ok()
+                } else {
+                    Some(0)
+                }
+            });
+            match wrote {
+                // Best effort: a broken secondary console must not stop the application.
+                None => return,
+                Some(0) => {
+                    idle += 1;
+                    if idle > PATIENCE {
+                        return;
+                    }
+                    core::hint::spin_loop();
+                }
+                Some(n) => {
+                    idle = 0;
+                    bytes = &bytes[n..];
                 }
             }
-        });
+        }
     }
 
-    fn flush(&self) {
-        critical_section::with(|cs| {
-            let _ = self.0.borrow_ref_mut(cs).flush();
-        });
-    }
+    /// Nothing to do: `write_bytes` returns once the bytes are in the TX FIFO, and waiting for
+    /// the FIFO to drain would hold interrupts off.
+    fn flush(&self) {}
 }

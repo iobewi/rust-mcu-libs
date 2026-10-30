@@ -21,7 +21,7 @@ fn main() -> ! {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    log::error!("panic: {info}");
+    iobewi_esp_console::panic_print(info);
     loop {
         core::hint::spin_loop();
     }
