@@ -25,6 +25,10 @@ esp32s3 = ["dep:esp-println", "esp-println/esp32s3", "esp-hal?/esp32s3"]
 # path is also the panic path, which must not take a lock). Needs `esp-hal`'s unstable UART
 # interrupt API. The bootloader does not use it.
 ring = ["dep:esp-hal", "dep:critical-section", "esp-hal/unstable"]
+# TEST INSTRUMENT, never in a product: lets a qualification image panic from inside the ring's pump
+# (after the FIFO took bytes, before the ring forgot them), to observe that the panic path abandons
+# the replay and still prints the fatal line. Absent from every default and application build.
+fault-injection = ["ring"]
 # Longest critical-section durations of the ring, for qualification.
 ring-stats = ["ring"]
 # Secondary console on UART1, taken by value from esp-hal (application only).

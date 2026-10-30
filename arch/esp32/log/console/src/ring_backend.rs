@@ -189,7 +189,26 @@ fn fill(uart: &mut Uart<'static, Blocking>, chunk: &[u8]) -> usize {
             Err(_) => break,
         }
     }
+    #[cfg(feature = "fault-injection")]
+    if done > 0 && fault::ARMED.load(Acquire) {
+        fault::ARMED.store(false, Release);
+        // The FIFO has the bytes, the ring has not forgotten them yet: the unsafe state.
+        panic!("injected fault inside the ring");
+    }
     done
+}
+
+/// Test instrument (feature `fault-injection`): the next pump that moves bytes panics inside the ring.
+#[cfg(feature = "fault-injection")]
+mod fault {
+    pub(super) static ARMED: core::sync::atomic::AtomicBool =
+        core::sync::atomic::AtomicBool::new(false);
+}
+
+/// Arms the fault: the next pump that gives bytes to the FIFO panics before the ring advances.
+#[cfg(feature = "fault-injection")]
+pub fn arm_fault_in_pump() {
+    fault::ARMED.store(true, Release);
 }
 
 #[handler]

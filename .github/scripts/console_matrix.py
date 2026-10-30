@@ -31,6 +31,7 @@ def cases(chip):
         connector("connector uart0+secondary", ["primary-uart0", "uart-secondary", "lock"], None),
         connector("connector uart0 ring", ["primary-uart0", "ring"], None),
         connector("connector uart0 ring+stats+secondary", ["primary-uart0", "ring-stats", "uart-secondary"], None),
+        connector("connector uart0 ring+fault-injection", ["primary-uart0", "fault-injection"], None),
         connector("refused: ring with lock", ["primary-uart0", "ring", "lock"], None,
                   "`ring` and `lock` exclude each other"),
         connector("refused: ring on usb-serial-jtag", ["primary-usb-serial-jtag", "ring"], "usb-serial-jtag",

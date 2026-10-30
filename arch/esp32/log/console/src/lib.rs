@@ -158,6 +158,11 @@ pub fn panic_print(info: &core::panic::PanicInfo<'_>) {
 
 #[cfg(all(feature = "ring", any(feature = "esp32c3", feature = "esp32s3")))]
 mod ring_backend;
+#[cfg(all(
+    feature = "fault-injection",
+    any(feature = "esp32c3", feature = "esp32s3")
+))]
+pub use ring_backend::arm_fault_in_pump;
 #[cfg(all(feature = "ring", any(feature = "esp32c3", feature = "esp32s3")))]
 pub use ring_backend::{RING_BYTES, flush, install, installed, lost_messages, pending_bytes};
 #[cfg(all(feature = "ring-stats", any(feature = "esp32c3", feature = "esp32s3")))]

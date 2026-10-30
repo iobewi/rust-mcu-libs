@@ -37,7 +37,7 @@ An image keeps `core::hint::black_box(&iobewi_esp_console::STAMP)`; `.github/scr
 
 ## Application ring (feature `ring`)
 
-For applications: `install(UART0, tx_pin, config)` starts a 2 KiB transmit ring drained by the UART `TxDone` interrupt; `console_print` deposits whole lines and returns, a full ring drops the whole message and counts it, `flush(timeout_us)` waits for physical transmission, `panic_print` freezes and replays the ring (details and proofs in `docs/firmware/console.md`). It excludes `lock`, needs `primary-uart0`, and is not used by the bootloader. `ring-stats` adds `ring_stats()` (longest critical sections).
+For applications: `install(UART0, tx_pin, config)` starts a 2 KiB transmit ring drained by the UART `TxDone` interrupt; `console_print` deposits whole lines and returns, a full ring drops the whole message and counts it, `flush(timeout_us)` waits for physical transmission, `panic_print` freezes and replays the ring (details and proofs in `docs/firmware/console.md`). It excludes `lock`, needs `primary-uart0`, and is not used by the bootloader. `ring-stats` adds `ring_stats()` (longest critical sections). `fault-injection` is a test instrument for qualification images only (`arm_fault_in_pump()` makes the next pump panic inside the ring); no application or default build enables it.
 
 ## Logger
 
