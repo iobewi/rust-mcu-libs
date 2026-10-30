@@ -94,6 +94,16 @@ Disassembly (release `ota-system` with `console-ring`): ESP32-S3: `s32i busy; me
 | UART0 interrupt routed to one core only | read in esp-hal 1.2.2 (`enable` maps for the current core) |
 | ROM output wait, dead UART clock | hardware limit |
 
+### Cost of the ring (release `ota-system`, `console-ring` against the default `lock` build)
+
+| | ESP32-S3 | ESP32-C3 |
+| --- | --- | --- |
+| flash (`elf_size.py`) | +23700 B (4.0 %) | +18870 B (3.0 %) |
+| `size`: text / data / bss | 589179 / 9900 / 462928 → 607855 / 14924 / 457904 | 871350 / 5764 / 194760 → 883804 / 7900 / 196904 |
+| ring object (`RING`, zero-initialised) | 2088 B | 2088 B |
+
+The flash growth is `esp-hal`'s UART driver (`Uart::new`, pin routing, interrupt handler: about 17 KB of text on S3) plus the ring and the emergency path (about 2 KB). The `data`/`bss` split moves by the same amount in both directions on S3 because `bss` is what remains of the linker's data region; the symbol-level DRAM cost is the ring (2088 B), the UART object (20 B) and a few flags, and about 5 KB of `.data` growth is **not attributed** (not `iobewi` symbols; probably `esp-hal` interrupt vectors). The bootloader is unchanged: image 29760 B, text+rodata 28203 B, no `ring` symbol. Stack: `console_print` and `panic_print` keep their 256-byte line buffer; the emergency path adds a second one (fatal line and replay headers). Stack high-water marks were not measured.
+
 ## Secondary consoles
 
 See `arch/esp32/log/console/README.md`. The connector only moves bytes; fan-out remains the application's composition (`print` function passed to `iobewi_log::install`).
