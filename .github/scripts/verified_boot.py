@@ -19,11 +19,12 @@ CHIPS = {
     "esp32s3": ("esp", "xtensa-esp32s3-none-elf", ["--flash-mode", "dio"]),
 }
 
-def build(chip):
+def build(chip, diag=False):
     toolchain, target, mode = CHIPS[chip]
+    features = f"{chip},verified-boot" + (",diag-panic" if diag else "")
     env = dict(os.environ, IOBEWI_BOOT_PINNED_KEYS=PIN, IOBEWI_BOOT_PRODUCT="iobewi-ota-sys", IOBEWI_BOOT_VARIANTS="0,1")
     subprocess.run(["cargo", "+" + toolchain, "build", "-Z", "build-std=core,alloc", "--target", target, "--profile", "bootloader",
-                    "-p", "iobewi-esp-bootloader", "--features", f"{chip},verified-boot", "--bins"], check=True, env=env)
+                    "-p", "iobewi-esp-bootloader", "--features", features, "--bins"], check=True, env=env)
     elf = Path(os.environ.get("CARGO_TARGET_DIR", "target")) / target / "bootloader" / "iobewi-esp-bootloader"
     image = elf.with_suffix(".bin")
     subprocess.run([sys.executable, "-m", "esptool", "--chip", chip, "elf2image", *mode, "--flash-size", "16MB",
@@ -33,14 +34,16 @@ def build(chip):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chip", choices=CHIPS, required=True)
+    parser.add_argument("--diag", action="store_true",
+                        help="the diagnostic build (diag-panic): where a panic or an exception happened; same limits")
     parser.add_argument("--report-only", action="store_true",
                         help="print sizes against the limits without failing (known overflow being worked on)")
     args = parser.parse_args()
     offset = esp_geometry.table_offset()
     lim = esp_geometry.limits(args.chip, offset)
-    image, elf = build(args.chip)
+    image, elf = build(args.chip, args.diag)
     size = image.stat().st_size
-    verdict = (f"{args.chip} verified second stage, table at {offset:#x}: {size} bytes, "
+    verdict = (f"{args.chip} verified second stage{' (diagnostic build)' if args.diag else ''}, table at {offset:#x}: {size} bytes, "
                f"hard limit {lim['hard']} (margin {lim['hard'] - size}), drift budget {lim['verified']}")
     print(verdict, flush=True)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")

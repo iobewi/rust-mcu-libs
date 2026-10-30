@@ -39,6 +39,12 @@ verified-boot = [
   "dep:iobewi-firmware-bootauth",
 ]
 
+# Diagnostic build, off by default and never part of the nominal image: after `boot: PANIC`, print
+# where (file, line, column) and, on Xtensa, what a CPU exception was (cause, pc, sp, faulting
+# address). Costs about 2.5 KiB of data for the file names (see the README); the nominal image
+# is byte for byte the same without it.
+diag-panic = []
+
 [dependencies]
 esp-hal = { version = "~1.2", default-features = false }
 iobewi-esp-console = { path = "../../../arch/esp32/log/console", default-features = false }

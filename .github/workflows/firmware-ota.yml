@@ -217,6 +217,12 @@ jobs:
         run: |
           pip install esptool==5.5.0
           python3 .github/scripts/verified_boot.py --chip esp32c3
+      - name: Verified boot diagnostic build (diag-panic), link and size gate
+        if: contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-bootloader')
+        run: |
+          # Off by default, never in the nominal image; it must keep building and fitting
+          # (docs/firmware/verified-boot-p3-diagnosis.md).
+          python3 .github/scripts/verified_boot.py --chip esp32c3 --diag
 
   esp32s3:
     name: OTA ESP32-S3 selected crates / ${{ matrix.variant }}
@@ -313,6 +319,13 @@ jobs:
           python3 -m esptool --chip esp32s3 elf2image --flash-size 16MB \
             --output "$RUNNER_TEMP/app-wide.bin" $target/release/firmware-ota-system-esp32
           test "$(python3 .github/scripts/esp_geometry.py stamp "$RUNNER_TEMP/app-wide.bin")" = "0x10000"
+      - name: Verified boot diagnostic build (diag-panic), wide geometry
+        if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader')
+        env:
+          ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET: "0x10000"
+        run: |
+          # Last step on purpose: it replaces the linked second stage under target/.
+          python3 .github/scripts/verified_boot.py --chip esp32s3 --diag
 
   firmware-ota-gate:
     name: Firmware OTA validation

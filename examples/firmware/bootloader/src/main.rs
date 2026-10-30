@@ -516,12 +516,77 @@ fn main() -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+#[cfg_attr(not(feature = "diag-panic"), allow(unused_variables))]
+fn panic(info: &core::panic::PanicInfo) -> ! {
     // The console is stateless: this needs no logger and no state of ours. (Bench: its output is
     // observed after `esp_hal::init`; before it, it is not measured.) The
     // location is not printed: keeping every panic site's file name costs ~2.5 KiB of a 32 KiB image.
     log!("boot: PANIC");
+    // Diagnostic build only (`diag-panic`): where it happened. Not the message: that would pull in
+    // `core::fmt`. A CPU exception or an unhandled interrupt panics too, from the runtime's own
+    // handler: the location then names that handler (see `diag`) and not the faulting code.
+    #[cfg(feature = "diag-panic")]
+    if let Some(at) = info.location() {
+        log!(
+            "boot: at ",
+            at.file(),
+            " line ",
+            at.line(),
+            " col ",
+            at.column()
+        );
+    }
     loop {
         core::hint::spin_loop();
+    }
+}
+
+/// What the default exception handlers of the Xtensa runtime hide. They panic with the cause and
+/// the register frame in the *message*, which this image does not print; these replace them and
+/// print the numbers that matter, with no formatting code: the cause, where it happened (`pc`,
+/// to be looked up in the ELF of this exact image), the stack pointer (a stack overflow shows
+/// as `sp` below the end of `.bss`) and the faulting address. Then they stop, like the panic handler.
+#[cfg(all(feature = "diag-panic", target_arch = "xtensa"))]
+mod diag {
+    use super::Loggable;
+    use iobewi_esp_console::{Console as _, Primary};
+
+    // xtensa-lx-rt's `Context` is `repr(C)`, all `u32`: PC, PS, A0..A15, SAR, EXCCAUSE, EXCVADDR.
+    const PC: usize = 0;
+    const PS: usize = 1;
+    const A0: usize = 2;
+    const A1: usize = 3;
+    const EXCVADDR: usize = 20;
+
+    fn stop(kind: &str, cause: u32, frame: &[u32; 21]) -> ! {
+        log!(
+            "boot: ",
+            kind,
+            " cause=",
+            cause,
+            " pc=",
+            frame[PC],
+            " ps=",
+            frame[PS],
+            " a0=",
+            frame[A0],
+            " sp=",
+            frame[A1],
+            " vaddr=",
+            frame[EXCVADDR]
+        );
+        loop {
+            core::hint::spin_loop();
+        }
+    }
+
+    #[unsafe(export_name = "__user_exception")]
+    extern "C" fn user_exception(cause: u32, frame: &[u32; 21]) -> ! {
+        stop("EXCEPTION", cause, frame)
+    }
+
+    #[unsafe(export_name = "__double_exception")]
+    extern "C" fn double_exception(cause: u32, frame: &[u32; 21]) -> ! {
+        stop("DOUBLE EXCEPTION", cause, frame)
     }
 }
