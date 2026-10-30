@@ -10,6 +10,16 @@
 
 The bootloader uses the connector directly (HALT, panic, diagnostics) and links neither `iobewi-log` nor the ring, the configuration manager or the network. The connector never depends on `iobewi-log`.
 
+## Retained architecture (final state of #102)
+
+| Image | Console | Why |
+| --- | --- | --- |
+| bootloader | **synchronous and direct**: connector -> ROM routine -> UART0. No ring, no asynchronous processing, no queue, no `iobewi-log`, no scheduler. HALT and panic lines are written before stopping | diagnostics must be readable and complete; speed is secondary (a DEBUG/TRACE bootloader may boot slower) |
+| application | **`console-ring`** (feature `ring`, opt-in): 2 KiB static ring, whole messages, FIFO order, no allocation, whole-message drop with counter and marker on saturation (no producer ever waits), autonomous drain by the UART `TxDone` interrupt, bounded `flush`, panic path that prints the fatal line first and then replays what the ring still held when its state is provably consistent | Q2 showed that the direct path with a lock cannot keep messages whole and interrupts open at once (below) |
+| application without `install` | the direct path (the `lock` build, still the default of `iobewi-esp-console`) | compatibility; **not** the retained application architecture |
+
+`iobewi-log` keeps its responsibilities; the primary console remains a platform setting shared by both images.
+
 ## Why it exists
 
 The second stage printed on USB Serial/JTAG (`esp-println/jtag-serial`) while the bench console and the application use UART0. The application used `esp-println` in `auto` mode, which picks the transport per write from a USB "start of frame" flag that never resets: the output of one board depended on whether a USB host had been seen.
@@ -40,12 +50,15 @@ The application does the same with `-p example-firmware-ota-system --features es
 
 ## Panic and HALT
 
-The primary console needs no state of ours: no logger, no allocator, no error handling (no circular dependency). **Observed on the bench**: bootloader lines on UART0 after `esp_hal::init`. **Not measured**: output before `esp_hal::init` (the ROM routine it uses does not depend on it, but this was not tested), forced HALT, forced panic.
+The primary console needs no state of ours: no logger, no allocator, no error handling (no circular dependency). **Observed on the bench**: bootloader lines on UART0 after `esp_hal::init`. **Not measured**: output before `esp_hal::init` (the ROM routine it uses does not depend on it, but this was not tested) and a forced bootloader HALT. Application panics with the ring were observed (Q4, below).
 
 - Bootloader: `boot: PANIC` and its HALT reasons go through the connector. The panic location is not printed: keeping every panic site's file name costs about 2.5 KiB of a 32 KiB image.
-- Applications: `iobewi_esp_console::panic_print(info)` writes `PANIC: <info>` and nothing else. It does not use `iobewi-log`, so it works whether or not the logger is installed or filtering. `ota-system`, `https-client`, `https-health`, `config-manager`, `wifi-modes` and `state-indicator` use it; `indicator` and `ws2812` do not use the console and keep their silent handler.
+- Applications: `iobewi_esp_console::panic_print(info)` writes the fatal line and nothing else on the direct path; with the ring installed it is the emergency path described below (fatal line first, then the replay). It does not use `iobewi-log`, so it works whether or not the logger is installed or filtering. `ota-system`, `https-client`, `https-health`, `config-manager`, `wifi-modes` and `state-indicator` use it; `indicator` and `ws2812` do not use the console and keep their silent handler.
 
-## Synchronisation: what is guaranteed
+## The direct path with a lock (not retained for concurrent applications)
+
+Measured on the bench (Q2, ESP32-S3, two cores, 115200 baud): with `lock`, short lines (<= 64 B) stayed whole (800/800) but long lines interleaved massively (46/400 and 0/400 intact) and interrupts were delayed up to 7.3 ms (tick gaps 5.6-7.3 ms; mean producer write 8.9-35.9 ms); without the lock, lines were mixed from the short ones on while the tick stayed near 1 ms. Neither is acceptable, hence the ring. The rest of this section describes what the lock guarantees, for the applications that still use the direct path.
+
 
 | | |
 | --- | --- |
@@ -84,13 +97,14 @@ Disassembly (release `ota-system` with `console-ring`): ESP32-S3: `s32i busy; me
 
 `panic_print` (ring installed): claim the emergency (one winner on S3), write `\r\nPANIC[core N]: …` directly (ROM routine, no lock, no ring), then confirm the freeze (waits at most 2 ms for an actor of the other core, polled by the timer with an iteration cap that is only a safety net), then replay the bytes never transferred, unchanged, between two `-- console ring … --` lines. No replay if: the panic happened inside the ring on this core, the freeze was not confirmed in time, or the ring state is doubtful (indices or witness); the fatal line is out in every case. A second simultaneous panic waits at most 25 ms for the winner's line, then writes its own; two emergency outputs can still interleave if that wait expires or if the second panic arrives during the replay, and a message whose start was already in the FIFO shows its end after the fatal line (the header says so). If the other core died inside the ring, the replay is abandoned after the freeze wait; if it died holding the critical section, nothing here waits for it. The ROM routine itself waits for the UART at wire speed: if the UART clock is dead it never returns (the watchdog, if armed, is the only recourse, as before).
 
-### What is proved, measured, and limited by hardware
+### What is proved, measured, and limited by hardware (see also the qualification summary)
 
 | Property | Status |
 | --- | --- |
 | whole messages, FIFO order, no torn message, loss counting, byte conservation, freeze/abandon logic | proved by tests and loom (host) |
 | barriers actually emitted | disassembly (above) |
-| UART `TxDone` drain without further logs, IRQ latency, maximum critical-section time, throughput, behaviour on both cores | **not measured yet (Q3)** |
+| UART `TxDone` drain without further logs, IRQ latency, critical-section durations, throughput, two cores, saturation | **hardware, Q3** (below) |
+| `flush`, panic replay (P1), abandon when the panic is inside the ring (P2) | **hardware, Q4** (below) |
 | UART0 interrupt routed to one core only | read in esp-hal 1.2.2 (`enable` maps for the current core) |
 | ROM output wait, dead UART clock | hardware limit |
 
@@ -117,8 +131,35 @@ See `arch/esp32/log/console/README.md`. The connector only moves bytes; fan-out 
 | line formatting and truncation | host tests of `iobewi-console` (`LineBuf`) |
 | stamp agreement bootloader/application | `esp_console.py` and its tests, CI step |
 | output on the wire (UART0, USB Serial/JTAG, none), HALT/panic, ROM/bootloader/application ordering | **bench only** (not covered by software tests) |
-| locking, interleaving, interrupt and panic context | by construction (esp-println lock, reentrant); **not tested on hardware** |
+| locking, interleaving, interrupt latency of the direct path | hardware, Q2 (limits above) |
+| ring: atomicity, saturation, autonomous drain, latency, `flush`, panic replay and abandon | hardware, Q3 and Q4 (summary below) |
 | UART1 secondary output | compiles only; needs a USB-UART adapter on the chosen pin, which the bench does not have |
+
+## Qualification summary (ESP32-S3 DevKitC-1 N16, UART0/CH343 at 115200 baud; reports on PR #103)
+
+Qualified on hardware only for the scenarios run; ESP32-C3 is covered by compilation, host tests and disassembly, **not** by hardware. Several of the images below are local probes (`console-probe`, not part of the repository) built on the PR tree; Q1/R1 used a local assembly of this PR and the geometry subset of #101.
+
+| Campaign | Result |
+| --- | --- |
+| Q1 bootloader on UART0 | PASS: ROM and bootloader lines on CH343, handoff to `ota_0`, A `Stable`, `/health` 200 |
+| R1 application on UART0 | partial PASS: `iobewi-log` -> `console_print` -> UART0 and `panic_print` -> UART0; Wi-Fi/HTTPS not exercised (image built without the OTA token/TLS identity, so it panicked by design) |
+| Q2 lock vs no lock (two cores) | defects established (above): this is the comparison reference for the ring |
+| Q3 ring | PASS: 400/400, 800/800 short, 800/800 long and 407/407 interrupt-context lines intact, no unexplained loss; saturation: 24 accepted + 76 dropped whole = 100, counter and marker; a line deposited from an interrupt left by itself; tick gap max 1.033 ms (core 0); producer write mean 109-116 us; longest ring section 65 us, longest drain step 115 us |
+| Q4 `flush` | 125 calls, no early `true` (FIFO empty and transmitter idle at every return), timeout handled and transmission intact after it; one board, one baud rate: no universal proof |
+| Q4 P1 | PASS: fatal line, 1222 bytes replayed = the header's count, 147 already sent + 1222 = 1369 deposited, no duplicate, no corruption, no hang |
+| Q4 P2 | PASS for the abandon: panic inside the pump, fatal line out, replay abandoned, nothing replayed twice. The fault fired in the producer-side pump (inferred), **not** from the `TxDone` interrupt: the interrupt case is not qualified |
+
+### Known limits (not blocking, kept explicit)
+
+* ESP32-C3: no hardware qualification.
+* Simultaneous panics on two cores: logic and `loom` only.
+* A panic from interrupt context: not qualified directly.
+* A panic during a deposit: software tests and `loom` only.
+* Wi-Fi/application load was not part of Q3/Q4; interrupt latency was measured on core 0 only.
+* The ROM routine behind the fatal line waits at wire speed and has no bound if the UART clock is dead (the watchdog, if armed, is the only recourse).
+* `flush`: observed without early return over 125 runs; the meaning of `TxDone` is only as documented by the PAC.
+* `fault-injection` is a test instrument (`arm_fault_in_pump`): off by default, not enabled by `ring`, `console-ring` or any example; only an explicit feature of a qualification image turns it on.
+* The old truncated lines seen in the first bench capture were never attributed to a cause.
 
 ## Impact (ESP32-S3, measured; bootloader profile / release application)
 
