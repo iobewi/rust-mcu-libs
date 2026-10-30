@@ -205,6 +205,9 @@ fn log_status(status: &str) {
 }
 #[esp_hal::main]
 fn main() -> ! {
+    // The platform's primary console is shared with the bootloader: keep its stamp in the image so
+    // the packaging tools can refuse a second stage built for another console.
+    core::hint::black_box(&iobewi_esp_console::STAMP);
     let p = esp_hal::init(esp_hal::Config::default());
     iobewi_log::install(
         iobewi_esp_console::console_print,
@@ -246,7 +249,15 @@ fn main() -> ! {
     })
 }
 #[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    // The primary console is stateless, so this works whatever state the logger is in.
+    {
+        use core::fmt::Write as _;
+        let _ = writeln!(
+            iobewi_esp_console::Writer(&iobewi_esp_console::Primary),
+            "PANIC: {info}"
+        );
+    }
     // If startup/confirmation failed before disarm, hardware expiry still resets.
     loop {
         core::hint::spin_loop();

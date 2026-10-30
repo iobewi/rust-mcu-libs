@@ -11,25 +11,28 @@ name = "iobewi-esp-bootloader"
 path = "src/main.rs"
 
 [features]
-default = []
+default = ["console-uart0"]
+# Primary console (IOBEWI_CONSOLE_PRIMARY must name the same one; the build fails otherwise).
+# Another console needs `--no-default-features`.
+console-uart0 = ["iobewi-esp-console/primary-uart0"]
+console-usb-serial-jtag = ["iobewi-esp-console/primary-usb-serial-jtag"]
+console-none = ["iobewi-esp-console/primary-none"]
 esp32c3 = [
   "esp-hal/esp32c3",
   "esp-hal/rt",
-  "esp-println/esp32c3",
-  "esp-println/jtag-serial",
+  "iobewi-esp-console/esp32c3",
   "iobewi-esp-boot/esp32c3",
 ]
 esp32s3 = [
   "esp-hal/esp32s3",
   "esp-hal/rt",
-  "esp-println/esp32s3",
-  "esp-println/jtag-serial",
+  "iobewi-esp-console/esp32s3",
   "iobewi-esp-boot/esp32s3",
 ]
 
 [dependencies]
 esp-hal = { version = "~1.2", default-features = false }
-esp-println = { version = "~0.18", default-features = false }
+iobewi-esp-console = { path = "../../../arch/esp32/log/console", default-features = false }
 iobewi-esp-boot = { path = "../../../arch/esp32/firmware/boot", default-features = false }
 iobewi-firmware-boot = { path = "../../../common/firmware/boot" }
 iobewi-firmware-image = { path = "../../../common/firmware/image", default-features = false }

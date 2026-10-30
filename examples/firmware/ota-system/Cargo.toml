@@ -12,7 +12,12 @@ path = "src/main.rs"
 required-features = ["firmware"]
 
 [features]
-default = []
+default = ["console-uart0"]
+# Primary console, shared with the bootloader (IOBEWI_CONSOLE_PRIMARY must name the same one; the
+# build fails otherwise). Another console needs `--no-default-features`.
+console-uart0 = ["iobewi-esp-console?/primary-uart0"]
+console-usb-serial-jtag = ["iobewi-esp-console?/primary-usb-serial-jtag"]
+console-none = ["iobewi-esp-console?/primary-none"]
 firmware = [
     "dep:iobewi-log",
     "dep:iobewi-esp-console",
