@@ -163,6 +163,7 @@ provoquer** : aucun essai de corruption). Le second étage affiche ses nombres e
 | `boot: HALT, nothing safe to boot, reason 0x00000001/2/3` | aucune image démarrable / `otadata` inutilisable / format inconnu |
 | `boot: FAILED …` (lecture, table, `otadata`, image, MMU) | échec physique, avec la valeur en cause |
 | `boot: PANIC` | panique du second étage (sans emplacement, voir `examples/firmware/bootloader/README.md`) |
+| `boot: PANIC` juste après `VERIFIED` (P3, tentative 1) | cause inconnue : voir `verified-boot-p3-diagnosis.md` (ce message couvre aussi une exception CPU ou une interruption sans gestionnaire) ; la build `diag-panic` en donne l'emplacement et la cause |
 | rien après `boot authentication: VERIFIED` | blocage dans la vérification (ROM SHA ou RSA, ou pile) |
 | rien après `entry` | blocage avant la première ligne : initialisation |
 

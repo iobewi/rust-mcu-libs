@@ -75,3 +75,22 @@ A stack trace is a separate work item (`esp-backtrace` is not part of this image
 * **Unwinding.** What the walker needs from the stack and registers differs between Xtensa (ESP32-S3) and RISC-V
   (ESP32-C3); neither is established here.
 * **Early panics.** Before `esp_hal::init` nothing can be assumed to print.
+
+## Diagnostic build (`diag-panic`)
+
+Off by default and never part of the nominal image (without the feature the image is byte for byte the
+same). Built to find out why the verified second stage printed `boot: PANIC` on the first hardware try
+(`docs/firmware/verified-boot-p3-diagnosis.md`):
+
+* after `boot: PANIC`, `boot: at <file> line <hex> col <hex>`;
+* on Xtensa, the runtime's user and double exception handlers are replaced and print
+  `boot: EXCEPTION cause=… pc=… ps=… a0=… sp=… vaddr=…` (decoded without `core::fmt`), then stop.
+
+The default handlers of the runtime panic too, so a plain `boot: PANIC` does not tell a Rust panic from a CPU
+exception or an unhandled interrupt. The cost is about 3.3 to 3.6 KiB of image (mostly the file names of the
+dependencies) and 0.6 to 0.7 KiB of code, which fits the 36 KiB code window of the verified profile. Not for a
+release image: it is meant to be flashed once, on the bench, and read on UART0.
+
+```sh
+python3 .github/scripts/verified_boot.py --chip esp32s3 --diag   # build and check the limits
+```
