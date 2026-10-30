@@ -5,13 +5,24 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "ESP console sink: writes a log record to the ESP console"
+description = "ESP console connector: the platform's primary console (UART0, USB Serial/JTAG or none) and optional secondary UARTs"
 
 [features]
-default = []
-esp32c3 = ["dep:esp-println", "esp-println/esp32c3"]
-esp32s3 = ["dep:esp-println", "esp-println/esp32s3"]
+# The primary console is `IOBEWI_CONSOLE_PRIMARY` (iobewi-console, default uart0); exactly one
+# `primary-*` feature must agree with it, or the build fails. UART0 is the default; another
+# transport needs `default-features = false` on the dependency.
+default = ["primary-uart0"]
+primary-uart0 = ["esp-println?/uart"]
+primary-usb-serial-jtag = ["esp-println?/jtag-serial"]
+primary-none = ["esp-println?/no-op"]
+esp32c3 = ["dep:esp-println", "esp-println/esp32c3", "esp-hal?/esp32c3"]
+esp32s3 = ["dep:esp-println", "esp-println/esp32s3", "esp-hal?/esp32s3"]
+# Secondary console on UART1, taken by value from esp-hal (application only).
+uart-secondary = ["dep:esp-hal", "dep:critical-section"]
 
 [dependencies]
-esp-println = { version = "~0.18", default-features = false, features = ["auto"], optional = true }
+iobewi-console = { path = "../../../../common/log/console", features = ["log"] }
+critical-section = { version = "1.2", optional = true }
+esp-hal = { version = "~1.2", default-features = false, optional = true }
+esp-println = { version = "~0.18", default-features = false, optional = true }
 log = "0.4"

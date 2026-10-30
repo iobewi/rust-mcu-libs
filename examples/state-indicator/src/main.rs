@@ -40,7 +40,7 @@ use embassy_futures::select::{Either, select};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_time::{Instant, Timer};
 use esp_hal::{rmt::Rmt, timer::timg::TimerGroup};
-use esp_println::println;
+use iobewi_esp_console::println;
 use iobewi_esp_ws2812::{RMT_FREQ, WriteError, Ws2812};
 use iobewi_indicator::{Indicator, Millis, Pattern, RGB8};
 use iobewi_state::{Flags, Observer, Registry, Snapshot, Source, SourceId, State};

@@ -65,7 +65,7 @@ public-pki = ["rsa", "p384", "x25519"]
 iobewi-tls-roots = { path = "../../common/net/tls/roots" }
 log = { version = "0.4", default-features = false, optional = true }
 iobewi-log = { path = "../../common/log/core", optional = true }
-iobewi-esp-console = { path = "../../arch/esp32/log/console", default-features = false, optional = true }
+iobewi-esp-console = { path = "../../arch/esp32/log/console", optional = true }
 iobewi-esp-wifi = { path = "../../arch/esp32/net/wifi", optional = true }
 iobewi-esp-tls = { path = "../../arch/esp32/net/tls", default-features = false, optional = true }
 iobewi-time = { path = "../../common/time/core", optional = true }
