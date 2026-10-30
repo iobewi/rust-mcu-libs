@@ -69,8 +69,10 @@ const _: () = assert!(
 pub use iobewi_console::STAMP;
 
 /// Bytes written per lock acquisition. With the `lock` feature each chunk is atomic and masks
-/// interrupts only for as long as the UART takes to accept it (the 128-byte FIFO absorbs a
-/// chunk of this size when idle), not for a whole line.
+/// interrupts for its whole transmission: esp-println flushes the UART (ROM `uart_tx_flush`)
+/// every 32 bytes and after each call, so a chunk costs its wire time (64 bytes: ~5.6 ms at
+/// 115200 baud), not the time to fill the FIFO. Chunking bounds the interrupt latency, not
+/// the total time masked while a long line is written.
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 const CHUNK: usize = 64;
 

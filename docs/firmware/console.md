@@ -52,10 +52,10 @@ The primary console needs no state of ours: no logger, no allocator, no error ha
 | bytes | never torn (application, `lock`): every chunk of at most 64 bytes is written under `esp-println`'s lock |
 | short messages | a message of 64 bytes or less is never split |
 | long messages | formatted in a 256-byte buffer (cut with `...`), written in chunks; another writer can interleave at a 64-byte boundary |
-| interrupts | masked for one chunk at a time, not a line |
-| interrupt context, panic | allowed; the lock is reentrant on a core, so no self-deadlock; the other core's holder releases within one chunk |
+| interrupts | masked for the whole transmission of one chunk (64 B ≈ 5.6 ms at 115200), reopened for a few cycles between chunks; a long line keeps them masked most of its ~22 ms. esp-println flushes the UART every 32 bytes, so this is wire time, not FIFO time. Upstream `esp-println` (default features) masks for the whole `println!` line |
+| interrupt context, panic | the lock is reentrant per core (not per context): no self-deadlock; a higher-level handler on S3 (level 6/7) can re-enter and interleave. On S3 a panic waits for the other core to release; if that core died holding the lock the message is lost until the watchdog resets |
 | bootloader | no lock (one core, no interrupts) |
-| `SecondaryUart` | locks per non-blocking FIFO fill, never while waiting; may interleave at fill boundaries; bounded wait on a stuck UART |
+| `SecondaryUart` | critical section per non-blocking FIFO fill (at most 128 register writes), never while waiting for space; may interleave at fill boundaries; gives up after a bounded wait on a stuck UART. `flush()` does nothing: up to 128 bytes (≈ 11 ms) may still be in the FIFO when `write_bytes` returns |
 
 Limits: nothing makes a multi-chunk message atomic against another task (that would mean holding interrupts off for the whole message, or a blocking lock that is unsafe in interrupt and panic context); a UART that never drains stalls the writer holding the lock, as before. Whether the truncated lines seen in the old bench capture came from missing locking (the old build used none) or from the `auto` transport was not established.
 

@@ -13,8 +13,9 @@ Physical console for ESP32-C3 and ESP32-S3, built on `esp-println` and the porta
 | application, feature `lock` (default) | each chunk of at most 64 bytes is written under `esp-println`'s lock: interrupts masked, other core excluded, reentrant on the same core. Bytes are never torn; a message of 64 bytes or less is never split. A longer one can be interleaved with another writer's at a chunk boundary |
 | `console_print` / `panic_print` | format the record into a 256-byte stack buffer first (longer: cut, ends with `...`), then write it, so concurrent messages interleave whole chunks, not formatting fragments |
 | bootloader (`default-features = false`, no `lock`) | one core, no interrupts: no lock needed, none taken |
-| interrupt handler | allowed; the lock is reentrant, and holds interrupts off only for one chunk (a 128-byte FIFO takes 64 bytes without waiting when idle; at 115200 baud a full chunk is at worst about 5.6 ms) |
-| panic | no extra lock: reentrant on the same core, so a panic inside a write does not deadlock; the other core releases within one chunk. Output can still interleave with a write interrupted on the other core |
+| interrupt handler | an interrupt cannot run while the lock is held (it is masked); the lock is keyed by core, not by context, so a handler above the masked level (S3 level 6/7, NMI) re-enters like the owner and may interleave bytes |
+| cost | esp-println flushes the UART every 32 bytes and after each call (ROM `uart_tx_flush`), so a write lasts its wire time with interrupts masked: 64 bytes ≈ 5.6 ms at 115200 baud, a 256-byte line ≈ 22 ms in four chunks (interrupts open for a few cycles between chunks). This is not "FIFO fill time" |
+| panic | no extra lock: reentrant on the same core, so a panic inside a write does not deadlock. On ESP32-S3 a panic on one core waits for the other core to release (one chunk, ~5.6 ms); if the other core died while holding the lock the message never appears and the watchdog resets. Not excluded, not tested |
 
 `print!`/`println!` re-exported from `esp-println` hold the lock for the whole line; prefer `console_print` where interrupts must not stay masked that long. No writer waits for another outside that lock, so there is no lock-ordering deadlock; a stuck UART would stall the writer holding the lock, as it did before.
 
