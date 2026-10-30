@@ -59,7 +59,7 @@ impl Sha256Stream for RomSha256 {
     }
 
     fn update(&mut self, data: &[u8]) {
-        if (data.as_ptr() as usize) % 4 == 0 {
+        if (data.as_ptr() as usize).is_multiple_of(4) {
             // SAFETY: pointer and length come from a live slice; the ROM only reads it.
             unsafe { ets_sha_update(&mut self.context, data.as_ptr(), data.len() as u32, false) };
             return;
