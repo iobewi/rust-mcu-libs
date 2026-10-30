@@ -49,6 +49,8 @@ jobs:
           else
             python3 .github/scripts/discover_ci.py --github-output "$GITHUB_OUTPUT" --full --domain firmware-ota
           fi
+      - name: Test console stamp checker
+        run: python3 .github/scripts/test_esp_console.py
       - name: Validate boot image size gate
         run: python3 .github/scripts/test_compile_mcu.py
       - name: Validate the flash geometry tool
@@ -173,6 +175,15 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/compile_mcu.py --chip esp32c3
+      - name: Console transport matrix (esp32c3)
+        if: contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-console') || contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-bootloader')
+        run: python3 .github/scripts/console_matrix.py --chip esp32c3
+      - name: Bootloader and application share the primary console (esp32c3)
+        if: contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-bootloader') && contains(needs.discover.outputs.esp32c3_packages, 'example-firmware-ota-system')
+        run: |
+          python3 .github/scripts/esp_console.py check \
+            target/riscv32imc-unknown-none-elf/bootloader/iobewi-esp-bootloader \
+            target/riscv32imc-unknown-none-elf/release/firmware-ota-system-esp32
       - name: Signed OTA profile, build and flash cost
         if: contains(needs.discover.outputs.esp32c3_packages, 'example-firmware-ota-system')
         env:
@@ -233,6 +244,15 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/compile_mcu.py --chip esp32s3
+      - name: Console transport matrix (esp32s3)
+        if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-console') || contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader')
+        run: python3 .github/scripts/console_matrix.py --chip esp32s3
+      - name: Bootloader and application share the primary console (esp32s3)
+        if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader') && contains(needs.discover.outputs.esp32s3_packages, 'example-firmware-ota-system')
+        run: |
+          python3 .github/scripts/esp_console.py check \
+            target/xtensa-esp32s3-none-elf/bootloader/iobewi-esp-bootloader \
+            target/xtensa-esp32s3-none-elf/release/firmware-ota-system-esp32
       - name: Signed OTA profile, build and flash cost
         if: contains(needs.discover.outputs.esp32s3_packages, 'example-firmware-ota-system')
         env:

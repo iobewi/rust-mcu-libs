@@ -12,7 +12,15 @@ path = "src/main.rs"
 required-features = ["firmware"]
 
 [features]
-default = []
+default = ["console-uart0"]
+# Primary console, shared with the bootloader (IOBEWI_CONSOLE_PRIMARY must name the same one; the
+# build fails otherwise). Another console needs `--no-default-features`.
+console-uart0 = ["iobewi-esp-console?/primary-uart0", "iobewi-esp-console?/lock"]
+console-usb-serial-jtag = ["iobewi-esp-console?/primary-usb-serial-jtag", "iobewi-esp-console?/lock"]
+console-none = ["iobewi-esp-console?/primary-none", "iobewi-esp-console?/lock"]
+# UART0 with the transmit ring (needs `--no-default-features`): installed in `main`, TX pin
+# GPIO43 (ESP32-S3) / GPIO21 (ESP32-C3), 115200 baud.
+console-ring = ["iobewi-esp-console?/primary-uart0", "iobewi-esp-console?/ring"]
 firmware = [
     "dep:iobewi-log",
     "dep:iobewi-esp-console",

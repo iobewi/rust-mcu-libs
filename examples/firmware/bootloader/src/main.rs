@@ -32,8 +32,8 @@ use iobewi_firmware_boot as boot_core;
 #[cfg(not(feature = "verified-boot"))]
 use boot_core::plan_boot;
 use boot_core::{Boot, Halt, Raw, Write};
-use esp_println::Printer;
 use iobewi_esp_boot::hw;
+use iobewi_esp_console::{Console as _, Primary};
 use iobewi_firmware_image::esp::{self as image, MemoryMap, Verify};
 /// What `log!` can print. Text and hex only, on purpose: `core::fmt` (Debug,
 /// padding, Unicode tables) costs ~10 KiB, and the whole bootloader has to
@@ -44,7 +44,7 @@ trait Loggable {
 
 impl Loggable for &str {
     fn put(&self) {
-        Printer::write_bytes(self.as_bytes());
+        Primary.write_bytes(self.as_bytes());
     }
 }
 
@@ -60,14 +60,14 @@ impl Loggable for u32 {
                 b'a' + nibble - 10
             };
         }
-        Printer::write_bytes(&out);
+        Primary.write_bytes(&out);
     }
 }
 
 macro_rules! log {
     ($($part:expr),+ $(,)?) => {{
         $( Loggable::put(&$part); )+
-        Printer::write_bytes(b"\r\n");
+        Primary.write_bytes(b"\r\n");
     }};
 }
 
@@ -495,6 +495,8 @@ fn main() -> ! {
     let (tg0_wdt, rtc_wdt) = clear_flashboot_watchdogs();
     // Keep the geometry stamp in the image: the packaging tools compare it with the table.
     core::hint::black_box(&iobewi_esp_boot::geometry::STAMP);
+    // Keep the console stamp in the image: the packaging tools compare it with the application's.
+    core::hint::black_box(&iobewi_esp_console::STAMP);
     esp_hal::init(esp_hal::Config::default());
     log!("\r\niobewi-esp-bootloader ", env!("CARGO_PKG_VERSION"));
     log!(
@@ -515,6 +517,9 @@ fn main() -> ! {
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
+    // The console is stateless: this needs no logger and no state of ours. (Bench: its output is
+    // observed after `esp_hal::init`; before it, it is not measured.) The
+    // location is not printed: keeping every panic site's file name costs ~2.5 KiB of a 32 KiB image.
     log!("boot: PANIC");
     loop {
         core::hint::spin_loop();

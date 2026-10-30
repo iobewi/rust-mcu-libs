@@ -40,4 +40,4 @@ Installation is not repeatable. Runtime filtering cannot restore levels removed 
 
 ## Related components
 
-`log/config` owns the portable persisted schema/binding; future consumers may read structured records; `platform console` supplies the console callback.
+`log/config` owns the portable persisted schema/binding; future consumers may read structured records; `platform console` supplies the console callback (`arch/*/log/console`, built on the portable contract of `common/log/console`; see `docs/firmware/console.md`).

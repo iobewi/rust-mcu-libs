@@ -30,7 +30,7 @@ esp32s3 = ["firmware", "esp-hal/esp32s3", "esp-rtos/esp32s3", "esp-radio/esp32s3
 
 [dependencies]
 iobewi-log = { path = "../../common/log/core" }
-iobewi-esp-console = { path = "../../arch/esp32/log/console", default-features = false }
+iobewi-esp-console = { path = "../../arch/esp32/log/console" }
 iobewi-wifi-core = { path = "../../common/net/wifi/core" }
 iobewi-esp-wifi = { path = "../../arch/esp32/net/wifi" }
 esp-hal = { version = "~1.2", default-features = false, features = ["rt", "unstable"] }
