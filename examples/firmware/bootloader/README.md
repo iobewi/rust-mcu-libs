@@ -55,3 +55,23 @@ runtime/backend wiring.
 ## Console
 
 Diagnostics go through `iobewi-esp-console`'s primary console (UART0 by default, `IOBEWI_CONSOLE_PRIMARY`, features `console-*`), shared with the application and stamped in the image; the second stage links no logger. See `docs/firmware/console.md`.
+
+## Panic and backtrace
+
+What the second stage does on a panic today: `boot: PANIC` on the primary console (direct, stateless, no
+logger and no lock), then a spin loop. It prints neither the message nor the location (the file name of every
+panic site costs about 2.5 KiB of the image) and no backtrace. The ROM flash-boot watchdogs are cleared at
+entry, so a panic, like any `HALT`, leaves the board silent and halted: it does not reset. The panic line has
+been observed after `esp_hal::init`; a panic before it is not measured.
+
+A stack trace is a separate work item (`esp-backtrace` is not part of this image). Conditions to meet first:
+
+* **Code budget.** The linked verified profile leaves about 5.8 KiB of the 36 KiB code window (10.4 KiB for the
+  unsigned one, see `docs/firmware/flash-geometry.md`); a trace must fit there, or the window must grow
+  and be qualified on hardware.
+* **Panic path.** No allocation, no lock, no ring: the connector's direct path only, as now.
+* **Symbolisation offline.** Printed addresses mean something only against the ELF of the flashed image. The builds are
+  reproducible: keep the ELF with the SHA-256 of its binary.
+* **Unwinding.** What the walker needs from the stack and registers differs between Xtensa (ESP32-S3) and RISC-V
+  (ESP32-C3); neither is established here.
+* **Early panics.** Before `esp_hal::init` nothing can be assumed to print.
