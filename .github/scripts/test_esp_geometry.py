@@ -108,17 +108,17 @@ def elf(loads, symbols, entry):
 with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / "boot.elf"
     s3 = g.RAM["esp32s3"]
-    good = [(0x403C4000, 0x400), (0x403C4400, 0x7000), (0x3FCE4000, 0x8000)]
+    good = [(0x403CB000, 0x400), (0x403CB400, 0x7000), (0x3FCE4000, 0x8000)]
     syms = {"_stack_start": 0x3FCEC000, "_stack_end": 0x3FCE4E00}
-    path.write_bytes(elf(good, syms, 0x403C4400))
+    path.write_bytes(elf(good, syms, 0x403CB400))
     errors, report = g.check_ram("esp32s3", path)
     assert errors == [], errors
     assert report["iram_used"] == 0x400 + 0x7000 and report["stack"] == 0x7200
-    path.write_bytes(elf(good + [(0x403BF000, 0x100)], syms, 0x403C4400))
+    path.write_bytes(elf(good + [(0x403C6000, 0x100)], syms, 0x403CB400))
     assert g.check_ram("esp32s3", path)[0], "code below the window"
-    path.write_bytes(elf([(0x403C4000, 0x11000), (0x3FCE4000, 0x8000)], syms, 0x403C4400))
+    path.write_bytes(elf([(0x403CB000, 0xA000), (0x3FCE4000, 0x8000)], syms, 0x403CB400))
     assert g.check_ram("esp32s3", path)[0], "code past the window"
-    path.write_bytes(elf(good, {"_stack_start": 0x3FCEC000, "_stack_end": 0x3FCEB000}, 0x403C4400))
+    path.write_bytes(elf(good, {"_stack_start": 0x3FCEC000, "_stack_end": 0x3FCEB000}, 0x403CB400))
     assert any("stack" in e for e in g.check_ram("esp32s3", path)[0]), "stack under 8 KiB"
     path.write_bytes(elf(good, syms, 0x40000000))
     assert any("entry" in e for e in g.check_ram("esp32s3", path)[0]), "entry outside the window"

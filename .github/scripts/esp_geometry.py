@@ -44,7 +44,7 @@ LIMITS = {
 # the boot window applications are never loaded into. "alias" maps an instruction-bus address to
 # the data-bus address of the same SRAM byte.
 RAM = {
-    "esp32s3": {"iram": (0x403C4000, 0x403D4000), "dram": (0x3FCE4000, 0x3FCEC000),
+    "esp32s3": {"iram": (0x403CB000, 0x403D4000), "dram": (0x3FCE4000, 0x3FCEC000),
                 "alias": 0x6F0000, "boot_window": (0x3FCC8000, 0x3FD00000)},
     "esp32c3": {"iram": (0x403CB000, 0x403D4000), "dram": (0x3FCD4000, 0x3FCDC000),
                 "alias": 0x700000, "boot_window": (0x3FCCB000, 0x3FCE0000)},

@@ -75,42 +75,52 @@ n'est pas nécessaire pour la taille actuelle.
 
 ## Mémoire du second étage
 
-Le second étage est chargé **entièrement en RAM** par la ROM. Sur S3 la fenêtre de code passe de 36 à
-64 Kio (`0x403c4000`–`0x403d4000`) en grandissant vers le bas ; elle reste dans `boot_window`
-(`0x3fcc8000`–`0x3fd00000` sur le bus de données, que les applications ne chargent jamais), et la DRAM
-(`0x3fce4000`, 32 Kio) ne bouge pas. Le script d'édition de liens vérifie la fenêtre, l'alignement des
-vecteurs et le non-recouvrement ; `esp_geometry.py` le re-vérifie sur l'ELF produit.
+Le second étage est chargé **entièrement en RAM** par la ROM. Sur S3 la fenêtre de code est de **36 Kio**
+(`0x403cb000`–`0x403d4000`), la DRAM de 32 Kio (`0x3fce4000`–`0x3fcec000`, au-dessous des données de la ROM à
+`0x3fced710`), toutes deux dans `boot_window` (`0x3fcc8000`–`0x3fd00000` sur le bus de données, que les
+applications ne chargent jamais). Le script d'édition de liens vérifie la fenêtre, l'alignement des vecteurs
+et le non-recouvrement ; `esp_geometry.py` le re-vérifie sur l'ELF produit, avec la même fenêtre.
 
-| Mesure (octets) | S3 non signé | S3 vérifié | C3 non signé | C3 vérifié |
-|---|---|---|---|---|
-| image | 30 016 | 34 864 | 23 008 | 27 296 |
-| IRAM utilisée / fenêtre | 26 535 / 65 536 | 30 663 / 65 536 | 21 074 / 36 864 | 24 806 / 36 864 |
-| DRAM statique / fenêtre | 3 484 / 32 768 | 3 692 / 32 768 | 2 280 / 32 768 | 2 476 / 32 768 |
-| pile disponible | 29 284 | 29 076 | 30 488 | 30 292 |
+Mesures sur les ELF liés (octets, console `uart0` par défaut, ESP32-S3 table à `0x10000`, ESP32-C3 à `0x8000`) :
 
-Segments S3 : `0x3fce4000` (données, 0xd9c octets chargés, 32 Kio réservés), vecteurs
-`0x403c4000` (0x400), code `0x403c4400`. L'image est identique dans les deux géométries à la constante de
-la table près : la géométrie ne change que ce que le bootloader lit et ce que la CI autorise.
+| Mesure | S3 `main` non signé | S3 non signé | S3 vérifié | C3 non signé | C3 vérifié |
+|---|---|---|---|---|---|
+| image | 29 760 | 29 984 | 34 816 | 23 056 | 27 328 |
+| IRAM utilisée / fenêtre | 26 311 / 36 864 | 26 459 / 36 864 | 31 059 / 36 864 | 21 088 / 36 864 | 25 138 / 36 864 |
+| IRAM libre | 10 553 (28,6 %) | 10 405 (28,2 %) | 5 805 (15,7 %) | 15 776 | 11 726 |
+| DRAM statique / fenêtre | 3 440 / 32 768 | 3 512 / 32 768 | 3 748 / 32 768 | 2 308 / 32 768 | 2 532 / 32 768 |
+| région de pile | 29 328 | 29 256 | 29 020 | 30 460 | 30 236 |
 
-### Fenêtre IRAM : 64 Kio ou l'ancienne de 36 Kio ?
+Segments S3 vérifié : données `0x3fce4000` (3 748 octets chargés, 32 768 réservés), vecteurs `0x403cb000`
+(0x400) et code `0x403cb400` (30 035 octets), image de 34 816 octets. Le profil vérifié ajoute environ 4,6 Kio
+de code (SHA-256 et RSA-PSS de la ROM, lecture et jugement de la preuve) à l'IRAM du non signé ; le passage
+de `main` au non signé de cette branche ajoute 148 octets de code et 72 octets de données en lecture seule
+(notamment l'estampille de géométrie, que `main` n'a pas : l'outil le signale). Le connecteur de console remplace `esp-println` et s'inline : ses symboles
+propres pèsent moins de 100 octets, et ne retirent aucun diagnostic.
 
-Le code vérifié actuel (30,7 Kio) **tient dans l'ancienne fenêtre** (`0x403cb000`–`0x403d4000`) : mesuré, le
-bootloader S3 vérifié se lie à l'identique (même taille de fichier, IRAM 30 663 sur 36 864, 5,5 Kio libres).
-L'extension à 64 Kio n'est donc pas indispensable à cette version ; elle ne sert qu'à la croissance.
+**Pile.** La région de pile (29 Kio) est la DRAM restante sous le sommet. Borne statique de ce qui est
+connu dans le chemin de vérification : environ 1,2 Kio de tampons dans l'admission de la preuve (en-tête,
+charge utile alignée, bloc de lecture de 256 octets), 1,2 Kio dans l'adaptateur RSA de la ROM (copies
+alignées de la clé de 776 octets et de la signature de 384 octets), un contexte SHA d'une centaine d'octets,
+soit environ 3 Kio. **Non déterminable statiquement** : la pile qu'utilisent les routines ROM elles-mêmes.
 
-| | Anciennes adresses (36 Kio) | Fenêtre de 64 Kio |
-|---|---|---|
-| ce que la ROM charge | mêmes adresses que le bootloader qualifié (#93) : seule la taille du fichier change | une fenêtre jamais chargée par la ROM sur cette carte : une variable de plus |
-| risque de la première qualification | réduit : un seul changement de géométrie (la table) | ajoute « la ROM accepte-t-elle ces adresses ? » |
-| marge de croissance du code | 5,5 Kio d'IRAM (14 %) | 34 Kio |
-| budget de dérive CI (verifié 40 960) | non atteignable : IRAM + DRAM ≈ 40 Kio | cohérent |
-| suite | une 2e qualification matérielle le jour où l'IRAM manque | aucune |
+### Fenêtre IRAM : 36 Kio retenus
 
-Recommandation : qualifier d'abord avec les anciennes adresses, puis étendre quand l'IRAM manque, avec sa
-propre qualification. Le changement se limite à deux lignes du script d'édition de liens
-(`vectors_seg`/`IRAM` : `0x403cb000`/`0x403cb400`, longueurs `0x400`/`0x9000 - 0x400`) ; les deux variantes
-des quatre bootloaders sont fabriquées et empreintes (jeu de qualification), la CI construit la variante
-actuelle. L'état du dépôt reste la fenêtre de 64 Kio tant que cette décision n'est pas prise.
+Le profil vérifié tient dans 36 Kio avec 5,8 Kio libres : l'extension à 64 Kio n'est pas nécessaire. Une
+fenêtre de 64 Kio (`0x403c4000`–`0x403d4000`, qui grandirait vers le bas) a été écrite et mesurée dans une
+version précédente de ce dépôt ; elle n'est pas retenue :
+
+* ses adresses de chargement n'ont jamais été chargées par la ROM sur la carte de qualification, alors que celles
+  de 36 Kio l'ont été (bootloader non signé de #93 et de P2, et second étage vérifié jusqu'à son point
+  d'entrée) : retenir 36 Kio retire une variable de la première qualification ;
+* rien ne la justifie aujourd'hui : la croissance prévue (diagnostics de HALT, marqueurs) tient dans 5,8 Kio ;
+* un second étage ne dépasse pas 61 440 octets avec la table à `0x10000`, quelle que soit la fenêtre.
+
+Si le profil vérifié dépasse un jour la fenêtre, elle peut grandir vers le bas jusqu'au début de
+`boot_window` (`0x403b8000` côté instructions) sans toucher à ce que chargent les applications ; ce
+changement demande sa propre qualification matérielle. Le script d'édition de liens garde trois garde-fous
+(fenêtre à l'intérieur de `boot_window`, vecteurs en tête de fenêtre, vecteurs alignés sur 1 Kio), en plus du
+non-recouvrement IRAM/DRAM.
 
 ## Construire, vérifier, empaqueter
 
@@ -128,6 +138,8 @@ incohérent, et écrit `flash-plan.txt` (offset, fichier, taille, SHA-256).
 
 ## Limites
 
-Rien ici n'a été installé sur une carte. Ce qui reste à prouver sur matériel : que la ROM charge le
-second étage dans la fenêtre agrandie, la durée de démarrage avec la vérification, et la vérification
-RSA-PSS de la ROM en contexte bootloader (`verified-boot-qualification.md`).
+Rien ici n'a été qualifié avec la vérification. Ce qui reste à prouver sur matériel : la durée de démarrage avec
+la vérification, la vérification RSA-PSS de la ROM en contexte bootloader, et la pile réellement consommée par
+les routines ROM (`verified-boot-qualification.md`). Une première tentative (P3) a chargé le second étage vérifié
+jusqu'à son point d'entrée puis est restée muette ; la console du bootloader, alors invisible sur le banc, est
+désormais sur UART0.
