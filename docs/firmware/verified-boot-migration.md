@@ -242,3 +242,10 @@ Wi-Fi prêt, `OTA ready`, `/health` 200 TLS vérifié avec le certificat de B″
 `ota_meta` copie 1 seq 4 (promotion `active_*` = B″), copie 0 seq 5 (`staged none`) : exactement la prédiction du §11 (plage `46c952be…`). Restauration de
 `0x11000`–`0x15000` depuis M1 (`843ec13a…`) : `0x10000`–`0x15000` = `da4bfb3d…` ; `ota_0` `f6ea354e…`, `ota_1` `8c93ea6e…`, bootloader `bd7c4e20…`, `config` `8b911b67…` inchangés ;
 retour : `plan slot=0 seq=1`, A Stable, `/health` 200 certificat `…3F`, autoreset `off`.
+
+## 13. M3 : A″ dans `ota_0` (2026-10-31)
+
+PASS. S0 conforme (références M1, B″ intact `8c93ea6e…`). A″ (`a8ca0ed7…`) écrit à `0x20000` (effacement `0x20000`–`0x121000`), relu exact ; puis sa preuve
+(`7d376f51…`) au secteur `0x1cf000`, relue exacte ; `iap1_pack verify` authentique sur les octets relus (preuve de A → `DigestMismatch`). `ota_0` entier `9677f1c8…`. Un démarrage sous
+le bootloader non signé : `plan slot=0 seq=1`, `running ota_0 status Stable`, Wi-Fi, `OTA ready`, `/health` 200 TLS vérifié, certificat `…3F`. `0x10000`–`0x15000` = `da4bfb3d…` (= M1, aucune écriture de
+métadonnées), bootloader `bd7c4e20…`, `ota_1` `8c93ea6e…`, `config` `8b911b67…` inchangés. État migré conservé ; M4 non engagé.
