@@ -169,3 +169,11 @@ Artefacts figés A″/B″ : `MANIFEST.sha256` vérifié (17/17). `iap1_pack ver
 produit `iobewi-ota-sys`, `esp32s3`, variante 0, taille signée 1 050 112 = `0x100600`) ; contrôles négatifs refusés
 (image A″ + preuve B″ : `DigestMismatch` ; mauvaise épingle : `UnknownKey` ; mauvaise variante, produit, MCU : `Target(...)`).
 Limite inchangée : hachage logiciel, le chemin ROM n'est exercé que sur carte.
+
+## 9. M2 : B″ et sa preuve dans `ota_1` (2026-10-31)
+
+Écrit : image B″ (`B2/app.bin`, `1a36e280…`) à `0x1d0000`, effacement `0x1d0000`–`0x2d1000` ; preuve (`B2/app.iap1`,
+`d1d5843c…`) au secteur `0x37f000`. Relecture de `ota_1` : image exacte, preuve exacte, `ota_1` entier `8c93ea6e…b34c`
+(avant : `ca19ea3a…`). Résidus `0x2d1000`–`0x2da000` et écart jusqu'à la preuve inchangés. `iap1_pack verify` sur la relecture :
+authentique (taille signée 1 050 112 = longueur de B″, les résidus n'en font pas partie). `ota_0` (`f6ea354e…`), bootloader
+(`bd7c4e20…`), `0x10000`–`0x15000` (`da4bfb3d…`) et `config` (`8b911b67…`) relus identiques avant le retour à la console. Aucun démarrage de B″.
