@@ -232,3 +232,13 @@ Coupure après W1 : `Written` + A → `KeepStaged`, rien ne change ; pendant W2 
 entre la dernière lecture et la seconde tentative, la relecture suivante prouve que la flash n'a pas changé. L'échec est donc intervenu avant tout accès flash, dans la couche commande/page
 (refus de commande, page occupée juste après un `dump --stay`, ou fichier tout juste créé non listé), pas dans le chargeur ni le matériel. La cause exacte n'est pas démontrée.
 Procédure future : sortie JSON complète conservée, une écriture à la fois, attente de la fin de l'opération précédente, puis relecture et empreinte comme seul critère de succès.
+
+## 12. M2-C : résultat (2026-10-31)
+
+PASS fonctionnel de B″, restauration PASS. S0 conforme (identité, A Stable, `/health` 200 certificat `…3F`, références M1). W1 `0x14000`, W2 `0x13000`,
+W3 `0x12000` : chacune relue et conforme à l'état attendu (décodeurs du dépôt) ; plage `0x10000`–`0x15000` = `fd850ddc…` avant le démarrage.
+Un démarrage : bootloader non signé `plan slot=1 seq=2`, écrit `Pending` ; B″ : `running ota_1 status PendingVerify`, `boot: confirmed` (pas de `Rollback`),
+Wi-Fi prêt, `OTA ready`, `/health` 200 TLS vérifié avec le certificat de B″ (`…3E`). Écritures de B″ : `otadata` secteur 1 seq 2 `Valid` ;
+`ota_meta` copie 1 seq 4 (promotion `active_*` = B″), copie 0 seq 5 (`staged none`) : exactement la prédiction du §11 (plage `46c952be…`). Restauration de
+`0x11000`–`0x15000` depuis M1 (`843ec13a…`) : `0x10000`–`0x15000` = `da4bfb3d…` ; `ota_0` `f6ea354e…`, `ota_1` `8c93ea6e…`, bootloader `bd7c4e20…`, `config` `8b911b67…` inchangés ;
+retour : `plan slot=0 seq=1`, A Stable, `/health` 200 certificat `…3F`, autoreset `off`.
