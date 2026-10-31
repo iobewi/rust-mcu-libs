@@ -85,14 +85,14 @@ Mesures sur les ELF liés (octets, console `uart0` par défaut, ESP32-S3 table �
 
 | Mesure | S3 `main` non signé | S3 non signé | S3 vérifié | C3 non signé | C3 vérifié |
 |---|---|---|---|---|---|
-| image | 29 760 | 29 984 | 34 816 | 23 056 | 27 328 |
-| IRAM utilisée / fenêtre | 26 311 / 36 864 | 26 459 / 36 864 | 31 059 / 36 864 | 21 088 / 36 864 | 25 138 / 36 864 |
-| IRAM libre | 10 553 (28,6 %) | 10 405 (28,2 %) | 5 805 (15,7 %) | 15 776 | 11 726 |
+| image | 29 760 | 29 984 | 34 896 | 23 056 | 27 392 |
+| IRAM utilisée / fenêtre | 26 311 / 36 864 | 26 459 / 36 864 | 31 147 / 36 864 | 21 088 / 36 864 | 25 196 / 36 864 |
+| IRAM libre | 10 553 (28,6 %) | 10 405 (28,2 %) | 5 717 (15,5 %) | 15 776 | 11 668 |
 | DRAM statique / fenêtre | 3 440 / 32 768 | 3 512 / 32 768 | 3 748 / 32 768 | 2 308 / 32 768 | 2 532 / 32 768 |
 | région de pile | 29 328 | 29 256 | 29 020 | 30 460 | 30 236 |
 
 Segments S3 vérifié : données `0x3fce4000` (3 748 octets chargés, 32 768 réservés), vecteurs `0x403cb000`
-(0x400) et code `0x403cb400` (30 035 octets), image de 34 816 octets. Le profil vérifié ajoute environ 4,6 Kio
+(0x400) et code `0x403cb400` (30 124 octets), image de 34 896 octets. Le profil vérifié ajoute environ 4,6 Kio
 de code (SHA-256 et RSA-PSS de la ROM, lecture et jugement de la preuve) à l'IRAM du non signé ; le passage
 de `main` au non signé de cette branche ajoute 148 octets de code et 72 octets de données en lecture seule
 (notamment l'estampille de géométrie, que `main` n'a pas : l'outil le signale). Le connecteur de console remplace `esp-println` et s'inline : ses symboles
@@ -106,14 +106,14 @@ soit environ 3 Kio. **Non déterminable statiquement** : la pile qu'utilisent le
 
 ### Fenêtre IRAM : 36 Kio retenus
 
-Le profil vérifié tient dans 36 Kio avec 5,8 Kio libres : l'extension à 64 Kio n'est pas nécessaire. Une
+Le profil vérifié tient dans 36 Kio avec 5,7 Kio libres : l'extension à 64 Kio n'est pas nécessaire. Une
 fenêtre de 64 Kio (`0x403c4000`–`0x403d4000`, qui grandirait vers le bas) a été écrite et mesurée dans une
 version précédente de ce dépôt ; elle n'est pas retenue :
 
 * ses adresses de chargement n'ont jamais été chargées par la ROM sur la carte de qualification, alors que celles
   de 36 Kio l'ont été (bootloader non signé de #93 et de P2, et second étage vérifié jusqu'à son point
   d'entrée) : retenir 36 Kio retire une variable de la première qualification ;
-* rien ne la justifie aujourd'hui : la croissance prévue (diagnostics de HALT, marqueurs) tient dans 5,8 Kio ;
+* rien ne la justifie aujourd'hui : la croissance prévue (diagnostics de HALT, marqueurs) tient dans 5,7 Kio ;
 * un second étage ne dépasse pas 61 440 octets avec la table à `0x10000`, quelle que soit la fenêtre.
 
 Si le profil vérifié dépasse un jour la fenêtre, elle peut grandir vers le bas jusqu'au début de

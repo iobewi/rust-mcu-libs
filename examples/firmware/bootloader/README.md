@@ -66,7 +66,7 @@ been observed after `esp_hal::init`; a panic before it is not measured.
 
 A stack trace is a separate work item (`esp-backtrace` is not part of this image). Conditions to meet first:
 
-* **Code budget.** The linked verified profile leaves about 5.8 KiB of the 36 KiB code window (10.4 KiB for the
+* **Code budget.** The linked verified profile leaves about 5.7 KiB of the 36 KiB code window (10.4 KiB for the
   unsigned one, see `docs/firmware/flash-geometry.md`); a trace must fit there, or the window must grow
   and be qualified on hardware.
 * **Panic path.** No allocation, no lock, no ring: the connector's direct path only, as now.
@@ -83,8 +83,9 @@ same). Built to find out why the verified second stage printed `boot: PANIC` on 
 (`docs/firmware/verified-boot-p3-diagnosis.md`):
 
 * after `boot: PANIC`, `boot: at <file> line <hex> col <hex>`;
-* on Xtensa, the runtime's user and double exception handlers are replaced and print
-  `boot: EXCEPTION cause=… pc=… ps=… a0=… sp=… vaddr=…` (decoded without `core::fmt`), then stop.
+* on Xtensa, the runtime's user exception handler is replaced and prints
+  `boot: EXCEPTION cause=… pc=… ps=… a0=… sp=… vaddr=…` (decoded without `core::fmt`), then stops. A double
+  exception is routed to it by the runtime (a dedicated `__double_exception` replacement is dead code).
 
 The default handlers of the runtime panic too, so a plain `boot: PANIC` does not tell a Rust panic from a CPU
 exception or an unhandled interrupt. The cost is about 3.3 to 3.6 KiB of image (mostly the file names of the

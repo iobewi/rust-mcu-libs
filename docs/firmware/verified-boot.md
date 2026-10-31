@@ -72,6 +72,10 @@ un ESP32-S3 (phase A3) : sel de 32 octets exigé, clé et signature en petit-bou
 du moteur RSA, environ 2,5 ms par vérification et 204 ms de hachage par Mio **en contexte applicatif**.
 La vérification en contexte bootloader et la durée de lecture flash restent à mesurer.
 
+**L'adaptateur SHA a été corrigé après le premier essai matériel** : il déclarait un contexte de 80 octets au lieu des
+216 de la ROM (`verified-boot-sha.md` : contrat vérifié sur les images de ROM, correction, comparaison des backends).
+Les durées ci-dessus restent celles de A3.
+
 IAM1 reçoit l'identifiant d'algorithme 2 (`RsaPss3072Sha256`). P-256 reste inchangé. Le contrôle des
 champs de cible (`Target`) est partagé avec le service OTA, et une lecture « en place » du manifeste
 (`RawManifest`, `Target::check_raw`) évite de décoder les énumérations dans le second étage ; un test

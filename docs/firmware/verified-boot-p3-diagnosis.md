@@ -2,8 +2,14 @@
 
 Le 30 octobre 2026, le second étage vérifié (`verified-iram36-uart0.bin`, SHA-256 `ddeccf27…1bf1a`) a affiché
 `boot authentication: VERIFIED` puis `boot: PANIC` et s'est arrêté (`verified-boot-qualification.md`, « Déroulé
-réel »). Ce document reprend l'analyse sur l'ELF exact de cette image, sans rien écrire sur une carte. **La cause
-n'est pas établie.**
+réel »). Ce document reprend l'analyse sur l'ELF exact de cette image, sans rien écrire sur une carte.
+
+> **Mise à jour (essai de diagnostic P3-D, 30 octobre 2026).** Les sections « Démontré » et « Hypothèses » ci-dessous
+> sont celles d'**avant** cet essai, conservées telles quelles. La build de diagnostic a donné
+> `boot: EXCEPTION cause=0x1c (LoadProhibited) pc=0x403cd5a4 … vaddr=0x0` : une exception CPU à `policy.rs:155`, sur une
+> référence de la pile de l'appelant mise à zéro pendant l'appel au SHA-256 de la ROM. **La cause est l'adaptateur SHA**,
+> qui déclarait le contexte de la ROM sur 80 octets au lieu de 216 : le contrat, établi sur les images de ROM, la correction
+> et le choix du backend sont dans `verified-boot-sha.md`. Le RSA-PSS n'avait pas encore été exécuté.
 
 ## Démontré
 
@@ -70,10 +76,11 @@ Ce qu'elle ajoute (console UART0 synchrone directe, aucun anneau ni asynchrone, 
 * après `boot: PANIC`, l'emplacement de la panique : `boot: at <fichier> line 0x… col 0x…` (nombres en hexadécimal). Une
   exception ou une interruption sans gestionnaire y nomme le fichier du **runtime** (`xtensa-lx-rt …/context.rs`,
   ou `esp-hal …/interrupt…`), pas le code fautif, ce qui suffit à distinguer la classe ;
-* sur Xtensa, les gestionnaires d'exception utilisateur et double sont remplacés (`__user_exception`,
-  `__double_exception`, mécanisme de `#[exception]`) et impriment, sans `core::fmt` :
-  `boot: EXCEPTION cause=0x… pc=0x… ps=0x… a0=0x… sp=0x… vaddr=0x…` (ou `DOUBLE EXCEPTION`), puis s'arrêtent comme le
-  handler de panique. `cause` est le `ExceptionCause` de `xtensa-lx-rt` : 0 `Illegal`, 2 `InstrError`, 3 `LoadStoreError`, 5 `Alloca`,
+* sur Xtensa, le gestionnaire d'exception utilisateur est remplacé (`__user_exception`, mécanisme de
+  `#[exception]`) et imprime, sans `core::fmt` :
+  `boot: EXCEPTION cause=0x… pc=0x… ps=0x… a0=0x… sp=0x… vaddr=0x…`, puis s'arrête comme le
+  handler de panique. Une exception double passe par ce même gestionnaire (le désassemblage de `xtensa-lx-rt` le montre) :
+  elle est donc libellée `EXCEPTION` ; le remplacement dédié de `__double_exception` est du code mort. `cause` est le `ExceptionCause` de `xtensa-lx-rt` : 0 `Illegal`, 2 `InstrError`, 3 `LoadStoreError`, 5 `Alloca`,
   6 `DivideByZero`, 8 `Privileged`, 9 `Unaligned`, 12 `InstrDataError`, 13 `LoadStoreDataError`, 14 `InstrAddrError`,
   15 `LoadStoreAddrError`, 16 `ItlbMiss`, 20 `InstrProhibited`, 24 `DtlbMiss`, 28 `LoadProhibited`, 29 `StoreProhibited`,
   32 à 39 coprocesseur désactivé (liste complète : `src/exception.rs` de la crate). `pc` se traduit par `xtensa-esp32s3-elf-addr2line -f -e <elf> <pc>` sur l'ELF de **cette**
@@ -95,7 +102,7 @@ Lecture :
 Octets, table à `0x10000` (S3) et `0x8000` (C3), console `uart0`. Le surcoût est essentiellement la donnée des noms
 de fichiers (environ 2 Kio de chemins absolus de dépendances) et deux petits gestionnaires.
 
-| Image | Nominale | Diagnostic | Écart |
+| Image (sources de P3-D) | Nominale | Diagnostic | Écart |
 |---|---|---|---|
 | S3 vérifié : fichier | 34 816 | 38 400 | + 3 584 |
 | S3 vérifié : IRAM / 36 864 | 31 059 | 31 771 (5 093 libres) | + 712 |
@@ -104,6 +111,9 @@ de fichiers (environ 2 Kio de chemins absolus de dépendances) et deux petits ge
 | S3 non signé : fichier | 29 984 | 33 296 | + 3 312 |
 | C3 vérifié : fichier | 27 328 | 30 576 | + 3 248 |
 | C3 vérifié : IRAM / 36 864 | 25 138 | 25 762 | + 624 |
+
+Avec l'adaptateur SHA corrigé (`verified-boot-sha.md`), le nominal vérifié passe à 34 896 octets (S3) et 27 392 (C3), le
+diagnostic à 38 544 (IRAM 31 867, 4 997 libres) et 30 704 (IRAM 25 836, marge de 2 064 sous la limite dure de 32 768).
 
 Toutes tiennent dans la limite dure (S3 à `0x10000` : 61 440 ; C3 à `0x8000` : 32 768, marge 2 192 pour la vérifiée)
 et dans la fenêtre de code de 36 Kio ; la disposition mémoire est contrôlée par `esp_geometry.py image` (la CI le fait

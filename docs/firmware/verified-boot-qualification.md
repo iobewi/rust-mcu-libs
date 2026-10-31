@@ -50,6 +50,8 @@ nouveaux bootloaders dont la console est UART0 (voir « Images de la reprise de 
 | P2, reprovisionnement | PASS : six écritures (A, sa preuve, `otadata`, `ota_meta`, table à `0x10000`, second étage non signé `iram36`) relues identiques ; démarrage `running ota_0 status Stable`, `/health` 200 TLS vérifié, `config` conservée |
 | P3, tentative 1 | **ÉCHEC** : le second étage vérifié `iram36` est chargé par la ROM jusqu'à son point d'entrée (`entry 0x403cb624`), puis plus rien : pas de reset, application non lancée, `/health` muet. Cause non établie. Les messages du second étage partaient alors sur le port USB natif, que le banc ne lit pas |
 | Restauration | PASS : second étage non signé `iram36` réécrit (relu identique), A de nouveau `Stable`, `/health` 200 |
+| P3-D, essai de diagnostic | `verified-iram36-uart0-diag.bin` : `boot: EXCEPTION cause=0x1c (LoadProhibited) pc=0x403cd5a4 … vaddr=0x0`, à `policy.rs:155` (admission de la preuve), après le SHA-256 de la clé. Un seul démarrage ; restauration de `0x0`–`0xA000` relue identique, A `Stable`, `/health` 200 |
+| Cause | l'adaptateur SHA déclarait le contexte de la ROM sur 80 octets au lieu de 216 (`verified-boot-sha.md`). Corrigé ; **pas encore essayé sur la carte** |
 | Qualification du port natif | Le port USB natif capture la ROM et le second étage (ouvrir le port redémarre la carte : `rst:0x15 USB_UART_CHIP_RESET`). Le pont UART perd des caractères dans la copie relevée |
 
 Depuis, le second étage écrit sur UART0 par le connecteur commun (#102) : le banc le lit sans port supplémentaire.
@@ -94,6 +96,22 @@ L'image A, sa preuve et la table sont **inchangées** (référence P2) : le seco
 d'avant le connecteur de console (pas d'estampille de console) ; elle écrit sur UART0 comme le nouveau second
 étage, ce qui suffit pour le banc. Le contrôle d'estampille bootloader/application est un contrôle de
 construction, fait sur une application construite avec le connecteur.
+
+## Images de la requalification P3-E (adaptateur SHA corrigé)
+
+Arbre du commit qui porte la correction ; mêmes options de construction que ci-dessus. **Reproductibles** (deux
+constructions du vérifié donnent le même binaire). L'image A, sa preuve et la table sont inchangées.
+
+| Fichier (hors Git, `0600`) | Octets | SHA-256 | Écrit | Rôle |
+|---|---|---|---|---|
+| `verified-iram36-uart0-sha216-diag.bin` | 38 544 | `a93424423729c280d90362057e0fe72269860f93a2cdf63ecc9756e91a271520` | `0x0`–`0xA000` | proposé pour le premier essai : même chemin de succès, et en cas d'échec l'emplacement et la cause |
+| `verified-iram36-uart0-sha216.bin` | 34 896 | `5ca06b7cb9b7ac464ab56e302fb734818ec3fc3edfff392f825bf3fd9605ce6f` | `0x0`–`0x9000` | image nominale (celle qui restera) |
+| `unsigned-iram36-uart0.bin` | 29 984 | `38b162ac9e54e8fef881b9c3663f2f4c7140d15e3086156063fd16a01251b0dc` | | second étage actuel de la carte (inchangé par la correction) |
+
+Constantes lues dans les binaires vérifiés : pin `4b452a4c558aec346bf2f481177e99d0c8c02543495ff4c33229793c60b607ae`,
+variantes `[0]`, produit `iobewi-ota-sys`, estampilles `0x10000` et `uart0`. Segments du nominal : `0x3fce4000` (0x5cc),
+`0x3fce4628` (0x87c), `0x403cb000` (0x1828), `0x403cc828` (0x6184), entrée `0x403cb624`. Du diagnostic : `0x5ec`,
+`0x13cc`, `0x186c`, `0x6410`, entrée `0x403cb644`.
 
 ## Référence du banc, géométrie large
 
@@ -178,6 +196,30 @@ relire `0x10000`–`0x15000`, la preuve `0x1cf000` et A par empreinte, `config` 
 (`ac323ea4…`, 30 016 octets) ou, pour avoir les diagnostics sur UART0, `unsigned-iram36-uart0.bin`
 (`38b162ac…`). Relire, un redémarrage, `running ota_0 status Stable`, `/health` 200. **Ne pas** restaurer le second
 étage historique de 29 808 octets : il correspond à l'ancienne géométrie.
+
+**P3-E, requalification après la correction de l'adaptateur SHA.** Même déroulé que P3 (P3-0 à P3-6), avec ces
+différences, établies par P3-D :
+
+* **Région sauvegardée et restaurée : `0x0`–`0xA000` (40 960 octets)**, pas seulement `0x0`–`0x9000` : l'image de
+  diagnostic dépasse `0x9000`. La sauvegarde est relue, son SHA-256 noté, et la restauration est la réécriture de ce
+  fichier, relue identique. Référence au départ : `0x0`–`0xA000` = second étage non signé UART0 (`38b162ac…`) en
+  `0x0`–`0x7520`, queue inerte du vérifié en `0x8000`–`0x8800`, vierge ensuite.
+* **Reset automatique du banc** : constater son état au départ (page chargée, ligne « auto reset … »), le couper
+  pendant l'essai, le remettre à sa valeur initiale à la fin.
+* **Aucun reset logiciel** pour « constater A `Stable` » : le démarrage frais d'un rechargement de page suffit. Un seul
+  démarrage avec le second étage vérifié.
+* **Succès** (tout à la fois) : `boot authentication: VERIFIED`, puis **`boot: slots checked, microseconds N`** (la durée de
+  la vérification du slot 0 : lecture de la preuve, SHA-256 de la clé, RSA-PSS, SHA-256 de l'image), `boot: plan slot=0x00000000
+  seq=0x00000001`, `boot: image ok`, `boot: jump`, `running ota_0 status Stable`, `OTA ready`, `/health` 200. Ni `boot: slot … refused`
+  ni `boot: otadata write`. Le **verdict** de la vérification cryptographique se lit à la sélection du slot 0 : sous le profil
+  vérifié `plan_boot` ne le choisit que si la preuve, la signature RSA-PSS, la cible et le condensé de l'image ont été
+  acceptés ; le journal ne détaille pas chaque étape, et c'est ce qui est écrit dans le compte rendu.
+* **Échec** : le diagnostic dit où (`boot: EXCEPTION …` et son `pc`, symbolisé avec l'ELF apparié ; ou `boot: slot … refused,
+  reason …`). Arrêt, restauration, compte rendu ; pas de seconde tentative sans arbitrage.
+* **Après un PASS**, il restera à installer l'image nominale (`5ca06b7c…`) si c'est le diagnostic qui a été essayé,
+  et surtout à **reconstruire A et B** : leur adaptateur SHA est celui d'avant la correction (hash de la clé dans
+  `publish` et `gate`). Ni leur condensé, ni leur preuve ne sont ceux de la référence P2 : P4 n'est pas possible avec les
+  images actuelles.
 
 **P4, mise à jour OTA complète.** `client.py` envoie `B/app.bin` avec `--manifest B/app.env` (HTTPS, TLS
 vérifié), puis active avec la même enveloppe. Attendus : `ota: writing …`, activation, redémarrage en
