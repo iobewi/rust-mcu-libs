@@ -277,3 +277,17 @@ PASS. S0 conforme ; témoin (`15139f9b…`) écrit à `0x1cf000`, relu exact, `i
 `boot: slots checked, microseconds 0x00002cc2` (11 458 µs), `boot: HALT, nothing safe to boot, reason 0x00000002`, puis silence. Aucun `plan slot`, `otadata write`, `image ok`, `jump`, sortie applicative,
 reset ni panic. `0x10000`–`0x15000` = `da4bfb3d…` après le refus. Restauration par le chargeur ROM (depuis le HALT) : bootloader `bd7c4e20…`, preuve `7d376f51…`, relus ; `ota_0` `9677f1c8…`, `ota_1`, `config`,
 métadonnées inchangés ; retour : `UNSIGNED`, A″ Stable, `/health` 200 TLS vérifié (`…3F`), autoreset `off`.
+
+## 17. P4-B (préparation, hors carte) : refus du premier candidat, repli authentifié sur B″
+
+**Politique de repli réellement implémentée** (`plan_boot`, `select::plan`, `boot()`) :
+* Étape 1 : toute entrée `Pending` devient `Aborted` (écriture planifiée). Étape 2 : les candidats sont les entrées `Valid` et `New`, **séquence décroissante** ; `Invalid`/`Aborted` sont écartées. Pour chacun, `image_ok(slot_of(seq))` : un refus planifie `Invalid` sur son secteur et passe au suivant ; le premier accepté est choisi (un `New` accepté planifie `Pending`).
+* Les écritures du plan ne sont appliquées que si un slot est choisi ; si tous sont refusés (`Halt(NoUsableEntry)`), `boot()` sort avant la boucle d'écritures (cas P4-A). Lecture en erreur : 3 tentatives, puis arrêt sans écriture, jamais d'`Invalid`.
+* Les séquences ne sont jamais renumérotées ; `Invalid` est définitif (seule une nouvelle activation, de séquence supérieure, redonne un candidat). Le bootloader ne lit pas `ota_meta`. Pour B″ démarré en repli (entrée `Valid` → `Confirmed`) : `ota_meta` vide → `reconcile` = `Nothing` ; avec un `Activating` pour `ota_0` (variante) → `ClearStale`. Aucun rejet.
+* HALT plutôt que repli : aucun candidat accepté ; rollback (mécanisme `Pending → Aborted` + autre `Valid`) : n'a lieu que par un redémarrage après un `Pending` non confirmé.
+
+**État candidat** : `otadata` secteur 0 = seq 3 `Valid` (→ `ota_0`, A″), secteur 1 = seq 2 `Valid` (→ `ota_1`, B″), `ota_meta` inchangé (M1). C'est ce que produit le fonctionnement normal après A→B→A (`activate` écrit dans le secteur qui ne porte pas le dernier `Valid`, puis `New → Pending → Valid`) ; seul `ota_meta` (vide, sans `active_*`) ne reflète pas cet historique, ce que ni le bootloader ni `reconcile` ne lisent ici. Témoin : preuve de A″ à signature invalide (P4-A, `15139f9b…`) ; B″ et sa preuve intacts, jamais les deux altérés.
+
+**Validation hôte** (vrai `select::plan` + `VerifiedBoot::admit` + vérifieur RSA hôte, sur les relectures M4 de `ota_0`/`ota_1`, 9 tests existants `boot_selection` verts) : état courant → `ota_0` seq 1 ; candidat sain → `ota_0` seq 3 ; **A″ `BadSignature` → refus slot 0, démarrage `ota_1` seq 2, écriture planifiée `secteur 0 seq 3 → Invalid (3)`** ; les deux refusés → `HALT NoUsableEntry`, écritures non appliquées ; variante `New` → idem ; après repli (`Invalid`) et preuve restaurée → `ota_1` (l'`Invalid` est collant) ; écritures intermédiaires (`[seq1 | seq2]`, `[blank | seq2]`) → toujours B″ authentique (sans danger). Structure d'image : `Bootable` supposée (validée par l'outil et par M0/M4).
+
+**Fichiers** (hors flash) : secteur 1 `0x12000` seq 2 `Valid` `da8196a6…`, secteur 0 `0x11000` seq 3 `Valid` `477203c3…` ; plage attendue avant démarrage `8a8da44d…`, après `7b2f8f69…` (secteur 0 seq 3 `Invalid`, `e411d536…`).
