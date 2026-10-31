@@ -191,3 +191,44 @@ seq 1. Cause : `reconcile` classe « slot en attente de confirmation sans transa
 activation OTM1. `otadata` après : secteur 1 = seq 2 `Invalid`. `ota_meta` inchangé. Ni Wi-Fi ni `/health` de B″ atteints.
 Restauration : `0x10000`–`0x15000` réécrit depuis M1, relu `da4bfb3d…` ; `ota_0`, `ota_1`, bootloader inchangés ;
 A Stable, `/health` 200. Conséquence : confirmer B″ exige un enregistrement OTM1 `Activating` pour `ota_1` en plus d'`otadata`.
+
+## 11. M2-C (préparation, hors carte) : activation cohérente de B″
+
+**Contrat de `reconcile`** (`transaction.rs:96`, via `otm1::boot_action`, `running_matches_staged` = nom du slot démarré == `staged.slot`) :
+`PendingConfirmation` + slot démarré == slot annoncé + `staged = Activating` → `AwaitConfirmation` ; `PendingConfirmation` dans tous les
+autres cas → `RollbackUnaccounted` (l'application écrit `Invalid` et se redémarre : c'est ce que M2-B a observé) ; `Confirmed` + `Activating` + même slot →
+`FinishInterruptedActivation` ; `Confirmed` + `Activating` + autre slot → `ClearStale` ; `Written` + autre slot → `KeepStaged`.
+Champs nécessaires : `stage = activating` et `slot = "ota_1"`. `digest`, `size`, `deployment_id` ne sont pas comparés au démarrage : ils servent à
+l'`ota_meta` (`active_*` après confirmation) et aux contrôles d'activation (re-hachage du slot, `slot_bootable`), non rejoués ici.
+
+**Ordre normal des écritures** (`service.rs` : `publish`, `activate_staged`) : (1) fin d'upload : commit OTM1 `Written` ; (2) `activate` : commit OTM1
+`Activating` **avant** (3) l'écriture `otadata` (`New`, seq max+1) puis reset ; au boot : bootloader `New → Pending`, application `AwaitConfirmation`,
+`self_check` (15 s max), `confirm` (`otadata` → `Valid`), `finish_validation` : commit `active_digest/active_deployment_id` puis commit `staged = none`.
+Échec de (3) : l'application remet `Written`. Pas de confirmation / reset : le bootloader passe `Pending → Aborted` et reboote A.
+
+**Fichiers préparés** (encodeurs réels `Metadata::encode` + `FrameStore::commit` sur les copies M1, `omc`/`odprep` hors dépôt) :
+
+| Secteur | Contenu | SHA-256 |
+|---|---|---|
+| `0x14000` (copie 1) | cadre `OTSF` seq 2, OTM1 `written`, slot `ota_1`, digest `sha256:1a36e280…a5f2`, déploiement `m2c-b2-20261031`, taille 1 050 112 | `fcdd4562…7cd2` |
+| `0x13000` (copie 0) | cadre `OTSF` seq 3, mêmes champs, `activating` | `e54b3f7b…c419` |
+| `0x12000` (`otadata` secteur 1) | seq 2 `New` (→ `ota_1`), secteur 0 (seq 1 `Valid`) conservé | `afff01be…1ac1` |
+
+CRC de cadre vérifiés (zlib, indépendamment en Python) ; décodage par `FrameStore::load` + `Metadata::decode` ; plage `0x10000`–`0x15000` attendue
+après les trois écritures : `fd850ddc…e569` (table et secteur 0 d'`otadata` inchangés). Résultats `boot_action` : booté `ota_1` + `Pending` →
+`AwaitConfirmation` ; booté `ota_1` + `Confirmed` → `FinishInterruptedActivation` ; booté `ota_0` + `Confirmed` → `ClearStale` ; `Written` seul → `KeepStaged`.
+Écart avec le fonctionnement normal : l'activation n'est pas passée par `service::activate` (re-hachage du slot, `slot_bootable`) ; l'équivalent hors
+carte est fait (relecture de B″ = `1a36e280…`, `iap1_pack verify` authentique).
+
+**Ordre et coupures** : W1 `0x14000` (copie 1, la plus ancienne), W2 `0x13000` (copie 0), W3 `0x12000` (`otadata`), jamais W3 avant W2 (cas M2-B).
+Coupure après W1 : `Written` + A → `KeepStaged`, rien ne change ; pendant W2 : copie 0 torn, copie 1 valide (seq 2) → idem ; après W2 sans W3 : A démarre,
+`ClearStale` (A écrit `ota_meta`) ; pendant W3 : secteur 1 corrompu, secteur 0 `Valid` → A démarre ; après W3 : B″. Plus aucune de ces coupures n'invalide A.
+Écrire W2 avant W1 (ou les deux d'un bloc) risquerait de laisser les deux copies non valides (« Corrupted ») : à éviter.
+
+**Après confirmation attendue** : `otadata` secteur 1 seq 2 `Valid` ; `ota_meta` : copie 1 seq 4 (promotion : `active_*` = B″, `staged` encore `activating`), copie 0 seq 5
+(`staged none`). Restauration : réécrire `0x11000`–`0x15000` depuis M1 (16 Kio ; la table n'est pas réécrite), vérifier `0x10000`–`0x15000` = `da4bfb3d…`.
+
+**Échec `ok: false` de la restauration M2-B** : la réponse JSON n'a pas été conservée (je filtrais la sortie) ; le journal série n'a ni début d'écriture ni ligne `esptool`
+entre la dernière lecture et la seconde tentative, la relecture suivante prouve que la flash n'a pas changé. L'échec est donc intervenu avant tout accès flash, dans la couche commande/page
+(refus de commande, page occupée juste après un `dump --stay`, ou fichier tout juste créé non listé), pas dans le chargeur ni le matériel. La cause exacte n'est pas démontrée.
+Procédure future : sortie JSON complète conservée, une écriture à la fois, attente de la fin de l'opération précédente, puis relecture et empreinte comme seul critère de succès.
