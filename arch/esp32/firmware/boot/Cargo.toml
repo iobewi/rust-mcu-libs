@@ -27,8 +27,8 @@ nb = { version = "1", optional = true }
 
 [dev-dependencies]
 iobewi-firmware-boot = { path = "../../../../common/firmware/boot" }
-# The model of the ROM SHA in tests/rom_sha.rs compresses with the reference implementation.
-sha2 = { version = "0.10", features = ["compress"] }
+# The reference digests of tests/rom_sha.rs.
+sha2 = "0.10"
 
 [[test]]
 name = "rom_sha"
