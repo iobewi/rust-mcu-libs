@@ -19,6 +19,14 @@ pub struct Region {
     pub size: usize,
 }
 
+impl Region {
+    /// Whether `len` bytes starting at flash offset `absolute` lie entirely inside the region.
+    pub const fn contains_range(&self, absolute: u32, len: usize) -> bool {
+        absolute >= self.offset
+            && (absolute as u64 + len as u64) <= (self.offset as u64 + self.size as u64)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Requirement<'a> {
     pub label: &'a str,
@@ -313,5 +321,24 @@ mod tests {
             validate_regions(&regions, 0x1000000, 0x1000),
             Err(DiscoveryError::OutOfFlash)
         );
+    }
+
+    #[test]
+    fn a_region_contains_only_ranges_that_end_inside_it() {
+        let r = Region {
+            offset: 0x1cf000,
+            size: 0x1000,
+        };
+        assert!(r.contains_range(0x1cf000, 0x1000));
+        assert!(r.contains_range(0x1cf010, 4));
+        for (at, len) in [
+            (0x1ce000u32, 4usize),
+            (0x1cf000 - 4, 8),
+            (0x1d0000, 4),
+            (0x1cf000, 0x1001),
+            (u32::MAX - 1, 8),
+        ] {
+            assert!(!r.contains_range(at, len), "{at:#x}+{len}");
+        }
     }
 }

@@ -31,22 +31,30 @@ pub const MANIFEST_LEN: usize = 76;
 /// Domain separation: a signature over a manifest is never valid in another protocol.
 pub const DOMAIN: &[u8; 20] = b"iobewi.ota.image.v1\0";
 pub const SIGNED_LEN: usize = DOMAIN.len() + MANIFEST_LEN;
-/// Largest accepted envelope (room for a future RSA-PSS 3072 signature).
+/// Largest accepted envelope: manifest plus the largest signature (RSA-PSS 3072).
 pub const MAX_ENVELOPE: usize = 512;
 /// Largest base64url text of [`MAX_ENVELOPE`] bytes.
 pub const MAX_ENVELOPE_TEXT: usize = MAX_ENVELOPE.div_ceil(3) * 4;
 pub const PRODUCT_LEN: usize = 16;
 pub const ECDSA_P256_SIGNATURE_LEN: usize = 64;
+/// RSA-3072 public key in the Espressif signature-block encoding:
+/// `n` (384, little-endian) | `e` (u32 LE) | `rinv` (384, little-endian) | `mdash` (u32 LE).
+pub const RSA_PSS_3072_PUBLIC_KEY_LEN: usize = 776;
+pub const RSA_PSS_3072_SIGNATURE_LEN: usize = 384;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Algorithm {
     EcdsaP256Sha256,
+    /// RSASSA-PSS, 3072-bit modulus, SHA-256, MGF1-SHA-256, 32-byte salt, public
+    /// exponent 65537. The signature is little-endian, like Espressif's signature block.
+    RsaPss3072Sha256,
 }
 
 impl Algorithm {
     pub const fn id(self) -> u8 {
         match self {
             Self::EcdsaP256Sha256 => 1,
+            Self::RsaPss3072Sha256 => 2,
         }
     }
 
@@ -55,19 +63,37 @@ impl Algorithm {
         match self {
             // SEC1 uncompressed point: 0x04 | X | Y.
             Self::EcdsaP256Sha256 => 65,
+            Self::RsaPss3072Sha256 => RSA_PSS_3072_PUBLIC_KEY_LEN,
+        }
+    }
+
+    /// Cheap structural check of a pinned key, before any arithmetic: length and the
+    /// invariants of its encoding. It does not prove the key is a valid public key.
+    pub fn key_shape_ok(self, key: &[u8]) -> bool {
+        if key.len() != self.public_key_len() {
+            return false;
+        }
+        match self {
+            Self::EcdsaP256Sha256 => key.first() == Some(&0x04),
+            Self::RsaPss3072Sha256 => {
+                // n odd with its top bit set (a genuine 3072-bit modulus); e = 65537.
+                key[0] & 1 == 1 && key[383] & 0x80 != 0 && key[384..388] == 65537u32.to_le_bytes()
+            }
         }
     }
 
     pub const fn signature_len(self) -> usize {
         match self {
             Self::EcdsaP256Sha256 => ECDSA_P256_SIGNATURE_LEN,
+            Self::RsaPss3072Sha256 => RSA_PSS_3072_SIGNATURE_LEN,
         }
     }
 
     fn from_id(id: u8) -> Result<Self, DecodeError> {
         match id {
             1 => Ok(Self::EcdsaP256Sha256),
-            2 | 3 => Err(DecodeError::UnsupportedAlgorithm),
+            2 => Ok(Self::RsaPss3072Sha256),
+            3 => Err(DecodeError::UnsupportedAlgorithm),
             _ => Err(DecodeError::Algorithm),
         }
     }
@@ -79,7 +105,7 @@ pub enum ImageFormat {
 }
 
 impl ImageFormat {
-    pub(crate) const fn id(self) -> u8 {
+    pub const fn id(self) -> u8 {
         match self {
             Self::EspApp => 1,
         }
@@ -102,7 +128,7 @@ pub enum Mcu {
 }
 
 impl Mcu {
-    pub(crate) const fn id(self) -> u8 {
+    pub const fn id(self) -> u8 {
         match self {
             Self::Esp32C3 => 1,
             Self::Esp32S3 => 2,
@@ -165,6 +191,11 @@ impl Product {
             return Err(DecodeError::Product);
         }
         Ok(Self(bytes))
+    }
+
+    /// The tag as stored in a manifest: zero padded to 16 bytes.
+    pub const fn as_bytes(&self) -> &[u8; PRODUCT_LEN] {
+        &self.0
     }
 
     pub fn as_str(&self) -> &str {
@@ -242,6 +273,87 @@ pub fn signed_bytes(manifest: &[u8; MANIFEST_LEN]) -> [u8; SIGNED_LEN] {
     out[..DOMAIN.len()].copy_from_slice(DOMAIN);
     out[DOMAIN.len()..].copy_from_slice(manifest);
     out
+}
+
+/// Byte offsets of the IAM1 v1 manifest fields.
+pub mod offsets {
+    pub const ALGORITHM: usize = 5;
+    pub const IMAGE_FORMAT: usize = 6;
+    pub const MCU: usize = 7;
+    pub const KEY_ID: usize = 8;
+    pub const PRODUCT: usize = 16;
+    pub const HW_VARIANT: usize = 32;
+    pub const RESERVED: usize = 34;
+    pub const SECURITY_VERSION: usize = 36;
+    pub const SIZE: usize = 40;
+    pub const DIGEST: usize = 44;
+}
+
+/// A manifest read in place, field by field, without decoding enumerations or strings.
+///
+/// For callers with very little code space (the boot ROM stage): it checks the framing
+/// (length, magic, version, zero reserved bytes) and exposes the fields as bytes. Whether a
+/// field is acceptable is decided by comparing it with what the local policy expects
+/// ([`crate::Target::check_raw`]), so anything unknown is simply a mismatch. Everything it
+/// accepts is accepted by [`Manifest::decode`] too (see the equivalence test).
+#[derive(Clone, Copy)]
+pub struct RawManifest<'a>(&'a [u8; MANIFEST_LEN]);
+
+impl<'a> RawManifest<'a> {
+    pub fn parse(raw: &'a [u8]) -> Result<Self, DecodeError> {
+        let raw: &[u8; MANIFEST_LEN] = raw.try_into().map_err(|_| DecodeError::Length)?;
+        if raw[..4] != MAGIC {
+            return Err(DecodeError::Magic);
+        }
+        if raw[4] != VERSION {
+            return Err(DecodeError::Version);
+        }
+        if raw[offsets::RESERVED] != 0 || raw[offsets::RESERVED + 1] != 0 {
+            return Err(DecodeError::Reserved);
+        }
+        Ok(Self(raw))
+    }
+
+    pub fn bytes(&self) -> &'a [u8; MANIFEST_LEN] {
+        self.0
+    }
+    pub fn algorithm_id(&self) -> u8 {
+        self.0[offsets::ALGORITHM]
+    }
+    pub fn image_format_id(&self) -> u8 {
+        self.0[offsets::IMAGE_FORMAT]
+    }
+    pub fn mcu_id(&self) -> u8 {
+        self.0[offsets::MCU]
+    }
+    pub fn key_id(&self) -> &'a [u8; 8] {
+        self.0[offsets::KEY_ID..offsets::KEY_ID + 8]
+            .try_into()
+            .unwrap()
+    }
+    pub fn product(&self) -> &'a [u8; PRODUCT_LEN] {
+        self.0[offsets::PRODUCT..offsets::PRODUCT + PRODUCT_LEN]
+            .try_into()
+            .unwrap()
+    }
+    pub fn hw_variant(&self) -> u16 {
+        u16::from_le_bytes([self.0[offsets::HW_VARIANT], self.0[offsets::HW_VARIANT + 1]])
+    }
+    pub fn security_version(&self) -> u32 {
+        u32::from_le_bytes(
+            self.0[offsets::SECURITY_VERSION..offsets::SECURITY_VERSION + 4]
+                .try_into()
+                .unwrap(),
+        )
+    }
+    pub fn size(&self) -> u32 {
+        u32::from_le_bytes(self.0[offsets::SIZE..offsets::SIZE + 4].try_into().unwrap())
+    }
+    pub fn digest(&self) -> &'a [u8; 32] {
+        self.0[offsets::DIGEST..offsets::DIGEST + 32]
+            .try_into()
+            .unwrap()
+    }
 }
 
 /// A canonical envelope: manifest bytes, their decoding, and the signature.
@@ -379,7 +491,7 @@ mod tests {
         };
         assert_eq!(flip(0, b'X'), Err(DecodeError::Magic));
         assert_eq!(flip(4, 2), Err(DecodeError::Version));
-        assert_eq!(flip(5, 2), Err(DecodeError::UnsupportedAlgorithm));
+        assert_eq!(flip(5, 2).unwrap().algorithm, Algorithm::RsaPss3072Sha256);
         assert_eq!(flip(5, 3), Err(DecodeError::UnsupportedAlgorithm));
         assert_eq!(flip(5, 0), Err(DecodeError::Algorithm));
         assert_eq!(flip(5, 9), Err(DecodeError::Algorithm));

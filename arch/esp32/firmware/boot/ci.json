@@ -1,1 +1,1 @@
-{"profile":"host-esp32"}
+{"profile": "host-esp32", "features": ["rom-verify"]}

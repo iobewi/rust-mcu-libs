@@ -17,6 +17,14 @@ compile_error!("choose esp32c3 or esp32s3");
 compile_error!(
     "`signed` is not supported with `supervised`: the /workload/* OTM2 routes carry no image authentication"
 );
+#[cfg(all(feature = "signed-rsa", feature = "supervised"))]
+compile_error!(
+    "`signed-rsa` is not supported with `supervised`: the /workload/* OTM2 routes carry no image authentication"
+);
+#[cfg(all(feature = "signed", feature = "signed-rsa"))]
+compile_error!(
+    "choose one signature algorithm: `signed` (ECDSA P-256) or `signed-rsa` (RSA-PSS 3072 with boot proofs)"
+);
 #[cfg(all(feature = "reject-self-check", feature = "hang-self-check"))]
 compile_error!("choose at most one self-check fault");
 
@@ -205,6 +213,10 @@ fn log_status(status: &str) {
 }
 #[esp_hal::main]
 fn main() -> ! {
+    // The partition table is where this build was configured to find it
+    // (ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET); stamp the image so the packaging
+    // tools can refuse it next to a second stage or a table built for another geometry.
+    core::hint::black_box(&iobewi_esp_boot::geometry::STAMP);
     // The platform's primary console is shared with the bootloader: keep its stamp in the image so
     // the packaging tools can refuse a second stage built for another console.
     core::hint::black_box(&iobewi_esp_console::STAMP);

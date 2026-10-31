@@ -10,10 +10,26 @@ description = "ROM boot primitives and memory maps for ESP32-C3/S3"
 default = []
 esp32c3 = []
 esp32s3 = []
+# ROM SHA-256 and RSA-PSS 3072 for the verified boot profile (issue #91).
+rom-verify = ["dep:iobewi-firmware-auth", "dep:iobewi-firmware-bootauth"]
+# Which SHA-256 the verified boot profile uses. By default the ROM's (`RomSha256`); `sha-hal` is the
+# `esp-hal` driver of the SHA peripheral, `sha-soft` the portable software one. At most one.
+sha-hal = ["rom-verify", "dep:esp-hal", "esp-hal/unstable", "dep:nb"]
+sha-soft = ["rom-verify", "iobewi-firmware-bootauth/soft-sha256"]
 [dependencies]
 iobewi-firmware-image = { path = "../../../../common/firmware/image", default-features = false }
 iobewi-esp-partitions = { path = "../../flash/partitions", default-features = false }
 iobewi-firmware-layout = { path = "../../../../common/firmware/layout" }
+iobewi-firmware-auth = { path = "../../../../common/firmware/auth", optional = true }
+iobewi-firmware-bootauth = { path = "../../../../common/firmware/bootauth", optional = true }
+esp-hal = { version = "~1.2", default-features = false, optional = true }
+nb = { version = "1", optional = true }
 
 [dev-dependencies]
 iobewi-firmware-boot = { path = "../../../../common/firmware/boot" }
+# The reference digests of tests/rom_sha.rs.
+sha2 = "0.10"
+
+[[test]]
+name = "rom_sha"
+required-features = ["rom-verify"]

@@ -17,6 +17,14 @@ with tempfile.TemporaryDirectory() as directory:
             raise AssertionError(f"accepted invalid size {size}")
 print("Boot image gate boundaries passed")
 
+# The default (unsigned) second stage is gated by the geometry tool, per chip and table offset.
+import esp_geometry
+for chip, offset, current in (("esp32c3", 0x8000, 23008), ("esp32s3", 0x8000, 30016), ("esp32s3", 0x10000, 30016)):
+    limits = esp_geometry.limits(chip, offset)
+    assert limits["unsigned"] - current >= 512, "budget keeps room for ordinary growth"
+    assert limits["unsigned"] <= limits["hard"]
+print("Per-chip boot budgets passed")
+
 # Host coverage of a firmware must not turn its MCU link gate into cargo check.
 from unittest.mock import patch
 import compile_mcu

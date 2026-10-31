@@ -242,7 +242,7 @@ fn the_signature_is_domain_separated() {
 fn reserved_and_unknown_algorithms_are_refused_even_when_signed() {
     let f = Fixture::new();
     f.with(|p| {
-        for id in [2u8, 3, 9] {
+        for id in [3u8, 9] {
             let mut raw = manifest_for(&f.signer).encode();
             raw[5] = id;
             let sig: p256::ecdsa::Signature = {

@@ -44,9 +44,9 @@ const KEY: &str = match option_env!("IOBEWI_TLS_KEY_PEM") {
 /// The authentication profile of this build. The default is unsigned and links no
 /// asymmetric cryptography; `--features signed` requires an IAM1 envelope signed
 /// by the pinned key for every upload and again for every activation.
-#[cfg(not(feature = "signed"))]
+#[cfg(not(any(feature = "signed", feature = "signed-rsa")))]
 type Profile = iobewi_firmware_auth::UnsignedAllowed;
-#[cfg(not(feature = "signed"))]
+#[cfg(not(any(feature = "signed", feature = "signed-rsa")))]
 fn profile() -> Profile {
     iobewi_firmware_auth::UnsignedAllowed
 }
@@ -85,6 +85,165 @@ fn profile() -> Profile {
         P256Verifier,
     )
     .expect("OTA trust policy")
+}
+
+/// `--features signed-rsa`: RSA-PSS 3072 through the ROM, pinned key from the build environment.
+/// Every accepted image also gets its boot proof (IAP1), so a verified-boot bootloader accepts it.
+#[cfg(feature = "signed-rsa")]
+mod rsa_profile {
+    use iobewi_firmware_auth::{ImageFormat, Mcu, Product, Target};
+    /// `env!`: a missing key stops the build, it never degrades to unsigned.
+    pub static KEY: [u8; 776] =
+        example_firmware_ota_system::parse_rsa_key(env!("IOBEWI_OTA_SIGNING_RSA_KEY"));
+    static VARIANTS: [u16; 1] = [example_firmware_ota_system::HW_VARIANT];
+    const MIN_SECURITY_VERSION: u32 = match option_env!("IOBEWI_OTA_MIN_SECURITY_VERSION") {
+        Some(v) => example_firmware_ota_system::parse_u32(v),
+        None => 0,
+    };
+    /// What an image must say about its target. One definition, used by the OTA policy and by the
+    /// boot check that gates activation, so the two cannot disagree.
+    pub fn target() -> Target<'static> {
+        Target {
+            product: Product::new(example_firmware_ota_system::PRODUCT).expect("product tag"),
+            mcu: if cfg!(feature = "esp32c3") {
+                Mcu::Esp32C3
+            } else {
+                Mcu::Esp32S3
+            },
+            image_format: ImageFormat::EspApp,
+            hw_variants: &VARIANTS,
+            min_security_version: MIN_SECURITY_VERSION,
+        }
+    }
+}
+
+#[cfg(feature = "signed-rsa")]
+type Profile =
+    iobewi_firmware_auth::SignatureRequired<'static, iobewi_esp_boot::rom_verify::RomRsaPss3072>;
+#[cfg(feature = "signed-rsa")]
+fn profile() -> Profile {
+    use iobewi_firmware_auth::{Algorithm, TrustPolicy, TrustedKey};
+    static KEYS: StaticCell<[TrustedKey<'static>; 1]> = StaticCell::new();
+    let t = rsa_profile::target();
+    let keys = KEYS.init([TrustedKey::pin(
+        Algorithm::RsaPss3072Sha256,
+        &rsa_profile::KEY,
+    )]);
+    iobewi_firmware_auth::SignatureRequired::new(
+        TrustPolicy {
+            product: t.product,
+            mcu: t.mcu,
+            image_format: t.image_format,
+            hw_variants: t.hw_variants,
+            min_security_version: t.min_security_version,
+            keys,
+        },
+        iobewi_esp_boot::rom_verify::RomRsaPss3072,
+    )
+    .expect("OTA trust policy")
+}
+
+/// The slot's boot proof (IAP1), kept in step with its image. Only `signed-rsa` builds have one;
+/// every other profile answers "nothing to do" and never writes a proof (an ECDSA signature is
+/// not turned into an RSA proof, and an unsigned image has none).
+#[cfg(feature = "signed-rsa")]
+mod boot_proof {
+    use super::{EspFlash, ReadNorFlash, SharedFlash, rsa_profile};
+    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, Sha256Backend};
+    use iobewi_esp_firmware_storage::proof::ProofFlash;
+    use iobewi_firmware_auth::Algorithm;
+    use iobewi_firmware_bootauth::{
+        BootPolicy, IoError, Sha256Stream, SlotRead, VerifiedBoot, provision, writer,
+    };
+    use iobewi_firmware_layout::{Region, domain_a::Partition};
+
+    struct Reader<'a>(&'a mut EspFlash);
+    impl SlotRead for Reader<'_> {
+        fn read(&mut self, offset: u32, out: &mut [u8]) -> Result<(), IoError> {
+            self.0.read(offset, out).map_err(|_| IoError)
+        }
+    }
+
+    /// The bootloader's own check, with this firmware's trust target and pinned key.
+    fn with_policy<R>(f: impl FnOnce(&VerifiedBoot<'_, RomRsaPss3072, Sha256Backend>) -> R) -> R {
+        let pins = [Sha256Backend::digest(&rsa_profile::KEY)];
+        let policy = VerifiedBoot::new(rsa_profile::target(), &pins, RomRsaPss3072)
+            .expect("boot check policy");
+        f(&policy)
+    }
+
+    /// Before the first byte of the slot's image is rewritten: the old proof goes first.
+    pub async fn invalidate(flash: &SharedFlash, slot: Partition, sector: Option<Region>) -> bool {
+        let Some(sector) = sector.filter(|s| s.offset == slot.proof_offset()) else {
+            return false;
+        };
+        let mut guard = flash.lock().await;
+        let Some(mut window) = ProofFlash::new(&mut guard, sector) else {
+            return false;
+        };
+        provision::invalidate(&mut window, slot).is_ok()
+    }
+
+    /// Once the image is complete and verified, before it is published: write its proof and have it
+    /// judged by the boot check.
+    pub async fn publish(
+        flash: &SharedFlash,
+        slot: Partition,
+        sector: Option<Region>,
+        envelope: Option<&[u8]>,
+        size: u32,
+    ) -> bool {
+        let (Some(sector), Some(envelope)) =
+            (sector.filter(|s| s.offset == slot.proof_offset()), envelope)
+        else {
+            return false;
+        };
+        let mut guard = flash.lock().await;
+        let Some(mut window) = ProofFlash::new(&mut guard, sector) else {
+            return false;
+        };
+        let mut scratch = [0u8; iobewi_firmware_bootauth::iap1::MAX_PAYLOAD];
+        let Some(write) = iobewi_firmware_bootauth::iap1::Write::new(
+            Algorithm::RsaPss3072Sha256,
+            envelope,
+            &rsa_profile::KEY,
+            &mut scratch,
+        ) else {
+            return false;
+        };
+        if writer::execute(&mut window, slot, &write).is_err() {
+            return false;
+        }
+        drop(window);
+        with_policy(|policy| provision::gate(&mut Reader(&mut guard), slot, policy, size).is_ok())
+    }
+
+    /// At activation, before the boot entry is written.
+    pub async fn bootable(flash: &SharedFlash, slot: Partition, size: u32) -> bool {
+        let mut guard = flash.lock().await;
+        with_policy(|policy| provision::gate(&mut Reader(&mut guard), slot, policy, size).is_ok())
+    }
+}
+
+#[cfg(not(feature = "signed-rsa"))]
+mod boot_proof {
+    use super::SharedFlash;
+    use iobewi_firmware_layout::{Region, domain_a::Partition};
+    pub async fn invalidate(_: &SharedFlash, _: Partition, _: Option<Region>) -> bool {
+        true
+    }
+    pub async fn publish(
+        _: &SharedFlash,
+        _: Partition,
+        _: Option<Region>,
+        _: Option<&[u8]>,
+        _: u32,
+    ) -> bool {
+        true
+    }
+    pub async fn bootable(_: &SharedFlash, _: Partition, _: u32) -> bool {
+        true
+    }
 }
 
 async fn identity() -> Option<iobewi_esp_tls::mbedtls_rs::SessionConfig<'static>> {
@@ -132,7 +291,7 @@ impl SlotDigest for Activation<'_> {
         };
         let partition = self.system.lock().await.layout().images[index];
         let size = u32::try_from(size).map_err(|_| ())?;
-        if size > partition.size {
+        if size > partition.usable_size() {
             return Err(());
         }
         let mut hash = Sha256::new();
@@ -147,6 +306,27 @@ impl SlotDigest for Activation<'_> {
             offset += n as u32;
         }
         Ok(ImageDigest(hash.finalize().into()))
+    }
+
+    /// The bootloader's own check of the slot's boot proof, before the boot entry is written.
+    async fn slot_bootable(&self, target: &str, size: u64) -> Result<(), ()> {
+        let slot = self.partition(target).await.ok_or(())?;
+        let size = u32::try_from(size).map_err(|_| ())?;
+        if boot_proof::bootable(self.flash, slot, size).await {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+}
+impl Activation<'_> {
+    async fn partition(&self, target: &str) -> Option<iobewi_firmware_layout::domain_a::Partition> {
+        let index = match target {
+            "ota_0" => 0,
+            "ota_1" => 1,
+            _ => return None,
+        };
+        Some(self.system.lock().await.layout().images[index])
     }
 }
 struct ImageReader<'a>(&'a mut EspFlash);
@@ -165,10 +345,13 @@ impl<S: MetadataStore> Handler<'_, S> {
     ) -> bool {
         // Keep the sole system owner borrowed through readback and publication.
         let mut system = self.state.system.lock().await;
+        let images = system.layout().images;
         let Ok(mut reservation) = system.reserve(self.state.flash).await else {
             return false;
         };
         let permit = reservation.permit();
+        let proof_sector = permit.proof_sector();
+        let slot_index = usize::from(permit.slot().slot != Slot::Zero);
         let target = if permit.slot().slot == Slot::Zero {
             "ota_0"
         } else {
@@ -194,6 +377,11 @@ impl<S: MetadataStore> Handler<'_, S> {
         else {
             return false;
         };
+        // The slot's old boot proof goes before the first byte of its image changes: from here on a
+        // verified-boot bootloader refuses this slot until the new image has its own proof.
+        if !boot_proof::invalidate(self.state.flash, images[slot_index], proof_sector).await {
+            return false;
+        }
         let partition = session.partition();
         log::info!(
             "ota: writing {} ({} bytes) to {}",
@@ -249,6 +437,19 @@ impl<S: MetadataStore> Handler<'_, S> {
             {
                 return false;
             }
+        }
+        // The image is complete and its digest checked: write its boot proof and have it judged by
+        // the boot stage's own check. Nothing is published unless that passes.
+        if !boot_proof::publish(
+            self.state.flash,
+            images[slot_index],
+            proof_sector,
+            presented,
+            params.total,
+        )
+        .await
+        {
+            return false;
         }
         // Physical lock released before ConfigSpace. Reservation still held.
         log::info!(

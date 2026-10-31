@@ -12,9 +12,21 @@
  * the IRAM alias, data and the stack in the DRAM alias, and the two regions
  * below are chosen so they do NOT cover the same physical bytes:
  *
- *   vectors_seg 0x403cb000..0x403cb400, IRAM 0x403cb400..0x403d4000
+ *   vectors_seg 0x403cb000..0x403cb400, IRAM 0x403cb400..0x403d4000   (36 KiB of code)
  *     <-> DRAM alias 0x3fcdb000..0x3fce4000
  *   DRAM 0x3fce4000..0x3fcec000  (data, bss, stack growing down from the end)
+ *
+ * 36 KiB is enough for both profiles (issue #91, measured on the linked images: the unsigned
+ * second stage needs about 26 KiB of code, the verified boot profile about 31 KiB, so at
+ * least 5 KiB remain free in the verified one). These are the addresses the ROM already loaded
+ * on the qualification board; a larger window was written and measured, but its addresses
+ * (0x403c4000..) have never been loaded on hardware, and nothing requires them. If the verified
+ * profile ever outgrows this window, the window may grow *downwards* (its end is fixed by the
+ * DRAM window above, which must not share physical bytes with it), down to the start of
+ * `MEMORY_MAP.boot_window` (0x3fcc8000..0x3fd00000, whose IRAM alias starts at 0x403b8000):
+ * applications never load there. That change needs its own hardware qualification.
+ * The flash side is separate: with the historical table at 0x8000 only the first 32 KiB of the
+ * image exist; a table at 0x10000 holds up to 64 KiB.
  *
  * The DRAM window must end at or below 0x3fced710, the start of the ROM's own
  * data (the same rule as ESP32-C3's "ROM keeps its own data above 0x3fcdc710",
@@ -105,6 +117,14 @@ INCLUDE "hal-defaults.x"
  * the first line of output with nothing to diagnose. */
 ROM_DATA_START = 0x3fced710;
 IRAM_ALIAS_OFFSET = 0x6f0000;
+/* Lowest address the bootloader may use: the start of `MEMORY_MAP.boot_window` (the DRAM bus
+ * address 0x3fcc8000, seen through the instruction bus). Below it applications are loaded. */
+BOOT_WINDOW_IRAM_START = 0x3fcc8000 + IRAM_ALIAS_OFFSET;
+ASSERT(ORIGIN(vectors_seg) >= BOOT_WINDOW_IRAM_START,
+  "bootloader code window reaches below the boot window: applications are loaded there")
+ASSERT(ORIGIN(IRAM) == ORIGIN(vectors_seg) + LENGTH(vectors_seg),
+  "the IRAM window must follow the exception vectors")
+ASSERT(ORIGIN(vectors_seg) % 0x400 == 0, "the exception vector table is 1 KiB aligned")
 ASSERT(ORIGIN(DRAM) + LENGTH(DRAM) <= ROM_DATA_START,
   "bootloader DRAM (data + stack) must end below the ROM data at 0x3fced710 (and so below the D-cache window)");
 ASSERT(ORIGIN(DRAM) >= ORIGIN(IRAM) + LENGTH(IRAM) - IRAM_ALIAS_OFFSET,

@@ -145,3 +145,29 @@ The OTA-specific checks (boot fault injection, `firmware-update` feature sets, b
 `verify-p256`, runs the unsigned and signed host suites of `example-firmware-ota-system`, and, when that example is
 selected for C3/S3, builds its signed profile with a public test key and prints the flash growth against the unsigned
 build (`.github/scripts/elf_size.py`, with a growth budget). No workflow was added.
+
+## Verified boot (#91)
+
+`iobewi-firmware-bootauth` uses the `host` profile (tests with `host-sign`, which generates real RSA-3072 keys,
+strict Clippy) and the OTA workflow also builds it for bare-metal RISC-V without `host-sign`. The default
+(unsigned) second stage is gated per chip (`compile_mcu.BUDGET`, tighter than the 32 KiB table limit). The verified
+second stage is built by `.github/scripts/verified_boot.py` with a public test pin: blocking on ESP32-C3, report-only
+on ESP32-S3 while it exceeds the limit (see `docs/firmware/verified-boot.md`). No workflow was added.
+
+## Flash geometry (#91, B2)
+
+The partition table offset is one build-time setting, `ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET`
+(default `0x8000`), read by the second stage, the application, the generated table and the tools
+(`.github/scripts/esp_geometry.py`, tested by `test_esp_geometry.py`). Second stage limits, geometry stamps
+and RAM placement (IRAM, DRAM, stack) are checked on every bootloader build, separately from flash size. The
+default S3 build stays on the historical geometry; the `Wide flash geometry` step builds the S3 second stage
+(unsigned and verified, the latter blocking) and the application with the table at `0x10000`. The C3 keeps
+the historical geometry. `docs/firmware/flash-geometry.md` lists the budgets.
+
+## Boot proof kept by the OTA (#91, B3)
+
+`iobewi-firmware-bootauth` also covers the sequence an OTA performs on a slot (`provision`): invalidate the proof,
+rewrite the image, publish and re-check the proof, gate the activation, with a power cut at every flash command
+(`tests/ota_sequence.rs`); `iobewi-firmware-update` covers the activation refusal. The S3/C3 jobs additionally
+build `example-firmware-ota-system` with `signed-rsa` and a public test key
+(`.github/fixtures/ota-signing-rsa-test-public.hex`) and gate its flash growth over the unsigned build.

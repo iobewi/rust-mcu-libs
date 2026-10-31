@@ -29,7 +29,9 @@ compile_error!("select exactly one ESP boot target feature");
 
 use iobewi_firmware_boot as boot_core;
 
-use boot_core::{Boot, Halt, Raw, Write, plan_boot};
+#[cfg(not(feature = "verified-boot"))]
+use boot_core::plan_boot;
+use boot_core::{Boot, Halt, Raw, Write};
 use iobewi_esp_boot::hw;
 use iobewi_esp_console::{Console as _, Primary};
 use iobewi_firmware_image::esp::{self as image, MemoryMap, Verify};
@@ -71,8 +73,9 @@ macro_rules! log {
 
 // --- Flash layout (embewi-ab-v1, see partitions.csv) -----------------------
 
-/// Where the partition table lives (the ESP-IDF default, kept by espflash).
-const PARTITION_TABLE_OFFSET: u32 = 0x8000;
+/// Where the partition table lives: the build's flash geometry, the same value the application
+/// and the table generator use (`ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET`).
+const PARTITION_TABLE_OFFSET: u32 = iobewi_esp_boot::geometry::TABLE_OFFSET;
 const PARTITION_TABLE_LEN: usize = 0xC00;
 const SECTOR: u32 = 0x1000;
 const SLOT_COUNT: u8 = 2;
@@ -97,6 +100,9 @@ enum BootError {
     /// The chosen image failed validation when re-read to be loaded.
     Image,
     Mmu(i32),
+    /// Verified boot: flash reads kept failing while checking a slot. Nothing was written.
+    #[cfg(feature = "verified-boot")]
+    Io,
 }
 
 /// Reads `out.len()` bytes at flash offset `offset`. The ROM reader wants
@@ -194,12 +200,120 @@ fn execute(write: Write, layout: &Layout) -> Result<(), BootError> {
     })
 }
 
+#[cfg(feature = "verified-boot")]
+mod verified {
+    include!(concat!(env!("OUT_DIR"), "/verified_config.rs"));
+}
+
+/// The bootloader's flash reader as the boot-proof verifier sees it.
+#[cfg(feature = "verified-boot")]
+struct ProofReader;
+
+#[cfg(feature = "verified-boot")]
+impl iobewi_firmware_bootauth::SlotRead for ProofReader {
+    fn read(
+        &mut self,
+        offset: u32,
+        out: &mut [u8],
+    ) -> Result<(), iobewi_firmware_bootauth::IoError> {
+        flash_read(offset, out).map_err(|_| iobewi_firmware_bootauth::IoError)
+    }
+}
+
+/// Attempts at checking the slots before a persistent flash read error stops the boot.
+#[cfg(feature = "verified-boot")]
+const VERIFY_ATTEMPTS: u8 = 3;
+
+/// `plan_boot` with the verified profile: every slot must carry a valid proof. A flash read
+/// error never becomes an `Invalid` entry; after a few attempts the boot stops, writing nothing.
+#[cfg(feature = "verified-boot")]
+fn verified_plan(
+    layout: &Layout,
+    entries: [Raw; 2],
+    map: &MemoryMap,
+) -> Result<boot_core::Plan, BootError> {
+    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, Sha256Backend};
+    use iobewi_firmware_auth::{ImageFormat, Mcu, Product, Target};
+    use iobewi_firmware_bootauth::select::{self, Outcome, Structure};
+    use iobewi_firmware_bootauth::{BootPolicy, VerifiedBoot};
+
+    #[cfg(feature = "esp32c3")]
+    const MCU: Mcu = Mcu::Esp32C3;
+    #[cfg(feature = "esp32s3")]
+    const MCU: Mcu = Mcu::Esp32S3;
+    let target = Target {
+        product: Product::new(verified::PRODUCT).ok_or(BootError::InvalidLayout)?,
+        mcu: MCU,
+        image_format: ImageFormat::EspApp,
+        hw_variants: &verified::VARIANTS,
+        min_security_version: verified::MIN_SECURITY_VERSION,
+    };
+    let policy =
+        VerifiedBoot::<RomRsaPss3072, Sha256Backend>::new(target, &verified::PINS, RomRsaPss3072)
+            .map_err(|_| BootError::InvalidLayout)?;
+    log!(VerifiedBoot::<RomRsaPss3072, Sha256Backend>::LABEL);
+    let micros = || {
+        esp_hal::time::Instant::now()
+            .duration_since_epoch()
+            .as_micros()
+    };
+    let started = micros();
+
+    for _ in 0..VERIFY_ATTEMPTS {
+        let mut structure = |slot: u8| {
+            let part = layout.images[usize::from(slot)];
+            match image::validate(
+                &mut RomFlash,
+                part.offset,
+                part.usable_size(),
+                map,
+                Verify::Structure,
+            ) {
+                Ok(_) => Structure::Bootable,
+                Err(image::ImageError::Read) => Structure::Io,
+                Err(e) => Structure::Refused(image_error_code(&e)),
+            }
+        };
+        // One terse line per refused slot; proof reasons are numbered from 100.
+        let mut report = |slot: u8, outcome: Outcome| {
+            let reason = match outcome {
+                Outcome::Structure(code) => code,
+                Outcome::Proof(refusal) => 100 + refusal.code(),
+                Outcome::Io => 0,
+            };
+            log!("boot: slot ", u32::from(slot), " refused, reason ", reason);
+        };
+        match select::plan(
+            entries,
+            SLOT_COUNT,
+            &policy,
+            &mut ProofReader,
+            layout.images,
+            &mut structure,
+            &mut report,
+        ) {
+            Ok(plan) => {
+                // What verification costs at every boot: flash reads, SHA-256 and RSA-PSS.
+                log!(
+                    "boot: slots checked, microseconds ",
+                    (micros() - started) as u32
+                );
+                return Ok(plan);
+            }
+            Err(select::Interrupted) => flash_reinit(),
+        }
+    }
+    Err(BootError::Io)
+}
+
 fn boot() -> Result<core::convert::Infallible, BootError> {
     let flash_size = set_flash_size()?;
     let layout = read_layout(flash_size)?;
     let map = memory_map();
     log!(
-        "boot: otadata at ",
+        "boot: table at ",
+        PARTITION_TABLE_OFFSET,
+        " otadata at ",
         layout.otadata.offset,
         " ota_0 ",
         layout.images[0].offset,
@@ -208,23 +322,30 @@ fn boot() -> Result<core::convert::Infallible, BootError> {
     );
     let entries = read_otadata(&layout)?;
 
-    let mut image_ok = |slot: u8| {
-        let part = layout.images[usize::from(slot)];
-        let (offset, size) = (part.offset, part.size);
-        match image::validate(&mut RomFlash, offset, size, &map, Verify::Structure) {
-            Ok(_) => true,
-            Err(e) => {
-                log!(
-                    "boot: slot ",
-                    u32::from(slot),
-                    " image refused, reason ",
-                    image_error_code(&e)
-                );
-                false
+    #[cfg(not(feature = "verified-boot"))]
+    let plan = {
+        log!("boot authentication: UNSIGNED");
+        let mut image_ok = |slot: u8| {
+            let part = layout.images[usize::from(slot)];
+            // The last sector of the slot is its proof sector: never part of the image.
+            let (offset, size) = (part.offset, part.usable_size());
+            match image::validate(&mut RomFlash, offset, size, &map, Verify::Structure) {
+                Ok(_) => true,
+                Err(e) => {
+                    log!(
+                        "boot: slot ",
+                        u32::from(slot),
+                        " image refused, reason ",
+                        image_error_code(&e)
+                    );
+                    false
+                }
             }
-        }
+        };
+        plan_boot(entries, SLOT_COUNT, &mut image_ok)
     };
-    let plan = plan_boot(entries, SLOT_COUNT, &mut image_ok);
+    #[cfg(feature = "verified-boot")]
+    let plan = verified_plan(&layout, entries, &map)?;
 
     let (slot, seq) = match plan.boot {
         Boot::Slot { slot, seq, .. } => (slot, seq),
@@ -253,7 +374,8 @@ fn boot() -> Result<core::convert::Infallible, BootError> {
 fn load(layout: &Layout, slot: u8) -> Result<core::convert::Infallible, BootError> {
     let map = memory_map();
     let part = layout.images[usize::from(slot)];
-    let (offset, size) = (part.offset, part.size);
+    // The last sector of the slot is its proof sector: never part of the image.
+    let (offset, size) = (part.offset, part.usable_size());
     let image = image::validate(&mut RomFlash, offset, size, &map, Verify::Structure)
         .map_err(|_| BootError::Image)?;
     log!(
@@ -356,6 +478,8 @@ fn report(e: &BootError) {
         }
         BootError::Image => log!("boot: FAILED image no longer validates"),
         BootError::Mmu(rc) => log!("boot: FAILED MMU rc ", *rc as u32),
+        #[cfg(feature = "verified-boot")]
+        BootError::Io => log!("boot: HALT, flash read errors while verifying, nothing written"),
     }
 }
 
@@ -369,6 +493,8 @@ fn clear_flashboot_watchdogs() -> (u32, u32) {
 fn main() -> ! {
     // First thing: the ROM's watchdogs are already ticking.
     let (tg0_wdt, rtc_wdt) = clear_flashboot_watchdogs();
+    // Keep the geometry stamp in the image: the packaging tools compare it with the table.
+    core::hint::black_box(&iobewi_esp_boot::geometry::STAMP);
     // Keep the console stamp in the image: the packaging tools compare it with the application's.
     core::hint::black_box(&iobewi_esp_console::STAMP);
     esp_hal::init(esp_hal::Config::default());
@@ -390,12 +516,77 @@ fn main() -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+#[cfg_attr(not(feature = "diag-panic"), allow(unused_variables))]
+fn panic(info: &core::panic::PanicInfo) -> ! {
     // The console is stateless: this needs no logger and no state of ours. (Bench: its output is
     // observed after `esp_hal::init`; before it, it is not measured.) The
     // location is not printed: keeping every panic site's file name costs ~2.5 KiB of a 32 KiB image.
     log!("boot: PANIC");
+    // Diagnostic build only (`diag-panic`): where it happened. Not the message: that would pull in
+    // `core::fmt`. A CPU exception or an unhandled interrupt panics too, from the runtime's own
+    // handler: the location then names that handler (see `diag`) and not the faulting code.
+    #[cfg(feature = "diag-panic")]
+    if let Some(at) = info.location() {
+        log!(
+            "boot: at ",
+            at.file(),
+            " line ",
+            at.line(),
+            " col ",
+            at.column()
+        );
+    }
     loop {
         core::hint::spin_loop();
+    }
+}
+
+/// What the default exception handlers of the Xtensa runtime hide. They panic with the cause and
+/// the register frame in the *message*, which this image does not print; these replace them and
+/// print the numbers that matter, with no formatting code: the cause, where it happened (`pc`,
+/// to be looked up in the ELF of this exact image), the stack pointer (a stack overflow shows
+/// as `sp` below the end of `.bss`) and the faulting address. Then they stop, like the panic handler.
+#[cfg(all(feature = "diag-panic", target_arch = "xtensa"))]
+mod diag {
+    use super::Loggable;
+    use iobewi_esp_console::{Console as _, Primary};
+
+    // xtensa-lx-rt's `Context` is `repr(C)`, all `u32`: PC, PS, A0..A15, SAR, EXCCAUSE, EXCVADDR.
+    const PC: usize = 0;
+    const PS: usize = 1;
+    const A0: usize = 2;
+    const A1: usize = 3;
+    const EXCVADDR: usize = 20;
+
+    fn stop(kind: &str, cause: u32, frame: &[u32; 21]) -> ! {
+        log!(
+            "boot: ",
+            kind,
+            " cause=",
+            cause,
+            " pc=",
+            frame[PC],
+            " ps=",
+            frame[PS],
+            " a0=",
+            frame[A0],
+            " sp=",
+            frame[A1],
+            " vaddr=",
+            frame[EXCVADDR]
+        );
+        loop {
+            core::hint::spin_loop();
+        }
+    }
+
+    #[unsafe(export_name = "__user_exception")]
+    extern "C" fn user_exception(cause: u32, frame: &[u32; 21]) -> ! {
+        stop("EXCEPTION", cause, frame)
+    }
+
+    #[unsafe(export_name = "__double_exception")]
+    extern "C" fn double_exception(cause: u32, frame: &[u32; 21]) -> ! {
+        stop("DOUBLE EXCEPTION", cause, frame)
     }
 }
