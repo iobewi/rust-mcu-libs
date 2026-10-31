@@ -223,6 +223,13 @@ jobs:
           # Off by default, never in the nominal image; it must keep building and fitting
           # (docs/firmware/verified-boot-p3-diagnosis.md).
           python3 .github/scripts/verified_boot.py --chip esp32c3 --diag
+      - name: Verified boot, other SHA-256 backends (esp-hal, software), link and size gate
+        if: contains(needs.discover.outputs.esp32c3_packages, 'iobewi-esp-bootloader')
+        run: |
+          # Selectable at build time, the ROM's is the default and the one qualified on hardware;
+          # these two must keep building and fitting (docs/firmware/verified-boot-sha.md).
+          python3 .github/scripts/verified_boot.py --chip esp32c3 --sha hal
+          python3 .github/scripts/verified_boot.py --chip esp32c3 --sha soft
 
   esp32s3:
     name: OTA ESP32-S3 selected crates / ${{ matrix.variant }}
@@ -326,6 +333,13 @@ jobs:
         run: |
           # Last step on purpose: it replaces the linked second stage under target/.
           python3 .github/scripts/verified_boot.py --chip esp32s3 --diag
+      - name: Verified boot, other SHA-256 backends (esp-hal, software), wide geometry
+        if: contains(needs.discover.outputs.esp32s3_packages, 'iobewi-esp-bootloader')
+        env:
+          ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET: "0x10000"
+        run: |
+          python3 .github/scripts/verified_boot.py --chip esp32s3 --sha hal
+          python3 .github/scripts/verified_boot.py --chip esp32s3 --sha soft
 
   firmware-ota-gate:
     name: Firmware OTA validation

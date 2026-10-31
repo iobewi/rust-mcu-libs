@@ -149,7 +149,7 @@ fn profile() -> Profile {
 #[cfg(feature = "signed-rsa")]
 mod boot_proof {
     use super::{EspFlash, ReadNorFlash, SharedFlash, rsa_profile};
-    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, RomSha256};
+    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, Sha256Backend};
     use iobewi_esp_firmware_storage::proof::ProofFlash;
     use iobewi_firmware_auth::Algorithm;
     use iobewi_firmware_bootauth::{
@@ -165,8 +165,8 @@ mod boot_proof {
     }
 
     /// The bootloader's own check, with this firmware's trust target and pinned key.
-    fn with_policy<R>(f: impl FnOnce(&VerifiedBoot<'_, RomRsaPss3072, RomSha256>) -> R) -> R {
-        let pins = [RomSha256::digest(&rsa_profile::KEY)];
+    fn with_policy<R>(f: impl FnOnce(&VerifiedBoot<'_, RomRsaPss3072, Sha256Backend>) -> R) -> R {
+        let pins = [Sha256Backend::digest(&rsa_profile::KEY)];
         let policy = VerifiedBoot::new(rsa_profile::target(), &pins, RomRsaPss3072)
             .expect("boot check policy");
         f(&policy)

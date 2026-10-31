@@ -232,7 +232,7 @@ fn verified_plan(
     entries: [Raw; 2],
     map: &MemoryMap,
 ) -> Result<boot_core::Plan, BootError> {
-    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, RomSha256};
+    use iobewi_esp_boot::rom_verify::{RomRsaPss3072, Sha256Backend};
     use iobewi_firmware_auth::{ImageFormat, Mcu, Product, Target};
     use iobewi_firmware_bootauth::select::{self, Outcome, Structure};
     use iobewi_firmware_bootauth::{BootPolicy, VerifiedBoot};
@@ -249,9 +249,9 @@ fn verified_plan(
         min_security_version: verified::MIN_SECURITY_VERSION,
     };
     let policy =
-        VerifiedBoot::<RomRsaPss3072, RomSha256>::new(target, &verified::PINS, RomRsaPss3072)
+        VerifiedBoot::<RomRsaPss3072, Sha256Backend>::new(target, &verified::PINS, RomRsaPss3072)
             .map_err(|_| BootError::InvalidLayout)?;
-    log!(VerifiedBoot::<RomRsaPss3072, RomSha256>::LABEL);
+    log!(VerifiedBoot::<RomRsaPss3072, Sha256Backend>::LABEL);
     let micros = || {
         esp_hal::time::Instant::now()
             .duration_since_epoch()

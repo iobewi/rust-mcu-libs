@@ -39,6 +39,11 @@ verified-boot = [
   "dep:iobewi-firmware-bootauth",
 ]
 
+# SHA-256 of the verified profile: the ROM's by default; the `esp-hal` driver of the SHA peripheral
+# (`sha-hal`) or the portable software one (`sha-soft`). One at most. See docs/firmware/verified-boot-sha.md.
+sha-hal = ["iobewi-esp-boot/sha-hal"]
+sha-soft = ["iobewi-esp-boot/sha-soft"]
+
 # Diagnostic build, off by default and never part of the nominal image: after `boot: PANIC`, print
 # where (file, line, column) and, on Xtensa, what a CPU exception was (cause, pc, sp, faulting
 # address). Costs about 2.5 KiB of data for the file names (see the README); the nominal image

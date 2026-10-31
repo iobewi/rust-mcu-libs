@@ -27,6 +27,8 @@ pub mod iap1;
 pub mod policy;
 pub mod provision;
 pub mod select;
+#[cfg(feature = "soft-sha256")]
+pub mod soft;
 pub mod traits;
 pub mod verdict;
 pub mod writer;
@@ -37,5 +39,7 @@ extern crate std;
 pub mod host;
 
 pub use policy::{BootPolicy, ConfigError, UnsignedBoot, VerifiedBoot};
+#[cfg(feature = "soft-sha256")]
+pub use soft::SoftSha256;
 pub use traits::{Aligned, IoError, Sha256Stream, SlotRead};
 pub use verdict::{Authentic, Refusal, Verdict};
