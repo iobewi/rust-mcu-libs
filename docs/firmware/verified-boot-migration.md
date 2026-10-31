@@ -291,3 +291,11 @@ métadonnées inchangés ; retour : `UNSIGNED`, A″ Stable, `/health` 200 TLS v
 **Validation hôte** (vrai `select::plan` + `VerifiedBoot::admit` + vérifieur RSA hôte, sur les relectures M4 de `ota_0`/`ota_1`, 9 tests existants `boot_selection` verts) : état courant → `ota_0` seq 1 ; candidat sain → `ota_0` seq 3 ; **A″ `BadSignature` → refus slot 0, démarrage `ota_1` seq 2, écriture planifiée `secteur 0 seq 3 → Invalid (3)`** ; les deux refusés → `HALT NoUsableEntry`, écritures non appliquées ; variante `New` → idem ; après repli (`Invalid`) et preuve restaurée → `ota_1` (l'`Invalid` est collant) ; écritures intermédiaires (`[seq1 | seq2]`, `[blank | seq2]`) → toujours B″ authentique (sans danger). Structure d'image : `Bootable` supposée (validée par l'outil et par M0/M4).
 
 **Fichiers** (hors flash) : secteur 1 `0x12000` seq 2 `Valid` `da8196a6…`, secteur 0 `0x11000` seq 3 `Valid` `477203c3…` ; plage attendue avant démarrage `8a8da44d…`, après `7b2f8f69…` (secteur 0 seq 3 `Invalid`, `e411d536…`).
+
+## 18. P4-B : repli authentifié A″ → B″ observé (2026-10-31)
+
+PASS. État de qualification construit hors carte (`otadata` `[seq 3 Valid | seq 2 Valid]`, `ota_meta` vide inchangé), pas une reproduction de l'historique OTA. W1 témoin `BadSignature` à `0x1cf000`, W2 `0x12000`, W3 `0x11000`, W4 VerifiedBoot,
+chacune relue (plage avant démarrage `8a8da44d…`). Un démarrage : `VERIFIED`, `Signature Check Failed` ×2, `slot 0x00000000 refused, reason 0x0000006c`, `slots checked, microseconds 0x00069d19` (433 433 µs),
+`plan slot=0x00000001 seq=0x00000002`, `otadata write sector=0 seq=3 state=3`, `image ok`, `jump`, `running ota_1 status Stable`, Wi-Fi, `OTA ready`, `/health` 200 TLS vérifié, certificat `…3E`.
+Après : `otadata` `[seq 3 Invalid | seq 2 Valid]` (plage `7b2f8f69…`), `ota_meta`, images, preuves, `config` inchangés. Restauration (preuve, `0x11000`–`0x13000`, bootloader non signé) relue : `0x10000`–`0x15000` `da4bfb3d…`, `ota_0` `9677f1c8…` ;
+retour A″ `plan slot=0 seq=1`, Stable, `/health` 200 certificat `…3F`.
