@@ -177,3 +177,17 @@ Limite inchangée : hachage logiciel, le chemin ROM n'est exercé que sur carte.
 (avant : `ca19ea3a…`). Résidus `0x2d1000`–`0x2da000` et écart jusqu'à la preuve inchangés. `iap1_pack verify` sur la relecture :
 authentique (taille signée 1 050 112 = longueur de B″, les résidus n'en font pas partie). `ota_0` (`f6ea354e…`), bootloader
 (`bd7c4e20…`), `0x10000`–`0x15000` (`da4bfb3d…`) et `config` (`8b911b67…`) relus identiques avant le retour à la console. Aucun démarrage de B″.
+
+## 10. M2-B : un essai de démarrage de B″ sous le bootloader non signé (2026-10-31)
+
+`otadata` avant : secteur 0 = seq 1 `Valid` (→ `ota_0`), secteur 1 vierge. Candidat construit hors carte avec le codec
+`iobewi-firmware-boot` (`activate(target=ota_1)`) : secteur 1 = seq 2 `New` (→ `ota_1`), secteur 0 conservé ; il se
+décode à l'identique. Écrit seul à `0x12000` (4 Kio, `afff01be…`), relu et décodé conforme ; table, `ota_meta`, secteur 0 inchangés.
+
+Un démarrage : le bootloader choisit `ota_1` seq 2, écrit `Pending`, `image ok`, saute ; B″ affiche
+`running ota_1 status Rollback` puis redémarre de lui-même (`RTC_SW_SYS_RST`, 0,3 s) ; le bootloader revient à `ota_0`
+seq 1. Cause : `reconcile` classe « slot en attente de confirmation sans transaction `Activating` dans `ota_meta` » en
+`RollbackUnaccounted` (`transaction.rs:107`) ; l'application refuse volontairement une sélection qui ne vient pas d'une
+activation OTM1. `otadata` après : secteur 1 = seq 2 `Invalid`. `ota_meta` inchangé. Ni Wi-Fi ni `/health` de B″ atteints.
+Restauration : `0x10000`–`0x15000` réécrit depuis M1, relu `da4bfb3d…` ; `ota_0`, `ota_1`, bootloader inchangés ;
+A Stable, `/health` 200. Conséquence : confirmer B″ exige un enregistrement OTM1 `Activating` pour `ota_1` en plus d'`otadata`.
