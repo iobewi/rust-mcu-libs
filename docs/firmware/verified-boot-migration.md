@@ -145,3 +145,27 @@ Après M4 seulement, un cas par cycle, avec restauration indépendante : preuve 
 (digest, taille, produit, variante, version de sécurité) ; signature altérée ; mauvaise clé ; algorithme non autorisé ; image
 altérée avec preuve intacte (`DigestMismatch`) ; refus d'un slot avec repli sur l'autre (écriture `otadata` attendue) ; refus des
 deux slots (HALT, pas d'écriture) ; OTA A→B complète avec publication de preuve ; coupures pendant la publication de la preuve.
+
+## 8. M1 : état initial et sauvegardes (lecture seule, 2026-10-31)
+
+Aucune écriture sur la flash. Carte ESP32-S3 QFN56 v0.2, flash 16 Mio, MAC `9c:13:9e:ac:4e:8c`. Bootloader non signé
+UART0, A Stable, `/health` 200 avec TLS vérifié. Reset automatique désactivé (un appel sans argument l'a activé 9 s par
+erreur, sans reset ni écriture ; remis à `off`).
+
+| Région | Plage | SHA-256 | État |
+|---|---|---|---|
+| bootloader | `0x0`–`0xA000` | `bd7c4e20…a165` | identique à la référence P3 (non signé UART0) |
+| table / `otadata` / `ota_meta` | `0x10000`–`0x15000` | `da4bfb3d…c51f2` | table `6bf9d714`, `otadata` `1170d1af` (copie 0 seq 1, état valide ; copie 1 vierge), `ota_meta` `58dd5c3c` : identiques aux installés |
+| `ota_0` | `0x20000`–`0x1d0000` | `f6ea354e…9f2e` | A installé (`76de8229…`, 1 049 840 o) à `0x20000` ; résidus d'anciennes images après lui (`0x130000`–`0x164000`, `0x170000`–`0x17f000`) |
+| preuve `ota_0` | `0x1cf000`–`0x1d0000` | `97ccb726…` | preuve installée de A |
+| `ota_1` | `0x1d0000`–`0x380000` | `ca19ea3a…c826` | ancienne image non signée (`example-firmware-ota-system`, 2026-10-13, jusqu'à `0x2da000`, identique à un artefact d'avant #91), ni A ni B |
+| preuve `ota_1` | `0x37f000`–`0x380000` | `f47a8ec3…` | vierge (donc `ota_1` n'est pas admissible sous VerifiedBoot) |
+| `config` (EKV) | `0x380000`–`0x400000` | `8b911b67…bb5d` | inchangée ; les deux secteurs de référence valent un secteur vierge |
+
+Sauvegardes : `bench/backups/m1-20261031/` (lecture seule, `MANIFEST.sha256`), plus les originaux A/B dans `q91/`.
+Le bootloader n'a pas été recopié (même hash que la sauvegarde P3 vérifiée).
+
+Artefacts figés A″/B″ : `MANIFEST.sha256` vérifié (17/17). `iap1_pack verify` : authentique pour A″ et B″ (clé `4b452a4c…`,
+produit `iobewi-ota-sys`, `esp32s3`, variante 0, taille signée 1 050 112 = `0x100600`) ; contrôles négatifs refusés
+(image A″ + preuve B″ : `DigestMismatch` ; mauvaise épingle : `UnknownKey` ; mauvaise variante, produit, MCU : `Target(...)`).
+Limite inchangée : hachage logiciel, le chemin ROM n'est exercé que sur carte.
