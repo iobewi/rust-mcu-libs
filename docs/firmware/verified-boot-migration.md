@@ -269,3 +269,11 @@ Restauration S5 : bootloader non signé `bd7c4e20…` relu ; `ota_0` `9677f1c8�
 * SHA/RSA : le SHA ROM ne renvoie pas d'erreur (sentinelles : un dépassement panique, `boot: PANIC`) ; RSA : `BadSignature` (deux essais), `NonCanonical` ou `BadKey` immédiats. Aucun ne produit `Io`.
 
 **Témoin** `A2_proof_badsig` : preuve authentique de A″ dont **un seul bit** de la signature RSA (octet `0x1df`, bit de poids faible de l'entier) est inversé, CRC recalculé (octets `0xc`–`0xf`). Cinq octets diffèrent, l'en-tête reste `Committed`, CRC valide, manifeste, clé et épingle, digest de l'image intacts. `iap1_pack verify` : `REFUSED: Refused(BadSignature)` (et non `ProofCorrupt` ni `NonCanonical`) ; la preuve authentique : `authentic`. Même image, même clé, un bit de différence : si M4 (authentique accepté) et P4-A (refusé) se confirment, la ROM discrimine réellement.
+
+## 16. P4-A : refus `BadSignature` observé (2026-10-31)
+
+PASS. S0 conforme ; témoin (`15139f9b…`) écrit à `0x1cf000`, relu exact, `iap1_pack verify` sur la relecture = `BadSignature` ; VerifiedBoot (`5ca06b7c…`) écrit à `0x0`, relu exact. Un démarrage :
+`boot authentication: VERIFIED`, **`Signature Check Failed` ×2** (messages de la ROM, un par essai RSA-PSS), `boot: slot 0x00000000 refused, reason 0x0000006c`,
+`boot: slots checked, microseconds 0x00002cc2` (11 458 µs), `boot: HALT, nothing safe to boot, reason 0x00000002`, puis silence. Aucun `plan slot`, `otadata write`, `image ok`, `jump`, sortie applicative,
+reset ni panic. `0x10000`–`0x15000` = `da4bfb3d…` après le refus. Restauration par le chargeur ROM (depuis le HALT) : bootloader `bd7c4e20…`, preuve `7d376f51…`, relus ; `ota_0` `9677f1c8…`, `ota_1`, `config`,
+métadonnées inchangés ; retour : `UNSIGNED`, A″ Stable, `/health` 200 TLS vérifié (`…3F`), autoreset `off`.
