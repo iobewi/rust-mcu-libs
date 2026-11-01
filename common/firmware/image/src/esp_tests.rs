@@ -417,3 +417,67 @@ fn the_real_agent_image_validates_and_a_flipped_byte_does_not() {
         at += if at < 200 { 1 } else { 60_013 };
     }
 }
+
+/// `Image::end` is one past the last byte of the image: header, segments, padding up to the last
+/// byte of a 16-byte block counted from the image start, that byte being the XOR checksum, then
+/// the 32-byte SHA-256 when the header says so. Nothing else (stale bytes after it) belongs to it.
+#[test]
+fn end_is_checksum_plus_one_plus_the_optional_digest_for_every_alignment() {
+    for hash in [false, true] {
+        for len in 1..=40usize {
+            let mut b = Builder::c3();
+            b.hash = hash;
+            b.entry = 0x4038_0000;
+            b.segments = vec![(0x4038_0000, vec![0x5A; len])];
+            let image = b.build();
+            let before_digest = image.len() - if hash { 32 } else { 0 };
+            assert_eq!(
+                (before_digest - 1) % 16,
+                15,
+                "checksum is the last byte of a 16-byte block"
+            );
+            for verify in [Verify::Structure, Verify::Checksum, Verify::Full] {
+                if verify == Verify::Full && !hash {
+                    continue;
+                }
+                let info = validate_bytes(&image, verify)
+                    .unwrap_or_else(|e| panic!("{hash} {len} {verify:?}: {e:?}"));
+                assert_eq!(
+                    info.end,
+                    PART_OFFSET + image.len() as u32,
+                    "hash={hash} len={len}"
+                );
+            }
+            // Stale bytes after the image do not move its end.
+            let mut stale = image.clone();
+            stale.extend_from_slice(&[0xA5; 300]);
+            assert_eq!(
+                validate_bytes(&stale, Verify::Structure).unwrap().end,
+                PART_OFFSET + image.len() as u32
+            );
+        }
+    }
+}
+
+#[test]
+fn a_header_digest_flag_other_than_one_means_no_appended_digest() {
+    let mut b = Builder::c3();
+    b.entry = 0x4038_0000;
+    b.segments = vec![(0x4038_0000, vec![1; 20])];
+    let mut image = b.build();
+    let canonical = image.len() - 32;
+    image[23] = 2; // not the flag value 1: the 32 trailing bytes are then not part of the image
+    let info = validate_bytes(&image, Verify::Structure).unwrap();
+    assert!(!info.hash_appended);
+    assert_eq!(info.end, PART_OFFSET + canonical as u32);
+}
+
+#[test]
+fn the_canonical_size_is_relative_to_the_partition_and_never_wraps() {
+    let image = aligned_builder().build();
+    let info = validate_bytes(&image, Verify::Structure).unwrap();
+    assert_eq!(info.canonical_size(PART_OFFSET), Some(image.len() as u32));
+    // An offset past the end is not a length: no wrap-around.
+    assert_eq!(info.canonical_size(info.end + 1), None);
+    assert_eq!(info.canonical_size(info.end), Some(0));
+}
