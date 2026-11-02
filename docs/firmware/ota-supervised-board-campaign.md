@@ -6,7 +6,7 @@ Bilan du 14 octobre 2026, sur une seule carte ESP32-S3. Il suit la section
 ## Périmètre et conditions
 
 - **Commit testé :** `906648781dbade1ac4360bf01d7bcbb94e37c47c` (`feat/61-ota-supervised`, PR #73), sans modification locale. La CI de ce commit est verte (42 jobs sur 42).
-- **Carte :** ESP32-S3 DevKitC-1 N16R8, QFN56 rév. v0.2, flash ID 0x184068 (16 Mio), MAC 9c:13:9e:ac:4e:8c ; images à en-tête DIO 4MB.
+- **Carte :** ESP32-S3 DevKitC-1 N16R8, QFN56 rév. v0.2, flash ID 0x184068 (16 Mio), MAC <masquée> ; images à en-tête DIO 4MB.
 - **Toolchain :** esp 1.98.1.0 (rustc 1.98.1-nightly), esptool 5.5.0, `gen_esp32part.py` ESP-IDF v5.5.1.
 - **Banc :** Web Serial. Une page tient le port UART et bascule entre console et chargeur esptool-js 0.7.0. Écritures et relectures sont pilotées par commande. Un reset EN automatique se déclenche sur échec du premier join Wi-Fi (#72).
 - **Clients :**

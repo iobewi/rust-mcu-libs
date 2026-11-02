@@ -1,5 +1,8 @@
 # Migration des applications A/B vers l'adaptateur SHA corrigé (#91, M0)
 
+> **Journal de campagne.** Les sections décrivent chronologiquement la migration et les essais M0 à M4-bis ; l'état
+> courant et les rapports de qualification sont dans [`verified-boot-evidence.md`](verified-boot-evidence.md).
+
 M0 est entièrement hors matériel : audit, reconstruction, contrôles et protocole. Rien n'est programmé.
 Le contexte est dans [`verified-boot-sha.md`](verified-boot-sha.md) (contrat de la ROM) et
 [`verified-boot-qualification.md`](verified-boot-qualification.md) (P3-E, P3-F).
@@ -148,7 +151,7 @@ deux slots (HALT, pas d'écriture) ; OTA A→B complète avec publication de pre
 
 ## 8. M1 : état initial et sauvegardes (lecture seule, 2026-10-31)
 
-Aucune écriture sur la flash. Carte ESP32-S3 QFN56 v0.2, flash 16 Mio, MAC `9c:13:9e:ac:4e:8c`. Bootloader non signé
+Aucune écriture sur la flash. Carte ESP32-S3 QFN56 v0.2, flash 16 Mio, MAC `<masquée>`. Bootloader non signé
 UART0, A Stable, `/health` 200 avec TLS vérifié. Reset automatique désactivé (un appel sans argument l'a activé 9 s par
 erreur, sans reset ni écriture ; remis à `off`).
 

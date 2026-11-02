@@ -1,5 +1,8 @@
 # Premier démarrage vérifié sur matériel : protocole minimal proposé (#91)
 
+> **Document historique.** Il décrit le protocole du premier essai (30 octobre 2026). L'état courant des
+> qualifications, preuve par preuve, est dans [`verified-boot-evidence.md`](verified-boot-evidence.md).
+
 **État (30 octobre 2026).** P0, P1 et P2 ont été exécutés sur la carte de qualification et validés. Une première
 tentative de P3 a échoué (voir « Déroulé réel ») ; ce document décrit la **reprise de P3**, qui n'est pas
 exécutée. Chaque étape d'écriture exige une autorisation distincte ; arrêt à la première divergence. Il se lit
@@ -138,7 +141,7 @@ pas ce second étage, retour au mode téléchargement et restauration (P1).
 
 **P3, reprise : second étage vérifié.** Une seule variable change par rapport à P2 : le second étage.
 
-*P3-0, état initial (lecture seule).* Identité (MAC `9c:13:9e:ac:4e:8c`, flash 16 Mio), `/health` 200 en TLS
+*P3-0, état initial (lecture seule).* Identité (MAC `<masquée>`, flash 16 Mio), `/health` 200 en TLS
 vérifié, démarrage `running ota_0 status Stable`. Lectures ciblées `0x0`–`0x9000` et `0x10000`–`0x15000` : tout
 doit être égal à la référence P2. Pas de sauvegarde de 16 Mio. Arrêt à la moindre différence.
 
@@ -240,5 +243,6 @@ autorisation.
 
 ## Hors périmètre
 
-Corruption d'un slot, preuve effacée ou altérée, rollback, coupures de courant sur matériel, ESP32-C3 matériel,
-Secure Boot V2 et eFuses, anti-rollback (#92).
+Hors périmètre de *ce premier essai* : corruption d'un slot, preuve effacée ou altérée, rollback, coupures de
+courant sur matériel, ESP32-C3 matériel, Secure Boot V2 et eFuses, anti-rollback (#92). Le rollback a été
+qualifié ensuite sur ESP32-S3 ; le reste n'est pas qualifié (`verified-boot-evidence.md`).

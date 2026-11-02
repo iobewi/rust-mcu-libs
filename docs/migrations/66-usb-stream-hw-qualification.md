@@ -22,7 +22,7 @@ l'observation du CSW hors limites avec phase de données viennent de `d5d61a2`.
 
 ## Banc
 
-- Carte : ESP32-S3 (QFN56) rev v0.2, flash 16 Mio, MAC `9c:13:9e:ac:4e:8c`.
+- Carte : ESP32-S3 (QFN56) rev v0.2, flash 16 Mio, MAC `<masquée>`.
 - UART : pont CH343, observé et piloté par le banc (page Web Serial, `bench_server.py`).
 - OTG : prise USB native (GPIO19/20) branchée sur un PC Windows, lecture du volume brut
   `\\.\D:` en administrateur. Le banc ne pilote pas ce port ; les débranchements ont

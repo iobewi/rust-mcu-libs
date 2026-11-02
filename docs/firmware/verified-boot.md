@@ -4,9 +4,20 @@ Une signature vérifiée à l'upload n'est pas un Secure Boot : les octets d'un 
 ensuite. Ce lot décide, **avant l'exécution** d'un slot, s'il porte encore une image authentique.
 Il s'appuie sur #90 (IAM1, clés épinglées) sans toucher à OTM1, OTSF ni BOOT v2.
 
-**État : implémenté et testé sur hôte. Le second étage vérifié ne tient pas dans les 32 Kio de la
-table historique sur ESP32-S3 ; il tient avec la table à `0x10000` (`flash-geometry.md`) et sur ESP32-C3
-avec la géométrie historique.** Rien n'a été installé sur une carte.
+**État : profil *logiciel* implémenté, testé sur hôte et qualifié sur matériel ESP32-S3
+(`verified-boot-evidence.md`). ESP32-C3 : compilation, liaison et gabarit de taille en CI, aucune
+qualification matérielle. Aucune racine matérielle (Secure Boot V2, eFuses, chiffrement de la flash) : le
+profil ne protège pas contre un attaquant qui réécrit le bootloader.** Le second étage vérifié ne tient pas
+dans les 32 Kio de la table historique sur ESP32-S3 ; il tient avec la table à `0x10000`
+(`flash-geometry.md`) et sur ESP32-C3 avec la géométrie historique.
+
+| | Statut |
+|---|---|
+| Fonctions implémentées | preuve IAP1, profils `UnsignedBoot`/`VerifiedBoot`, repli authentifié, longueur canonique (#104), écriture de la preuve à l'upload et `bootable` à l'activation |
+| Tests hôte | crates `bootauth`, `auth`, `image`, `boot`, `layout`, `update` ; CI `Firmware OTA CI` |
+| Tests matériels ESP32-S3 | refus de signature, de digest et de longueur ; repli ; upload, publication, refus d'activation, activation, confirmation, persistance ; rollback |
+| ESP32-C3 | compilation, liaison et gabarit seulement |
+| Hors périmètre | racine matérielle, anti-rollback persistant (#92), rotation et révocation des clés, RP2350, Teensy |
 
 ## Deux profils de boot
 
@@ -83,12 +94,17 @@ vérifie qu'elle ne peut jamais accepter ce que le décodage refuse.
 
 ## Taille
 
+Mesures de la CI (`.github/scripts/verified_boot.py`, SHA-256 de la ROM, console par défaut) sur la tête de
+#105 ; l'image **qualifiée sur matériel** est une construction du banc (console UART0) :
+
 | Second étage (octets) | ESP32-S3 | ESP32-C3 |
 |---|---|---|
-| Non signé | **30 016** | **23 008** |
-| Vérifié | **34 864** | **27 296** |
-| Région avant la table, géométrie historique (0x8000) | 32 768 : le vérifié dépasse de 2 096 | 32 768 : marge 5 472 |
-| Région avant la table, géométrie large (0x10000) | 65 536 (limite dure CI 61 440) : marge 26 576 | non utilisée |
+| Non signé (CI) | **29 984** | **23 072** |
+| Vérifié (CI) | **35 008** | **27 504** |
+| Vérifié, image qualifiée sur matériel | **34 976** (SHA-256 `a7e884a2d0057865565e51e7665ebaa497882f3a7f4f4cb3129878ef318667d1`) | non qualifié |
+| Région avant la table, géométrie historique (0x8000) | 32 768 : le vérifié dépasse de 2 240 | 32 768 : marge 5 264 |
+| Région avant la table, géométrie large (0x10000) | limite dure CI 61 440 : marge 26 432 | non utilisée |
+| Variante SHA-256 `esp-hal` / logicielle (CI, non qualifiées sur matériel) | 36 464 / 38 864 | 28 560 / 31 232 (marge 1 536 pour la logicielle) |
 
 Le choix retenu est de déplacer la table du S3 (`flash-geometry.md`) plutôt que de réduire le
 bootloader. Le gain mesuré de `opt-level = "z"`, de `optimize_for_size` et de la lecture du manifeste « en
@@ -105,7 +121,19 @@ tient pas) et bloque le vérifié S3 large.
   eFuse) est un profil distinct, non implémenté ici. Sur S3 elle exigerait un second étage ≤ 28 672 octets
   (secteur de signature de 4 Kio).
 * Le rejeu d'une ancienne image valablement signée (anti-rollback persistant : #92).
-* La rotation ou la révocation dynamique des clés.
+* La rotation ou la révocation dynamique des clés ; la gestion de la clé de signature de production n'est pas
+  définie (le banc utilise une clé de qualification) ; `min_security_version` n'est pas relevé.
+* Un attaquant disposant d'un accès physique : JTAG ou USB-JTAG actifs, flash externe réécrivable, flash non
+  chiffrée. Le bootloader vérifie puis relit les octets pour les charger : cette fenêtre n'est exploitable que
+  par un tel attaquant.
+* Une coupure d'alimentation : les écritures sont conçues pour être sûres (mot de validation écrit en dernier,
+  deux copies de `ota_meta`, tests hôte à chaque commande flash), mais **aucune coupure n'a été qualifiée sur
+  matériel** : ne pas déclarer « résistant aux coupures » (#92).
+* Un upload refusé ou interrompu **détruit le repli** : la preuve du slot inactif est effacée avant le premier
+  octet, puis l'image par blocs de 64 Kio ; l'appareil reste sans repli authentifiable jusqu'à une restauration.
+* Une application qui panique après confirmation (chien de garde désarmé) reste figée jusqu'à un cycle
+  d'alimentation.
+* Les résultats matériels ne valent que pour l'ESP32-S3 : ne rien en déduire pour ESP32-C3, RP2350 ou Teensy.
 
 ## La preuve suit l'image pendant un OTA
 
