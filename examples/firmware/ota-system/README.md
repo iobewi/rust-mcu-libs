@@ -119,11 +119,15 @@ python3 examples/firmware/ota-system/prepare.py --chip esp32s3 \
 ```
 
 La commande construit/lie bootloader et application, génère les images ESP avec
-header 4MB, contrôle la taille bootloader avant 0x8000, valide l'application aux
-deux offsets, génère une otadata initiale avec le **codec réel** et la table CSV.
+header 4MB (ou 16MB avec `--flash-size 16MB`), contrôle que le bootloader finit avant la table
+et que bootloader et application portent la même géométrie, valide l'application aux deux
+offsets lus dans la table CSV, génère une otadata initiale avec le **codec réel** et la table CSV.
 Elle ne contacte aucune carte. Résultats : `target/ota-system/<chip>/`.
-Utiliser `--chip esp32c3` pour C3. Les deux tables sont des profils explicites
-4 Mio minimum ; la bibliothèque découvre réellement les partitions.
+Utiliser `--chip esp32c3` pour C3. Les tables sont des profils explicites (4 Mio minimum, plus les
+deux tables 16 Mio de la carte S3 : `partitions-s3-16mb-legacy.csv` et `partitions-s3-16mb-wide.csv`) ;
+la bibliothèque découvre réellement les partitions. L'offset de la table vient de
+`ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET` (défaut 0x8000) et le script écrit dans
+`flash-plan.txt` les offsets, tailles et SHA-256 de ce qu'il faut flasher, tirés de la table.
 
 Pour une première installation volontaire sur une carte d'essai :
 
@@ -135,6 +139,8 @@ python3 -m esptool --chip esp32s3 --port /dev/ttyUSB0 write-flash \
   0xf000 target/ota-system/esp32s3/ota_meta.bin \
   0x20000 target/ota-system/esp32s3/app.bin \
   0x3c0000 target/ota-system/esp32s3/config.bin
+# Offsets above are the default 4 MiB profile; with another table offset or flash size, the
+# offsets to use are the ones listed in target/ota-system/<chip>/flash-plan.txt.
 ```
 
 Cette installation initialise explicitement ota_0 comme Valid. Elle remplace
@@ -217,3 +223,18 @@ garantie. Les coupures visant les commits ConfigSpace restent une campagne
 séparée ; un mount échoué n'efface jamais automatiquement les données.
 
 Campagne nominale : [procédure ConfigSpace/EKV et OTA A](../../../docs/config/issue-68-board-campaign.md).
+
+## Profil `signed-rsa` : preuve de démarrage maintenue par l'OTA (#91)
+
+`--features signed-rsa` exige une enveloppe IAM1 RSA-PSS 3072 (`X-Image-Manifest`, 614 caractères) à l'upload et à
+l'activation, vérifiée par la ROM, avec une clé épinglée à la compilation par `IOBEWI_OTA_SIGNING_RSA_KEY`
+(1552 chiffres hexadécimaux : `iap1_pack keyhex`). Pendant l'OTA l'appareil efface la preuve du slot inactif avant
+d'y toucher, la réécrit une fois l'image complète, la fait juger par le contrôle du boot, et refuse d'activer un
+slot dont la preuve n'est pas valide ; voir `docs/firmware/verified-boot.md`. `signed` (ECDSA P-256) et
+`signed-rsa` s'excluent ; `signed-rsa` n'existe pas avec `supervised`. Un second étage vérifié refuse les images
+d'un firmware sans `signed-rsa` (aucune preuve n'est écrite : sûr, mais inutilisable).
+
+```sh
+python3 examples/firmware/ota-system/client.py https://appareil image.bin deploy-2 --ca ca.pem \
+  --manifest image.env --activate
+```

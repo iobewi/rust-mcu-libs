@@ -10,7 +10,7 @@ pub enum DecodeError {
     Version,
     /// Algorithm identifier that is neither implemented nor reserved.
     Algorithm,
-    /// Reserved algorithm identifier (Ed25519, RSA-PSS): not implemented.
+    /// Reserved algorithm identifier (Ed25519): not implemented.
     UnsupportedAlgorithm,
     ImageFormat,
     Mcu,

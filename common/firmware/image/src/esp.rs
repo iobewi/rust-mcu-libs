@@ -117,6 +117,14 @@ pub struct Image {
 }
 
 impl Image {
+    /// Length in bytes of the image as this format defines it, from `part_offset` (where
+    /// [`validate`] started) to one past the last byte: header, segments, padding, checksum and the
+    /// trailing digest when present. This is the one definition of "the whole image": the boot stage
+    /// and the OTA upload both compare it with the length a signed proof covers (#104).
+    pub fn canonical_size(&self, part_offset: u32) -> Option<u32> {
+        self.end.checked_sub(part_offset)
+    }
+
     pub fn segments(&self) -> &[Segment] {
         &self.segments[..self.count]
     }

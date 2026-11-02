@@ -142,6 +142,14 @@ pub(crate) async fn activate_staged<S: MetadataStore, B: BootActivation>(
 pub trait SlotDigest {
     /// SHA-256 of the first `size` bytes of `target`.
     async fn slot_digest(&self, target: &str, size: u64) -> Result<Digest, ()>;
+
+    /// Whether the boot stage will accept what `target` holds, checked **before** the boot
+    /// entry is written. A platform whose bootloader demands a per-slot proof (verified boot)
+    /// runs the bootloader's own check here, so a slot whose proof is absent, partial, stale or
+    /// foreign is never made bootable. The default asks nothing more than the digest.
+    async fn slot_bootable(&self, _target: &str, _size: u64) -> Result<(), ()> {
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -164,6 +172,8 @@ pub enum ActivationError {
     DeploymentMismatch,
     /// The slot could not be read back for the authorization check.
     SlotUnreadable,
+    /// The boot stage would refuse this slot (its boot proof is not valid): not activated.
+    SlotNotBootable,
     Storage(MetadataError),
 }
 
@@ -300,6 +310,10 @@ impl<P: AuthProfile> OtaService<P> {
             self.profile
                 .check_binding(&proof, size, &actual)
                 .map_err(|_| ActivationError::Auth(AuthError::SlotDigestMismatch))?;
+            slots
+                .slot_bootable(&artifact.target, size)
+                .await
+                .map_err(|()| ActivationError::SlotNotBootable)?;
         }
         activate_staged(store, boot, deployment_id)
             .await

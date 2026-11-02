@@ -155,9 +155,7 @@ impl<'a, V: SignatureVerifier> SignatureRequired<'a, V> {
             if key.algorithm != V::ALGORITHM {
                 return Err(PolicyError::AlgorithmMismatch);
             }
-            if key.public_key.len() != key.algorithm.public_key_len()
-                || key.public_key.first() != Some(&0x04)
-            {
+            if !key.algorithm.key_shape_ok(key.public_key) {
                 return Err(PolicyError::BadKey);
             }
             if policy.keys[..i].iter().any(|other| other.id == key.id) {
@@ -211,21 +209,7 @@ impl<'a, V: SignatureVerifier> SignatureRequired<'a, V> {
                 VerifyError::BadKey => AuthError::InvalidKey,
             })?;
         // Only now is the manifest content trusted enough to be compared.
-        if manifest.image_format != self.policy.image_format {
-            return Err(AuthError::WrongImageFormat);
-        }
-        if manifest.mcu != self.policy.mcu {
-            return Err(AuthError::WrongMcu);
-        }
-        if manifest.product != self.policy.product {
-            return Err(AuthError::WrongProduct);
-        }
-        if !self.policy.hw_variants.contains(&manifest.hw_variant) {
-            return Err(AuthError::WrongVariant);
-        }
-        if manifest.security_version < self.policy.min_security_version {
-            return Err(AuthError::SecurityVersionTooLow);
-        }
+        self.policy.target().check(&manifest)?;
         if u64::from(manifest.size) != size {
             return Err(AuthError::SizeMismatch);
         }

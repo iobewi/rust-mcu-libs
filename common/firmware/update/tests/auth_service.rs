@@ -75,6 +75,22 @@ impl SlotDigest for Slot {
     }
 }
 
+/// A slot whose boot proof can be made valid or not.
+struct Gated {
+    slot: Slot,
+    bootable: Cell<bool>,
+    checks: Cell<u32>,
+}
+impl SlotDigest for Gated {
+    async fn slot_digest(&self, target: &str, size: u64) -> Result<Digest, ()> {
+        self.slot.slot_digest(target, size).await
+    }
+    async fn slot_bootable(&self, _: &str, _: u64) -> Result<(), ()> {
+        self.checks.set(self.checks.get() + 1);
+        if self.bootable.get() { Ok(()) } else { Err(()) }
+    }
+}
+
 const SIZE: u32 = 4096;
 const IMAGE: Digest = Digest([0xab; 32]);
 const OTHER: Digest = Digest([0xcd; 32]);
@@ -516,5 +532,32 @@ fn a_proof_from_another_policy_cannot_begin_or_publish() {
                 Err(ActivationError::Auth(AuthError::UnknownKey))
             );
         });
+    });
+}
+
+#[test]
+fn a_slot_the_boot_stage_would_refuse_is_never_activated() {
+    let key = signer(7);
+    let store = Store::default();
+    let boot = Boot::default();
+    let good = envelope(&key, IMAGE, 1);
+    signed(&[(&key, false)], 0, |service| {
+        publish_signed(service, &store, "d1", Some(&good), committed(IMAGE)).unwrap();
+        let slot = Gated {
+            slot: Slot::holding(IMAGE),
+            bootable: Cell::new(false),
+            checks: Cell::new(0),
+        };
+        // Valid signature, right digest, but no valid boot proof: refused before `Activating`
+        // is published and before the boot entry is touched.
+        assert_eq!(
+            ready(service.activate(&store, &boot, &slot, "d1", Some(&good))),
+            Err(ActivationError::SlotNotBootable)
+        );
+        assert_eq!((boot.activations.get(), stage_of(&store)), (0, "written"));
+        // Once the proof is valid, the same staged image activates.
+        slot.bootable.set(true);
+        assert!(ready(service.activate(&store, &boot, &slot, "d1", Some(&good))).is_ok());
+        assert_eq!((boot.activations.get(), slot.checks.get()), (1, 2));
     });
 }

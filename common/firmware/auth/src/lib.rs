@@ -20,9 +20,10 @@ pub mod verify;
 pub use error::{AuthError, DecodeError, PolicyError};
 pub use manifest::{
     Algorithm, Envelope, ImageFormat, KeyId, MAX_ENVELOPE, MAX_ENVELOPE_TEXT, Manifest, Mcu,
-    Product, decode_b64url, encode_b64url,
+    Product, RSA_PSS_3072_PUBLIC_KEY_LEN, RSA_PSS_3072_SIGNATURE_LEN, RawManifest, decode_b64url,
+    encode_b64url,
 };
-pub use policy::{KeyState, TrustPolicy, TrustedKey};
+pub use policy::{KeyState, Target, TrustPolicy, TrustedKey};
 pub use profile::{
     Admitted, AuthProfile, SignatureRequired, StagedClaim, Unsigned, UnsignedAllowed, UploadClaim,
 };

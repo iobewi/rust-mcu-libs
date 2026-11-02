@@ -6,7 +6,7 @@ existant, sans second moteur : `upload → écriture → SHA-256 → validation 
 l'image → autorisation → publication OTM1 → autorisation → activation`.
 
 Il authentifie ce que l'OTA **publie et active**. Ce n'est ni Secure Boot ni une
-vérification au démarrage (lot 2), ni un compteur anti-rollback persistant (#92),
+vérification au démarrage (lot 2, voir `verified-boot.md`), ni un compteur anti-rollback persistant (#92),
 ni une rotation de clés (lot 3).
 
 ## Deux profils, un seul moteur

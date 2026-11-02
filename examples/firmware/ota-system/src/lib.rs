@@ -44,6 +44,33 @@ pub const fn parse_public_key(hex: &str) -> [u8; 65] {
     out
 }
 
+/// RSA-3072 public key in Espressif's encoding (776 bytes: `n`, `e`, `rinv`, `mdash`, little-endian),
+/// as 1552 hex digits, from the build environment. A malformed value stops the build: there is no
+/// unsigned fallback.
+pub const fn parse_rsa_key(hex: &str) -> [u8; 776] {
+    let bytes = hex.as_bytes();
+    assert!(
+        bytes.len() == 1552,
+        "IOBEWI_OTA_SIGNING_RSA_KEY must be 1552 hex digits"
+    );
+    let mut out = [0u8; 776];
+    let mut i = 0;
+    while i < 776 {
+        out[i] = (nibble(bytes[2 * i]) << 4) | nibble(bytes[2 * i + 1]);
+        i += 1;
+    }
+    // A genuine 3072-bit modulus (odd, top bit set) and the exponent 65537.
+    assert!(
+        out[0] & 1 == 1 && out[383] & 0x80 != 0,
+        "not a 3072-bit modulus"
+    );
+    assert!(
+        out[384] == 0x01 && out[385] == 0x00 && out[386] == 0x01 && out[387] == 0x00,
+        "public exponent must be 65537"
+    );
+    out
+}
+
 /// Decimal `u32` from the build environment (the static security-version floor).
 pub const fn parse_u32(text: &str) -> u32 {
     let bytes = text.as_bytes();
@@ -94,6 +121,61 @@ mod tests {
         assert_eq!(decode_manifest_header("AA AA", &mut out), None);
         assert_eq!(decode_manifest_header("A", &mut out), None);
         assert_eq!(decode_manifest_header(&"A".repeat(700), &mut out), None);
+    }
+
+    #[test]
+    fn an_rsa_envelope_fits_the_request_header_path() {
+        // 76-byte manifest + 384-byte RSA-PSS signature = 460 bytes, 614 base64url characters:
+        // inside the envelope buffer, and well inside the 2048-byte HTTP request buffer even
+        // next to the other headers of an upload.
+        let raw = [0x5au8; 76 + 384];
+        let mut text = [0u8; iobewi_firmware_auth::MAX_ENVELOPE_TEXT];
+        let n = iobewi_firmware_auth::encode_b64url(&raw, &mut text).unwrap();
+        assert_eq!(n, 614);
+        let mut out = [0u8; iobewi_firmware_auth::MAX_ENVELOPE];
+        let decoded = decode_manifest_header(core::str::from_utf8(&text[..n]).unwrap(), &mut out);
+        assert_eq!(decoded, Some(460));
+        assert_eq!(&out[..460], &raw[..]);
+        let headers = "Authorization: Bearer ".len()
+            + 64
+            + "X-Deployment-ID: ".len()
+            + 64
+            + "X-Image-SHA256: ".len()
+            + 71
+            + "X-Image-Manifest: ".len()
+            + n
+            + 128;
+        assert!(headers < iobewi_http_server_buffer(), "{headers}");
+    }
+
+    /// `iobewi_http_server::HTTP_BUFFER_LEN`, restated: this host-only library does not link the
+    /// server. The firmware build asserts the real constant is at least this.
+    fn iobewi_http_server_buffer() -> usize {
+        2048
+    }
+
+    #[test]
+    fn rsa_key_parsing_is_const_and_strict() {
+        let mut good = [0u8; 776];
+        good[0] = 1;
+        good[383] = 0x80;
+        good[384..388].copy_from_slice(&65537u32.to_le_bytes());
+        let hex: std::string::String = good.iter().map(|b| std::format!("{b:02x}")).collect();
+        assert_eq!(parse_rsa_key(&hex), good);
+        for (what, edit) in [
+            ("even modulus", (0usize, 0u8)),
+            ("short modulus", (383, 0x00)),
+            ("exponent", (384, 0x03)),
+        ] {
+            let mut bad = good;
+            bad[edit.0] = edit.1;
+            let hex: std::string::String = bad.iter().map(|b| std::format!("{b:02x}")).collect();
+            assert!(
+                std::panic::catch_unwind(|| parse_rsa_key(&hex)).is_err(),
+                "{what}"
+            );
+        }
+        assert!(std::panic::catch_unwind(|| parse_rsa_key("00")).is_err());
     }
 
     #[test]

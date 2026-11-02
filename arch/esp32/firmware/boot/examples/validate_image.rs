@@ -20,7 +20,9 @@ fn main() {
             .trim_start_matches("0x"),
         16,
     )
-    .expect("hex slot size");
+    .expect("hex slot size")
+    // The last sector of a slot is its proof sector, never part of the image.
+    .saturating_sub(iobewi_firmware_layout::domain_a::PROOF_SECTOR_SIZE);
     struct Image {
         base: u32,
         bytes: std::vec::Vec<u8>,

@@ -5,8 +5,11 @@
 //! Functions here are intentionally policy-free. Slot selection, rollback,
 //! ConfigSpace ownership and firmware transactions remain in higher layers.
 
+pub mod geometry;
 pub mod raw;
 pub use raw::RawEntry;
+#[cfg(test)]
+extern crate std;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 mod runtime {
     use super::*;

@@ -14,12 +14,28 @@ pub const OTA0_SUBTYPE: u8 = 0x10;
 pub const OTA1_SUBTYPE: u8 = 0x11;
 pub const OTADATA_SUBTYPE: u8 = 0x00;
 pub const OTADATA_MIN_SIZE: u32 = 0x2000;
+/// The last sector of every application slot holds its boot proof (IAP1, see
+/// `iobewi-firmware-bootauth`). No image byte may ever be written there: the usable
+/// image capacity of a slot is its size minus this sector, whatever the boot profile.
+pub const PROOF_SECTOR_SIZE: u32 = 0x1000;
 
 /// Discovered partition table entry, without owning the flash driver.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Partition {
     pub offset: u32,
     pub size: u32,
+}
+
+impl Partition {
+    /// Bytes an image may occupy: the partition without its proof sector.
+    pub const fn usable_size(&self) -> u32 {
+        self.size.saturating_sub(PROOF_SECTOR_SIZE)
+    }
+
+    /// Flash offset of the proof sector (the last sector of the partition).
+    pub const fn proof_offset(&self) -> u32 {
+        self.offset + self.usable_size()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -124,6 +140,10 @@ pub fn discover(entries: &[Entry<'_>], flash_size: u32) -> Result<Layout, Layout
     if meta.size < OTADATA_MIN_SIZE {
         return Err(LayoutError::MetadataTooSmall);
     }
+    // A slot must hold at least one image sector besides its proof sector.
+    if a0.size <= PROOF_SECTOR_SIZE || a1.size <= PROOF_SECTOR_SIZE {
+        return Err(LayoutError::OutOfBounds);
+    }
     Ok(Layout {
         images: [a0, a1],
         otadata: meta,
@@ -220,5 +240,21 @@ mod tests {
         let mut e = standard();
         e[0].partition.offset = 0xffff0000;
         assert_eq!(discover(&e, u32::MAX), Err(LayoutError::Overflow));
+    }
+    #[test]
+    fn the_last_sector_of_a_slot_is_its_proof_sector() {
+        let p = Partition {
+            offset: 0x20000,
+            size: 0x1b0000,
+        };
+        assert_eq!(p.usable_size(), 0x1b0000 - PROOF_SECTOR_SIZE);
+        assert_eq!(p.proof_offset(), 0x20000 + 0x1b0000 - PROOF_SECTOR_SIZE);
+        assert_eq!(p.proof_offset() + PROOF_SECTOR_SIZE, p.offset + p.size);
+    }
+    #[test]
+    fn a_slot_without_room_for_an_image_sector_is_refused() {
+        let mut e = standard();
+        e[0].partition.size = PROOF_SECTOR_SIZE;
+        assert_eq!(discover(&e, 0x400000), Err(LayoutError::OutOfBounds));
     }
 }

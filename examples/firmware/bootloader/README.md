@@ -27,9 +27,13 @@ esp32s3. S3 linking requires Xtensa GCC on PATH.
 
 esptool 5.5.0 elf2image packages the ELF (ESP32-S3: `--flash-mode dio`, the default QIO
 image is not loadable by the ROM and the CI rejects it). Boot image is flashed at **0**, table
-at **0x8000**; do not use an ESP32 classic 0x1000 offset. The declarative CI
-esp32-bootloader profile links, packages, inspects the ESP checksum/footer and
-rejects empty images or images above 32768 bytes. Historical S3 ROM/cache/stack
+at the configured offset (**0x8000** by default, **0x10000** for the wide ESP32-S3 geometry, see
+`docs/firmware/flash-geometry.md`); do not use an ESP32 classic 0x1000 offset. The offset is
+`ESP_BOOTLOADER_ESP_IDF_CONFIG_PARTITION_TABLE_OFFSET`, the same variable the application build
+reads: set it for every binary of a flash. The declarative CI esp32-bootloader profile links,
+packages, inspects the ESP checksum/footer and checks the image against the limits of the
+geometry (`.github/scripts/esp_geometry.py`: the image must end before the table, carry the
+stamp of that geometry and fit its RAM windows). Historical S3 ROM/cache/stack
 link assertions remain. A 16MB packaging header tests encoding, not physical
 16MB qualification; downstream flashing needs the actual capacity/layout.
 
@@ -51,3 +55,43 @@ runtime/backend wiring.
 ## Console
 
 Diagnostics go through `iobewi-esp-console`'s primary console (UART0 by default, `IOBEWI_CONSOLE_PRIMARY`, features `console-*`), shared with the application and stamped in the image; the second stage links no logger. See `docs/firmware/console.md`.
+
+## Panic and backtrace
+
+What the second stage does on a panic today: `boot: PANIC` on the primary console (direct, stateless, no
+logger and no lock), then a spin loop. It prints neither the message nor the location (the file name of every
+panic site costs about 2.5 KiB of the image) and no backtrace. The ROM flash-boot watchdogs are cleared at
+entry, so a panic, like any `HALT`, leaves the board silent and halted: it does not reset. The panic line has
+been observed after `esp_hal::init`; a panic before it is not measured.
+
+A stack trace is a separate work item (`esp-backtrace` is not part of this image). Conditions to meet first:
+
+* **Code budget.** The linked verified profile leaves about 5.7 KiB of the 36 KiB code window (10.4 KiB for the
+  unsigned one, see `docs/firmware/flash-geometry.md`); a trace must fit there, or the window must grow
+  and be qualified on hardware.
+* **Panic path.** No allocation, no lock, no ring: the connector's direct path only, as now.
+* **Symbolisation offline.** Printed addresses mean something only against the ELF of the flashed image. The builds are
+  reproducible: keep the ELF with the SHA-256 of its binary.
+* **Unwinding.** What the walker needs from the stack and registers differs between Xtensa (ESP32-S3) and RISC-V
+  (ESP32-C3); neither is established here.
+* **Early panics.** Before `esp_hal::init` nothing can be assumed to print.
+
+## Diagnostic build (`diag-panic`)
+
+Off by default and never part of the nominal image (without the feature the image is byte for byte the
+same). Built to find out why the verified second stage printed `boot: PANIC` on the first hardware try
+(`docs/firmware/verified-boot-p3-diagnosis.md`):
+
+* after `boot: PANIC`, `boot: at <file> line <hex> col <hex>`;
+* on Xtensa, the runtime's user exception handler is replaced and prints
+  `boot: EXCEPTION cause=… pc=… ps=… a0=… sp=… vaddr=…` (decoded without `core::fmt`), then stops. A double
+  exception is routed to it by the runtime (a dedicated `__double_exception` replacement is dead code).
+
+The default handlers of the runtime panic too, so a plain `boot: PANIC` does not tell a Rust panic from a CPU
+exception or an unhandled interrupt. The cost is about 3.3 to 3.6 KiB of image (mostly the file names of the
+dependencies) and 0.6 to 0.7 KiB of code, which fits the 36 KiB code window of the verified profile. Not for a
+release image: it is meant to be flashed once, on the bench, and read on UART0.
+
+```sh
+python3 .github/scripts/verified_boot.py --chip esp32s3 --diag   # build and check the limits
+```

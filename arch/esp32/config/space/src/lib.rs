@@ -71,14 +71,15 @@ mod runtime {
             }
             let mut owner = flash.lock().await;
             let mut table = [0u8; iobewi_esp_partitions::TABLE_BUFFER_SIZE];
-            // Standard reference profile: second stage and table occupy 0..0x9000.
+            // Second stage and partition table occupy everything in front of the first
+            // partition (0..0x9000 for the historical table offset).
             // Validate the complete map and unique label before mutation.
             use iobewi_firmware_layout::{Entry, Region, Requirement};
             let mut regions =
                 [Region { offset: 0, size: 0 }; iobewi_esp_partitions::raw::MAX_LEN / 32 + 1];
             regions[0] = Region {
                 offset: 0,
-                size: 0x9000,
+                size: iobewi_esp_partitions::geometry::FIRST_PARTITION_MIN as usize,
             };
             let mut count = 1;
             iobewi_esp_partitions::for_each_entry(owner.storage(), &mut table, |entry| {

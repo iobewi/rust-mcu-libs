@@ -12,6 +12,7 @@ use iobewi_firmware_update::ArtifactStorage;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod ota_meta;
 pub mod partitions;
+pub mod proof;
 #[cfg(any(feature = "esp32c3", feature = "esp32s3"))]
 pub mod shared_flash;
 
