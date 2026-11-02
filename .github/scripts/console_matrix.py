@@ -61,7 +61,9 @@ def cases(chip):
     out.append(("application ring", APP, [chip, "console-ring"], ["--no-default-features"], None, None))
     out.append(("bootloader/application mismatch refused", BOOTLOADER, [chip, "console-none"],
                 ["--no-default-features"], None, "does not match the primary-* feature"))
-    return out
+    # The bootloader and application cases moved with the OTA sub-system to iobewi/rust-ota and run in its CI;
+    # the packages are not members of this workspace any more. Only the connector's own cases run here.
+    return [case for case in out if case[1] == CONNECTOR]
 
 def main():
     parser = argparse.ArgumentParser()
