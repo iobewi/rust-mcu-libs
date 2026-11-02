@@ -269,7 +269,13 @@ fn verified_plan(
                 map,
                 Verify::Structure,
             ) {
-                Ok(_) => Structure::Bootable,
+                // The canonical length comes from the image itself (header, segments, padding,
+                // checksum, optional digest), never from the manifest; it must be exactly what
+                // the proof signs.
+                Ok(image) => match image.canonical_size(part.offset) {
+                    Some(canonical_size) => Structure::Bootable { canonical_size },
+                    None => Structure::Refused(image_error_code(&image::ImageError::Truncated)),
+                },
                 Err(image::ImageError::Read) => Structure::Io,
                 Err(e) => Structure::Refused(image_error_code(&e)),
             }

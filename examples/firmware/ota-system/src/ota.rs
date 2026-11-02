@@ -433,7 +433,11 @@ impl<S: MetadataStore> Handler<'_, S> {
                     &iobewi_esp_boot::MEMORY_MAP,
                     Verify::Full,
                 )
-                .is_err()
+                // The boot stage demands that the signed length is the canonical length of the
+                // image; refuse here an image the bootloader would refuse after activation.
+                .map_or(true, |image| {
+                    image.canonical_size(partition.offset) != Some(params.total)
+                })
             {
                 return false;
             }

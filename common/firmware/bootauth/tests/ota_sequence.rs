@@ -137,7 +137,9 @@ fn a_power_cut_at_any_command_never_leaves_an_activatable_slot_without_its_proof
                 &verified(),
                 &mut flash,
                 SLOTS,
-                &mut |_| Structure::Bootable,
+                &mut |_| Structure::Bootable {
+                    canonical_size: IMAGE_LEN as u32,
+                },
                 &mut report,
             )
             .unwrap();

@@ -15,7 +15,12 @@ use crate::verdict::{Refusal, Verdict};
 /// The bootloader's own structure check of a slot (image header, segments, ...).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Structure {
-    Bootable,
+    /// `canonical_size` is the length of the image as its own format defines it (for instance
+    /// header, segments, padding, checksum and trailing digest), computed by the target adapter
+    /// from the image bytes alone, never from the manifest. A signed proof must cover exactly it.
+    Bootable {
+        canonical_size: u32,
+    },
     /// The bytes are not a bootable image (carries the bootloader's own reason code).
     Refused(u32),
     Io,
@@ -45,7 +50,7 @@ pub fn plan<P: BootPolicy, R: SlotRead>(
 ) -> Result<Plan, Interrupted> {
     let mut interrupted = false;
     let mut image_ok = |slot: u8| {
-        match structure(slot) {
+        let canonical_size = match structure(slot) {
             Structure::Io => {
                 interrupted = true;
                 report(slot, Outcome::Io);
@@ -55,9 +60,19 @@ pub fn plan<P: BootPolicy, R: SlotRead>(
                 report(slot, Outcome::Structure(code));
                 return false;
             }
-            Structure::Bootable => {}
-        }
+            Structure::Bootable { canonical_size } => canonical_size,
+        };
         match policy.admit(reader, slots[usize::from(slot)]) {
+            // A profile that signs a length must sign exactly the image: bytes the loader would
+            // load past the signed length, or signed bytes that are no image, are both refused.
+            Verdict::Authentic(authentic)
+                if authentic
+                    .signed_size()
+                    .is_some_and(|signed| signed != canonical_size) =>
+            {
+                report(slot, Outcome::Proof(Refusal::BadSize));
+                false
+            }
             Verdict::Authentic(_) => true,
             Verdict::Refused(refusal) => {
                 report(slot, Outcome::Proof(refusal));

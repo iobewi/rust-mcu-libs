@@ -37,7 +37,9 @@ fn run<P: BootPolicy>(
 }
 
 fn bootable(_: u8) -> Structure {
-    Structure::Bootable
+    Structure::Bootable {
+        canonical_size: 4000,
+    }
 }
 
 fn writes(plan: &iobewi_firmware_boot::Plan) -> Vec<Write> {
@@ -224,7 +226,9 @@ fn a_structure_read_error_is_an_interruption_and_a_structure_refusal_skips_the_p
             if slot == 1 {
                 Structure::Io
             } else {
-                Structure::Bootable
+                Structure::Bootable {
+                    canonical_size: 4000,
+                }
             }
         },
     );
@@ -238,7 +242,9 @@ fn a_structure_read_error_is_an_interruption_and_a_structure_refusal_skips_the_p
             if slot == 1 {
                 Structure::Refused(5)
             } else {
-                Structure::Bootable
+                Structure::Bootable {
+                    canonical_size: 4000,
+                }
             }
         },
     );

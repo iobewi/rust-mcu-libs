@@ -49,6 +49,17 @@ image n'y écrit : la capacité utile d'un slot est sa taille moins ce secteur, 
 
 * **Lien image ↔ preuve** : par le manifeste signé (taille et SHA-256 de l'image), pas par la position.
   Une preuve périmée ou recopiée d'un autre slot échoue à la comparaison du digest.
+* **Longueur signée = longueur canonique** (#104) : la taille du manifeste doit être **exactement** la
+  longueur de l'image telle que son propre format la définit, calculée par l'adaptateur de la cible à
+  partir des octets de l'image et jamais à partir du manifeste (ESP32 : `Image.end` moins l'offset du slot,
+  soit en-tête, segments, remplissage jusqu'à l'octet de somme de contrôle, puis le SHA-256 final de 32 octets
+  si l'en-tête l'indique). Le bootloader transmet cette longueur à la sélection (`Structure::Bootable
+  { canonical_size }`) ; toute différence, par défaut comme par excès, est refusée avec `BadSize`
+  (`reason 0x6e`), et l'upload OTA applique la même égalité (`end − offset == taille reçue`) pour ne pas
+  publier une image que le bootloader refuserait. Sans cette égalité, des octets chargés au-delà de la
+  plage hachée ne seraient pas authentifiés. Les octets après la fin canonique (résidus) ne sont jamais
+  chargés. Les profils qui ne signent aucune longueur (non signé) ne sont pas concernés. Le format IAP1
+  n'est pas modifié ; les preuves A″, B″ et les anciennes A/B satisfont l'égalité.
 * **Écriture** : effacer le secteur, programmer l'en-tête puis la charge, relire, et seulement alors
   programmer le mot de validation. Une coupure laisse un secteur vierge (`ProofAbsent`), un en-tête sans
   validation (`ProofTruncated`) ou l'enregistrement complet. Le mot de validation a des bits équilibrés :
