@@ -114,6 +114,9 @@ works in both repositories; here `FIRMWARE_OTA_DIRS` is empty and `test_discover
 and `esp_geometry.py` stay because the former imports the latter; the OTA-specific gates (bootloader image size,
 verified second stage, console matrix, signed profiles) run in rust-ota only.
 
+`console_matrix.py` stays and runs the cases of the generic connector crate `iobewi-esp-console` (job step
+`Console transport matrix`, when that crate is selected); the bootloader and application cases run in rust-ota.
+
 `iobewi-firmware-layout` and `iobewi-firmware-slots` stay here, as the generic `iobewi-esp-config-space` depends on
 them; rust-ota consumes them as git dependencies pinned by `rev`.
 
