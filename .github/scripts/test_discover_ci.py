@@ -7,64 +7,46 @@ names = set(packages)
 ota = {n for n, p in packages.items() if d.in_domain(p, "firmware-ota")}
 general = {n for n, p in packages.items() if d.in_domain(p, "general")}
 
-# Partition: every crate belongs to exactly one domain.
-assert ota | general == names and not ota & general
+# Partition: the firmware/OTA sub-system moved to iobewi/rust-ota; every crate here is general.
+assert general == names and not ota
 assert {n for n, p in packages.items() if d.in_domain(p, "all")} == names
-# Pinned so the OTA perimeter cannot silently shrink or drift.
-assert ota == {
-    "iobewi-firmware-image", "iobewi-firmware-auth", "iobewi-firmware-bootauth", "iobewi-firmware-layout", "iobewi-firmware-slots",
-    "iobewi-firmware-boot", "iobewi-firmware-update", "iobewi-workload",
-    "iobewi-workload-abi", "iobewi-workload-image", "iobewi-workload-native",
-    "iobewi-esp-boot", "iobewi-esp-firmware-a", "iobewi-esp-firmware-storage",
-    "iobewi-esp-firmware-supervisor", "iobewi-esp-bootloader",
-    "example-firmware-ota-system", "example-firmware-ota-supervised",
-    "example-supervised-component", "iobewi-workload-pack",
-}, sorted(ota)
-# The two special OTA test suites must be reachable from the OTA domain.
-assert {"iobewi-firmware-boot", "iobewi-firmware-update"} <= ota
-print("Domain partition passed:", len(ota), "OTA +", len(general), "general")
+# iobewi-firmware-layout and iobewi-firmware-slots stay here: iobewi-esp-config-space depends on them, and
+# rust-ota consumes them as git dependencies.
+assert {"iobewi-firmware-layout", "iobewi-firmware-slots", "iobewi-esp-config-space"} <= general
+print("Domain partition passed:", len(general), "general crates, firmware/OTA domain empty")
 
-def split(changed, base=None):
-    chosen = d.select(changed, packages, reverse, base)
-    return chosen & ota, chosen & general
+def check(label, changed, want, base=None):
+    got = d.select(changed, packages, reverse, base)
+    assert bool(got) == want, (label, sorted(got))
+    print(f"ok  {label}: {len(got)}")
+    return got
 
-def check(label, changed, want_ota, want_general, base=None):
-    got_ota, got_general = split(changed, base)
-    assert bool(got_ota) == want_ota and bool(got_general) == want_general, (label, sorted(got_ota), sorted(got_general))
-    print(f"ok  {label}: OTA={len(got_ota)} general={len(got_general)}")
-    return got_ota, got_general
-
-check("OTA crate only", ["common/firmware/update/src/lib.rs"], True, False)
-check("OTA example only", ["examples/firmware/ota-system/src/main.rs"], True, False)
-check("non-OTA crate only", ["common/state/src/lib.rs"], False, True)
-o, g = check("shared dependency (net-io)", ["common/net/io/src/lib.rs"], True, True)
-check("crypto library used by OTA", ["common/crypto/core/src/lib.rs"], True, True)
-o, g = check("ESP32 flash", ["arch/esp32/flash/src/lib.rs"], True, True)
-assert {"iobewi-esp-config-space", "example-config-manager"} <= g and "iobewi-esp-firmware-storage" in o
-check("OTA and non-OTA together", ["common/firmware/update/src/lib.rs", "common/state/src/lib.rs"], True, True)
-check("no change", [], False, False)
+check("one crate only", ["common/state/src/lib.rs"], True)
+check("shared dependency (net-io)", ["common/net/io/src/lib.rs"], True)
+got = check("layout is consumed by the config adapter", ["common/firmware/layout/src/lib.rs"], True)
+assert {"iobewi-firmware-layout", "iobewi-esp-config-space"} <= got
+got = check("ESP32 flash", ["arch/esp32/flash/src/lib.rs"], True)
+assert {"iobewi-esp-config-space", "example-config-manager"} <= got
+check("no change", [], False)
 
 # Workspace manifest: member list untouched -> nothing; other keys -> everything.
 with patch.object(d, "workspace_members_only", return_value=True):
-    check("Cargo.toml members unchanged", ["Cargo.toml"], False, False, base="HEAD")
+    check("Cargo.toml members unchanged", ["Cargo.toml"], False, base="HEAD")
 with patch.object(d, "workspace_members_only", return_value=False):
-    check("Cargo.toml dependencies changed", ["Cargo.toml"], True, True, base="HEAD")
+    assert check("Cargo.toml dependencies changed", ["Cargo.toml"], True, base="HEAD") == names
 
-# Global CI tooling and unknown root files validate both domains in full.
-for path in (".github/scripts/discover_ci.py", ".github/workflows/firmware-ota.yml", "Cargo.lock", "AGENTS.md", "unknown-root-file"):
-    got = split([path])
-    assert got == (ota, general), path
-print("ok  CI tooling / global / unknown files select both domains in full")
+# Global CI tooling and unknown root files validate everything.
+for path in (".github/scripts/discover_ci.py", ".github/workflows/rust-mcu.yml", "Cargo.lock", "AGENTS.md", "unknown-root-file"):
+    assert d.select([path], packages, reverse) == names, path
+print("ok  CI tooling / global / unknown files select everything")
 
 # Full mode is fail-closed: an empty domain is an error, never a green no-op.
-for domain in ("firmware-ota", "general"):
-    result, selected, count = d.discover(full=True, domain=domain)
-    assert result["include"] and selected and count == len(selected)
-with patch.object(d, "FIRMWARE_OTA_DIRS", ("nonexistent/",)):
-    try:
-        d.discover(full=True, domain="firmware-ota")
-    except ValueError:
-        print("ok  empty domain rejected")
-    else:
-        raise AssertionError("empty domain accepted")
+result, selected, count = d.discover(full=True, domain="general")
+assert result["include"] and selected and count == len(selected)
+try:
+    d.discover(full=True, domain="firmware-ota")
+except ValueError:
+    print("ok  the firmware/OTA domain owns nothing here and is rejected")
+else:
+    raise AssertionError("empty firmware/OTA domain accepted")
 print("Selection scenarios passed")

@@ -10,6 +10,13 @@ We do not aim to replace the Rust embedded ecosystem, wrap every dependency behi
 
 > **Use the bricks. Build only the missing piece. Keep the application in control.**
 
+
+> **Related repository — OTA.** The verified boot and authenticated A/B update sub-system was extracted to
+> [`iobewi/rust-ota`](https://github.com/iobewi/rust-ota) (source commit `59f3b83`, qualified tag
+> `verified-boot-s3-qualified`; history of PRs #101 and #105 and of issues #91 and #104 stays here). The generic
+> libraries in this repository (flash, TLS, HTTP, Wi-Fi, configuration, logging) are consumed by rust-ota as git
+> dependencies. `iobewi-firmware-layout` and `iobewi-firmware-slots` remain here.
+
 ## Philosophy
 
 ### 1. Reuse before writing

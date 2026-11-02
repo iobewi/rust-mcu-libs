@@ -10,12 +10,10 @@ import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ALLOWED = {"esp32s3", "host", "esp32", "esp32-bins", "host-esp32", "esp32-bootloader", "esp32-linked-bins", "host-esp32-linked-bins", "host-esp32s3-linked-bins"}
-# Validation domains partition the workspace: firmware/OTA packages are
-# identified by directory (plus the component packer, whose only dependencies are
-# firmware crates), everything else is "general". Selection (including
-# reverse dependencies) is always computed on the whole workspace and only then
-# split, so a shared dependency change selects consumers in both domains.
-FIRMWARE_OTA_DIRS = ("common/firmware/", "arch/esp32/firmware/", "examples/firmware/", "tools/component-pack")
+# Validation domains partition the workspace. The firmware/OTA sub-system now lives in iobewi/rust-ota, so no
+# directory of this repository belongs to the firmware/OTA domain any more: every crate is "general". The domain
+# switch is kept so the same script and workflows work unchanged in both repositories.
+FIRMWARE_OTA_DIRS = ()
 DOMAINS = ("all", "firmware-ota", "general")
 GLOBAL = {".github/", "Cargo.lock", "rust-toolchain.toml", ".cargo/", "AGENTS.md", "ARCHITECTURE.md"}
 
