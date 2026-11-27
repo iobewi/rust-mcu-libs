@@ -30,6 +30,16 @@ async fn wifi_task(
 pub fn boot(mode: crate::app::Mode) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
     iobewi_log::install(iobewi_esp_console::console_print, "example_wifi_modes");
+    #[cfg(feature = "association-diagnostic")]
+    {
+        let mut policy = iobewi_log::default_policy("example_wifi_modes").unwrap();
+        policy
+            .add_target("iobewi_esp_wifi", iobewi_log::LevelFilter::Debug)
+            .unwrap();
+        // Start with radio warnings; enable more verbose upstream traces only
+        // after reviewing their contents for credentials.
+        iobewi_log::apply_policy(policy);
+    }
     esp_alloc::heap_allocator!(size: 96 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
