@@ -19,7 +19,7 @@
 extern crate alloc;
 
 mod connection;
-use connection::Connection;
+use connection::{Connection, network_ready};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -166,10 +166,13 @@ impl<const SOCKETS: usize, const AP_SOCKETS: usize> WifiManager<SOCKETS, AP_SOCK
     /// `embassy_net::Stack`.
     pub fn network_handle(&self) -> Option<Stack<'static>> {
         let radio = self.radio.as_ref()?;
-        if !radio.controller.is_connected() || !radio.stack.is_link_up() {
+        if !network_ready(
+            radio.controller.is_connected(),
+            radio.stack.is_link_up(),
+            radio.stack.is_config_up(),
+        ) {
             return None;
         }
-        radio.stack.config_v4()?;
         Some(radio.stack)
     }
 
@@ -315,8 +318,19 @@ impl<const SOCKETS: usize, const AP_SOCKETS: usize> WifiManager<SOCKETS, AP_SOCK
             // double the time the access point is disturbed by a failing join.
             .with_failure_retry_cnt(0);
         // Also abort an unfinished native association left by cancellation.
+        // If native cleanup fails, restore the last requested mode before
+        // retrying cleanup. A stopped controller must not block set_config.
         if !Self::disconnect_station(radio).await {
-            return false;
+            let recovery = match access_point.as_ref() {
+                Some(ap) => Config::AccessPointStation(radio.station.clone(), ap.clone()),
+                None => Config::Station(radio.station.clone()),
+            };
+            if radio.controller.set_config(&recovery).is_err()
+                || !Self::disconnect_station(radio).await
+            {
+                warn!("Wi-Fi: station recovery failed");
+                return false;
+            }
         }
         if with_timeout(DISCONNECT_TIMEOUT, radio.stack.wait_config_down())
             .await
@@ -365,10 +379,11 @@ impl<const SOCKETS: usize, const AP_SOCKETS: usize> WifiManager<SOCKETS, AP_SOCK
             Self::disconnect_station(radio).await;
             return false;
         }
-        if !radio.controller.is_connected()
-            || !radio.stack.is_link_up()
-            || !radio.stack.is_config_up()
-        {
+        if !network_ready(
+            radio.controller.is_connected(),
+            radio.stack.is_link_up(),
+            radio.stack.is_config_up(),
+        ) {
             warn!("Wi-Fi: association lost before IPv4 readiness");
             Self::disconnect_station(radio).await;
             return false;
@@ -411,7 +426,17 @@ impl<const SOCKETS: usize, const AP_SOCKETS: usize> WifiTransport
 
     async fn wait_down(&mut self) {
         if let Some(radio) = self.radio.as_ref() {
-            radio.stack.wait_config_down().await;
+            if network_ready(
+                radio.controller.is_connected(),
+                radio.stack.is_link_up(),
+                radio.stack.is_config_up(),
+            ) {
+                let _ = select(
+                    radio.controller.wait_for_disconnect_async(),
+                    select(radio.stack.wait_link_down(), radio.stack.wait_config_down()),
+                )
+                .await;
+            }
         }
     }
 
