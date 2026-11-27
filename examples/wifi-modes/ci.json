@@ -1,3 +1,6 @@
 {
-  "profile": "esp32-bins"
+  "profile": "esp32-bins",
+  "features": [
+    "association-diagnostic"
+  ]
 }

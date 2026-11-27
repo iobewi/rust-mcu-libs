@@ -5,7 +5,7 @@
 //! Owns only Wi-Fi/network mechanics:
 //!
 //! - lazy radio initialization;
-//! - station scans with strongest-SSID/BSSID selection;
+//! - provisioning scans and native station AP selection;
 //! - association;
 //! - DHCP;
 //! - Embassy network runner;
@@ -326,6 +326,8 @@ impl<const SOCKETS: usize, const AP_SOCKETS: usize> WifiManager<SOCKETS, AP_SOCK
             return false;
         }
 
+        // esp-radio compares native STA configuration before writing it. Keep
+        // set_config as the recovery path if a previous call stopped the radio.
         let mode = match access_point {
             Some(access_point) => Config::AccessPointStation(config.clone(), access_point),
             None => Config::Station(config.clone()),
@@ -342,10 +344,10 @@ impl<const SOCKETS: usize, const AP_SOCKETS: usize> WifiManager<SOCKETS, AP_SOCK
                 match &error {
                     ConnectionError::Failed(info) => {
                         warn!("Wi-Fi: connection to {ssid} failed: {:?}", info.reason);
-
                     }
                     other => warn!("Wi-Fi: connection to {ssid} failed: {other:?}"),
                 }
+                Self::disconnect_station(radio).await;
                 return false;
             }
             Err(_) => {
