@@ -28,10 +28,35 @@ where
         let ssid = option_env!("IOBEWI_STA_SSID").expect("Set IOBEWI_STA_SSID at build time");
         let password =
             option_env!("IOBEWI_STA_PASSWORD").expect("Set IOBEWI_STA_PASSWORD at build time");
+        #[cfg(not(feature = "association-diagnostic"))]
         assert!(
             wifi.connect(ssid, String::from(password)).await,
             "STA join/DHCP failed"
         );
+        #[cfg(feature = "association-diagnostic")]
+        {
+            let mut connected = false;
+            for attempt in 1..=2 {
+                let start = embassy_time::Instant::now();
+                log::info!(target: "example_wifi_modes", "STA attempt {attempt} start");
+                connected = wifi.connect(ssid, String::from(password)).await;
+                log::info!(
+                    target: "example_wifi_modes",
+                    "STA attempt {attempt} result={connected} elapsed_ms={}",
+                    start.elapsed().as_millis()
+                );
+                if connected {
+                    break;
+                }
+                if attempt == 1 {
+                    embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
+                }
+            }
+            if !connected {
+                log::warn!(target: "example_wifi_modes", "STA diagnostic exhausted");
+                core::future::pending::<()>().await;
+            }
+        }
         assert!(wifi.is_online());
         assert!(wifi.ip().is_some());
         if matches!(mode, Mode::ApSta) {

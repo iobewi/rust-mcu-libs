@@ -52,3 +52,25 @@ cargo +esp build --release -p example-wifi-modes --bin wifi-apsta --features esp
 5. Rebuild for both C3 and S3, then repeat appropriate hardware tests.
 
 **Status:** source-only reference examples; no Cargo builds or physical radio/DHCP acceptance has been performed in this migration session. A build alone does not prove that client DHCP works. Existing source has assertions but no operational console trace backend; hardware validation must include suitable diagnostics.
+
+## Association diagnostic (issue #113)
+
+Use the existing STA example with `esp32s3,association-diagnostic` features.
+The diagnostic makes at most two calls to the transport in the same boot,
+with a one-second delay after the first failure. It logs each result and
+elapsed time and remains idle after two failures instead of panicking.
+The ordinary example behavior is unchanged without the feature.
+
+```sh
+cargo +esp build --release -p example-wifi-modes --bin wifi-sta --features esp32s3,association-diagnostic --target xtensa-esp32s3-none-elf
+```
+
+Use the same board and AP as the product campaign. Record the source SHA,
+resolved Cargo dependencies (do not commit Cargo.lock), board identity,
+reset type, per-attempt result, radio reason, DHCP result and TX warnings.
+Collect reset and cold-boot runs separately. Use test credentials; redact
+SSID, addresses and secrets from shared logs. Credentials are embedded in
+the binary: do not publish a binary built with private credentials.
+The existing transport logs association errors and DHCP timeouts separately;
+its successful result includes DHCP. A native esp-radio comparison is a
+follow-up only if the anomaly reproduces. No root cause is asserted.

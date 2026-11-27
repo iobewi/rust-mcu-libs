@@ -2,6 +2,11 @@
 extern crate alloc;
 use alloc::string::String;
 
+/// IPv4 availability is not evidence of a live radio association.
+pub(crate) fn network_ready(associated: bool, link_up: bool, configured: bool) -> bool {
+    associated && link_up && configured
+}
+
 #[derive(Default)]
 pub(crate) struct Connection(Option<(String, String)>);
 
@@ -14,9 +19,7 @@ impl Connection {
         ssid: &str,
         password: &str,
     ) -> bool {
-        associated
-            && link_up
-            && configured
+        network_ready(associated, link_up, configured)
             && self
                 .0
                 .as_ref()
@@ -35,6 +38,20 @@ impl Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn network_readiness_requires_all_three_independent_conditions() {
+        for associated in [false, true] {
+            for link_up in [false, true] {
+                for configured in [false, true] {
+                    assert_eq!(
+                        network_ready(associated, link_up, configured),
+                        (associated, link_up, configured) == (true, true, true)
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn unchanged_credentials_reuse_only_a_live_configured_association() {
